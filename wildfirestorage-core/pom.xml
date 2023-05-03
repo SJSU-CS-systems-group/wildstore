@@ -59,7 +59,7 @@
                         <configuration>
                             <classifier>spring-boot</classifier>
                             <mainClass>
-                                com.sjsu.wildfirestorage.App
+                                com.sjsu.wildfirestorage.WildfireFilesCrawler
                             </mainClass>
                         </configuration>
                     </execution>
