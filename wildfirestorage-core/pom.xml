@@ -55,7 +55,7 @@
                             <goal>repackage</goal>
                         </goals>
                         <configuration>
-                            <classifier>spring-boot</classifier>
+                            <classifier>netcdf</classifier>
                             <mainClass>
                                 com.sjsu.wildfirestorage.WildfireFilesCrawler
                             </mainClass>

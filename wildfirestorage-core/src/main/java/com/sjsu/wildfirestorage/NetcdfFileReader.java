@@ -44,10 +44,11 @@ public class NetcdfFileReader {
 
     public void readGlobalAttributes() {
         List<Attribute> attributes = this.netcdfFile.getGlobalAttributes();
-        System.out.println("Global attributes are: " + attributes);
+        // System.out.println("Global attributes are: " + attributes);
 
         this.processedAttributes = processAttributes(attributes);
-        System.out.println(this.processedAttributes);   // Logging for debug purposes
+        System.out.println("Number of Global attributes: " + this.processedAttributes.size());   // Logging for debug purposes
+        System.out.println("Printing fist global attribute: " + this.processedAttributes.get(0));
     }
 
     // Record to store processed attributes
@@ -55,7 +56,7 @@ public class NetcdfFileReader {
 
     public void readVariables() {
         List<Variable> variables = netcdfFile.getVariables();
-        System.out.println("Variables from file: " + variables);
+        // System.out.println("Variables from file: " + variables);
 
         List<ProcessedVariable> processedVariables = new ArrayList<>();
         for (Variable variable : variables) {
@@ -83,6 +84,8 @@ public class NetcdfFileReader {
             processedVariables.add(new ProcessedVariable(variableName, varDimensions, attributes, variable.getDataType(), data));
         }
         this.processedVariables = processedVariables;
+        System.out.println("Number of variables read: " + processedVariables.size());
+        // System.out.println("Printing first variable: " + processedVariables.get(0));
     }
 
     /**
