@@ -40,11 +40,14 @@ public class NetcdfFileReader {
         }
 
         // @Todo: Try to read the date from the file metadata
-        // System.out.println(this.netcdfFile.getDetailInfo());
+//         System.out.println(this.netcdfFile.getDetailInfo());
 
         readGlobalAttributes();
 
         readVariables();
+
+//        double[] winds = findWind(netcdfFile); //Need to first check if U and V are in file
+
     }
 
     public void readGlobalAttributes() {
@@ -107,6 +110,14 @@ public class NetcdfFileReader {
     record ProcessedVariable(String name, List<ProcessedVariable.VarDimension> dimensions, List<ProcessedAttribute> attributes, DataType dataType, Array data) {
         record VarDimension(String name, int value) {}
     }
+
+    /**
+     * Calculates the windspeed from the U and V vectors, returns an array of 8 directions in order of ("North",
+     * "North East", "East", "South East", "South", "South West", "West", "North West") with 3 values each of min,
+     * max, avg
+     * @param ncfile NetCDFFile being processes (@Todo can be changed to send Variables and Stagger Dimensions)
+     * @return double[] Array of 8 directions min, max, avg speeds
+     */
     private static double[] findWind(NetcdfFile ncfile) {
         //Wind
         Variable u = ncfile.findVariable("U");
@@ -177,6 +188,7 @@ public class NetcdfFileReader {
         for (int i = 0; i < 8; i++)
         {
             windSpeedAvg[i] = windSpeedSum[i]/windSpeedCount[i];
+
             windSpeeds[i*3] = windSpeedMin[i];
             windSpeeds[i*3+1] = windSpeedMax[i];
             windSpeeds[i*3+2] = windSpeedAvg[i];
@@ -184,6 +196,13 @@ public class NetcdfFileReader {
         }
         return windSpeeds;
     }
+
+    /**
+     * Calculates the start and finish date based on the Times Variable. Returns a 2-element array of Dates with
+     * first element being start date and second element being finish date
+     * @param time Variable Time from NetCDFFile
+     * @return Date[] Array of 2 element (Start Date, Finish Date)
+     */
     private static Date[] findTime(Variable time)
     {
 
@@ -240,6 +259,14 @@ public class NetcdfFileReader {
         return new Date[]{date1, date2};
     }
 
+    /**
+     * Calculates a Polygon object from the corners of the minimum and maximum XLAT, XLONG variables.
+     * @param latMin Latitude Minimum
+     * @param latMax Latitude Maximum
+     * @param lonMin Longitude Minimum
+     * @param lonMax Longitude Maximum
+     * @return Polygon GeoJSON Object of corners (@Todo: Can be changed to Feature)
+     */
     private Polygon calculateCorners(float latMin, float latMax, float lonMin, float lonMax)
     {
         Position topLeft = new Position(latMin, lonMin);
