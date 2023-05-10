@@ -8,7 +8,11 @@ import ucar.nc2.NetcdfFile;
 import ucar.nc2.Variable;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Calendar;
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -158,8 +162,7 @@ public class NetcdfFileReader {
 
         int uIndex = 0;
         int vIndex = 0;
-        for (int i = 0; i < arraySize; i++)
-        {
+        for (int i = 0; i < arraySize; i++) {
 //				System.out.print(i + "\t" +uIndex + "\t" + vIndex + "\t" + uData.getFloat(uIndex) + "\t"+vData.getFloat(vIndex) +"\t");
             double uUnstag = 0.5 * (uData.getFloat(uIndex) + uData.getFloat(uIndex+1));
             double vUnstag = 0.5 * (vData.getFloat(vIndex) + vData.getFloat(vIndex + west_east_dim));
@@ -185,8 +188,7 @@ public class NetcdfFileReader {
 //				System.out.println(windSpeed + "\t" + uUnstag + "\t" + vUnstag);
         }
         double[] windSpeeds = new double[24];
-        for (int i = 0; i < 8; i++)
-        {
+        for (int i = 0; i < 8; i++) {
             windSpeedAvg[i] = windSpeedSum[i]/windSpeedCount[i];
 
             windSpeeds[i*3] = windSpeedMin[i];
@@ -203,13 +205,11 @@ public class NetcdfFileReader {
      * @param time Variable Time from NetCDFFile
      * @return Date[] Array of 2 element (Start Date, Finish Date)
      */
-    private static Date[] findTime(Variable time)
-    {
+    private static Date[] findTime(Variable time) {
 
         int[] dim = time.getShape();
         Array uData;
-        try
-        {
+        try {
             uData = time.read();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -226,8 +226,7 @@ public class NetcdfFileReader {
         int time1Year=0, time1Month=0, time1Day = 0, time1Hour=0, time1Minute=0, time1Second=0;
         int time2Year=0, time2Month=0, time2Day=0, time2Hour=0, time2Minute=0, time2Second=0;
 
-        try
-        {
+        try {
             if(time1Matcher.find()) {
                 time1Year = Integer.parseInt(time1Matcher.group(1));
                 time1Month = Integer.parseInt(time1Matcher.group(2));
@@ -267,8 +266,7 @@ public class NetcdfFileReader {
      * @param lonMax Longitude Maximum
      * @return Polygon GeoJSON Object of corners (@Todo: Can be changed to Feature)
      */
-    private Polygon calculateCorners(float latMin, float latMax, float lonMin, float lonMax)
-    {
+    private Polygon calculateCorners(float latMin, float latMax, float lonMin, float lonMax) {
         Position topLeft = new Position(latMin, lonMin);
         Position topRight = new Position(latMin, lonMax);
         Position botRight = new Position(latMax, lonMax);
