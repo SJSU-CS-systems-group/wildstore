@@ -1,5 +1,6 @@
 wildfirestorage-common/target/
 wildfirestorage-core/target/
 wildfirestorage-spring/target/
-Wildfirestorage-core/idea/
+Wildfirestorage-core/.idea/
+.idea/
 

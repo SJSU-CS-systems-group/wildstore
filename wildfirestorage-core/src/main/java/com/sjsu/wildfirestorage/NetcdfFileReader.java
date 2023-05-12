@@ -1,41 +1,32 @@
 package com.sjsu.wildfirestorage;
 
+import com.mongodb.client.model.geojson.Polygon;
+import com.mongodb.client.model.geojson.PolygonCoordinates;
+import com.mongodb.client.model.geojson.Position;
 import ucar.ma2.Array;
-import ucar.ma2.DataType;
 import ucar.nc2.Attribute;
 import ucar.nc2.Dimension;
 import ucar.nc2.NetcdfFile;
 import ucar.nc2.Variable;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import com.mongodb.client.model.geojson.Position;
-import com.mongodb.client.model.geojson.Polygon;
-import com.mongodb.client.model.geojson.PolygonCoordinates;
 
 public class NetcdfFileReader {
     private final String netcdfFilepath;
 
     private NetcdfFile netcdfFile;
 
-    private List<ProcessedAttribute> processedAttributes;
-
-    private List<ProcessedVariable> processedVariables;
-
     public NetcdfFileReader(String netcdfFilepath) {
         this.netcdfFilepath = netcdfFilepath;
     }
 
     public void processFile() {
-        System.out.println("Processing file: " + netcdfFilepath);
-
         // Try and read the contents of the netCDF file
         try {
             this.netcdfFile = NetcdfFile.open(this.netcdfFilepath);
@@ -44,75 +35,106 @@ public class NetcdfFileReader {
         }
 
         // @Todo: Try to read the date from the file metadata
-//         System.out.println(this.netcdfFile.getDetailInfo());
 
-        readGlobalAttributes();
+        Metadata metadata = new Metadata();
+        metadata.fileName = netcdfFilepath.substring(netcdfFilepath.lastIndexOf('/')+1);
+        metadata.filePath = netcdfFilepath;
 
-        readVariables();
+        metadata.globalAttributes = readGlobalAttributes();
 
-//        double[] winds = findWind(netcdfFile); //Need to first check if U and V are in file
-
+        metadata.variables = readVariables();
     }
 
-    public void readGlobalAttributes() {
-        List<Attribute> attributes = this.netcdfFile.getGlobalAttributes();
-        System.out.println("Global attributes are: " + attributes);
+    public List<WildfireAttribute> readGlobalAttributes() {
 
-        this.processedAttributes = processAttributes(attributes);
-        System.out.println(this.processedAttributes);   // Logging for debug purposes
+        List<Attribute> attributes = this.netcdfFile.getGlobalAttributes();
+
+        return processAttributes(attributes);
     }
 
     // Record to store processed attributes
-    record ProcessedAttribute(String fullname, Array value, DataType dataType) {}
-
-    public void readVariables() {
+    public List<WildfireVariable> readVariables() {
         List<Variable> variables = netcdfFile.getVariables();
-        System.out.println("Variables from file: " + variables);
+//        System.out.println("Variables from file: " + variables);
 
-        List<ProcessedVariable> processedVariables = new ArrayList<>();
+        List<WildfireVariable> processedVariables = new ArrayList<>();
         for (Variable variable : variables) {
 
-            String variableName = variable.getFullName() != null ? variable.getFullName() : variable.getShortName();
-
+            String varName = variable.getFullName() != null ? variable.getFullName() : variable.getShortName();
             // Read dimensions of variable
-            List<ProcessedVariable.VarDimension> varDimensions = new ArrayList<>();
+            List<WildfireVariable.VarDimension> varDimensions = new ArrayList<>();
             for (Dimension dimension : variable.getDimensions()) {
                 String dimensionName = dimension.getFullName() != null ? dimension.getFullName() : dimension.getShortName();
-                varDimensions.add(new ProcessedVariable.VarDimension(dimensionName, dimension.getLength()));
+                varDimensions.add(new WildfireVariable.VarDimension(dimensionName, dimension.getLength()));
             }
 
-            List<ProcessedAttribute> attributes = processAttributes(variable.getAttributes());
+            List <WildfireAttribute> attrList = processAttributes(variable.getAttributes());
+
+            String variableType = variable.getDataType().toString();
+
+            WildfireVariable tempVar = new WildfireVariable();
 
             Array data = null;
+            float[] stats; //stats = [min, max, avg]
             // Read data from the variable
             try {
                 data = variable.read();
+                stats = floatRange(data); //@Todo: Need to adjust for chars
+
+                tempVar.minValue = stats[0];
+                tempVar.maxValue = stats[1];
+                tempVar.average = stats[2];
             } catch (IOException e) {
-                System.out.println("Failed to read data for variable: " + variableName);
+                System.out.println("Failed to read data for variable: " + varName);
                 continue;
             }
+            tempVar.variableName = varName;
+            tempVar.varDimensionList = varDimensions;
+            tempVar.attributeList = attrList;
+            tempVar.type = variableType;
 
-            processedVariables.add(new ProcessedVariable(variableName, varDimensions, attributes, variable.getDataType(), data));
+            processedVariables.add(tempVar);
         }
-        this.processedVariables = processedVariables;
+        return processedVariables;
     }
 
     /**
-     * This method processes attributes found in the NetcdfFile and returns a list of {@link ProcessedAttribute}
+     * This method processes attributes found in the NetcdfFile and returns a list of Wildfire Attributes
      */
-    private List<ProcessedAttribute> processAttributes(List<Attribute> attributes) {
-        List<ProcessedAttribute> attributeList = new ArrayList<>();
+    private List<WildfireAttribute> processAttributes(List<Attribute> attributes) {
+        List<WildfireAttribute> attributeList = new ArrayList<>();
         for (Attribute attribute : attributes) {
             // @Todo: If data is byte[], convert it to string
-            attributeList.add(new ProcessedAttribute(attribute.getFullName(), attribute.getValues(), attribute.getDataType()));
+            WildfireAttribute tempAttr = new WildfireAttribute();
+            tempAttr.attributeName = attribute.getFullName();
+            tempAttr.type = attribute.getDataType().toString(); //float, char, or int
+            //@Todo: Convert it to an java type array instead of object?
+            tempAttr.value = attribute.getValues().get1DJavaArray(attribute.getDataType().getPrimitiveClassType()); //Not sure if we want to keep this as an Array or convert
+            attributeList.add(tempAttr);
         }
 
-        this.processedAttributes = attributeList;
         return attributeList;
     }
 
-    record ProcessedVariable(String name, List<ProcessedVariable.VarDimension> dimensions, List<ProcessedAttribute> attributes, DataType dataType, Array data) {
-        record VarDimension(String name, int value) {}
+    /**
+     * @Todo: Need To Create different one for char types
+     * Returns the min, max, and avg of Array of data
+     * @param data Array data read from variable
+     * @return float[] min, max, avg of data
+     */
+    public static float[] floatRange(Array data) {
+        float max = -Float.MAX_VALUE;
+        float min = Float.MAX_VALUE;
+        float avg = 0;
+
+        for(int i = 0; i < data.getSize(); i++) {
+            max = Math.max(max, data.getFloat(i));
+            min = Math.min(min, data.getFloat(i));
+            avg += data.getFloat(i);
+        }
+        avg = avg/data.getSize();
+
+        return new float [] {min, max, avg};
     }
 
     /**
