@@ -4,6 +4,7 @@ import com.mongodb.client.model.geojson.Polygon;
 import com.mongodb.client.model.geojson.PolygonCoordinates;
 import com.mongodb.client.model.geojson.Position;
 import ucar.ma2.Array;
+import ucar.ma2.DataType;
 import ucar.nc2.Attribute;
 import ucar.nc2.Dimension;
 import ucar.nc2.NetcdfFile;
@@ -43,6 +44,45 @@ public class NetcdfFileReader {
         metadata.globalAttributes = readGlobalAttributes();
 
         metadata.variables = readVariables();
+
+        printAllData(metadata);
+    }
+    public void printAllData(Metadata metadata)
+    {
+        //Print Name and filepath
+        System.out.println("Filename: " + metadata.fileName);
+        System.out.println("FilePath: " + metadata.filePath);
+
+        //Print All Attributes
+        System.out.println("\nAttributes");
+        for (WildfireAttribute a : metadata.globalAttributes)
+        {
+            System.out.print(a.attributeName + "\t" + a.type + "\t");
+            if (a.type == DataType.INT)
+                System.out.println(Arrays.toString((int[]) a.value));
+            else if (a.type == DataType.FLOAT)
+                System.out.println(Arrays.toString((float[]) a.value));
+            else
+                System.out.println(Arrays.toString((Object[]) a.value));
+        }
+
+        //Print All Variables
+        System.out.println("\nVariables");
+        for (WildfireVariable v : metadata.variables)
+        {
+            System.out.println(v.variableName + "\t" + v.type + "\t" + v.minValue +"\t" + v.maxValue + "\t" + v.average);
+            for (WildfireAttribute a : v.attributeList)
+            {
+                System.out.print(a.attributeName + "\t" + a.type + "\t");
+                if (a.type == DataType.INT)
+                    System.out.println(Arrays.toString((int[]) a.value));
+                else if (a.type == DataType.FLOAT)
+                    System.out.println(Arrays.toString((float[]) a.value));
+                else
+                    System.out.println(Arrays.toString((Object[]) a.value));
+            }
+            System.out.println();
+        }
     }
 
     public List<WildfireAttribute> readGlobalAttributes() {
@@ -57,10 +97,12 @@ public class NetcdfFileReader {
         List<Variable> variables = netcdfFile.getVariables();
 //        System.out.println("Variables from file: " + variables);
 
+        //@Todo: Need to configure for special variables and attributes
         List<WildfireVariable> processedVariables = new ArrayList<>();
         for (Variable variable : variables) {
 
             String varName = variable.getFullName() != null ? variable.getFullName() : variable.getShortName();
+
             // Read dimensions of variable
             List<WildfireVariable.VarDimension> varDimensions = new ArrayList<>();
             for (Dimension dimension : variable.getDimensions()) {
@@ -70,16 +112,18 @@ public class NetcdfFileReader {
 
             List <WildfireAttribute> attrList = processAttributes(variable.getAttributes());
 
-            String variableType = variable.getDataType().toString();
+            DataType variableType = variable.getDataType();
 
             WildfireVariable tempVar = new WildfireVariable();
 
             Array data = null;
             float[] stats; //stats = [min, max, avg]
+            float fillValue = variable.findAttributeIgnoreCase("_fillvalue") != null ? (float) variable.findAttribute("_FillValue").getNumericValue() : Float.MAX_VALUE;
+            float missingValue = variable.findAttributeIgnoreCase("missing_value") != null ? (float) variable.findAttribute("missing_value").getNumericValue() : Float.MAX_VALUE;
             // Read data from the variable
             try {
                 data = variable.read();
-                stats = floatRange(data); //@Todo: Need to adjust for chars
+                stats = floatRange(data, fillValue, missingValue); //@Todo: Need to adjust for chars
 
                 tempVar.minValue = stats[0];
                 tempVar.maxValue = stats[1];
@@ -107,7 +151,7 @@ public class NetcdfFileReader {
             // @Todo: If data is byte[], convert it to string
             WildfireAttribute tempAttr = new WildfireAttribute();
             tempAttr.attributeName = attribute.getFullName();
-            tempAttr.type = attribute.getDataType().toString(); //float, char, or int
+            tempAttr.type = attribute.getDataType(); //float, char, or int
             //@Todo: Convert it to an java type array instead of object?
             tempAttr.value = attribute.getValues().get1DJavaArray(attribute.getDataType().getPrimitiveClassType()); //Not sure if we want to keep this as an Array or convert
             attributeList.add(tempAttr);
@@ -122,15 +166,20 @@ public class NetcdfFileReader {
      * @param data Array data read from variable
      * @return float[] min, max, avg of data
      */
-    public static float[] floatRange(Array data) {
+    public static float[] floatRange(Array data, float fillValue, float missingValue) {
         float max = -Float.MAX_VALUE;
         float min = Float.MAX_VALUE;
         float avg = 0;
 
         for(int i = 0; i < data.getSize(); i++) {
-            max = Math.max(max, data.getFloat(i));
-            min = Math.min(min, data.getFloat(i));
-            avg += data.getFloat(i);
+
+            float num = data.getFloat(i);
+            if (num != fillValue && num != missingValue)
+            {
+                max = Math.max(max, data.getFloat(i));
+                min = Math.min(min, data.getFloat(i));
+                avg += data.getFloat(i);
+            }
         }
         avg = avg/data.getSize();
 

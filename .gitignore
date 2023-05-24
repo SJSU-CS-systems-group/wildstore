@@ -3,4 +3,4 @@ wildfirestorage-core/target/
 wildfirestorage-spring/target/
 Wildfirestorage-core/.idea/
 .idea/
-
+.DS_Store
