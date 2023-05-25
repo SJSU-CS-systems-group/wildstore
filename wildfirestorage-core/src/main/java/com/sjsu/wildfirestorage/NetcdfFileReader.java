@@ -139,6 +139,17 @@ public class NetcdfFileReader {
 
             processedVariables.add(tempVar);
         }
+
+        //Special processing
+        Variable U = netcdfFile.findVariable("U");
+        Variable V = netcdfFile.findVariable("V");
+        if (U != null && V != null) {
+            int west_east_stag = netcdfFile.findDimension("west_east_stag").getLength();
+            int south_north_stag = netcdfFile.findDimension("south_north_stag").getLength();
+
+            processedVariables.addAll(findWind(U, V, west_east_stag, south_north_stag));
+        }
+
         return processedVariables;
     }
 
@@ -190,13 +201,13 @@ public class NetcdfFileReader {
      * Calculates the windspeed from the U and V vectors, returns an array of 8 directions in order of ("North",
      * "North East", "East", "South East", "South", "South West", "West", "North West") with 3 values each of min,
      * max, avg
-     * @param ncfile NetCDFFile being processes (@Todo can be changed to send Variables and Stagger Dimensions)
+     * @param u Variable u
+     * @param v Variable v
+     * @param west_east_stag Length of West to east dimension
+     * @param south_north_stag Length of South to north dimension
      * @return double[] Array of 8 directions min, max, avg speeds
      */
-    private static double[] findWind(NetcdfFile ncfile) {
-        //Wind
-        Variable u = ncfile.findVariable("U");
-        Variable v = ncfile.findVariable("V");
+    private static List<WildfireVariable> findWind(Variable u, Variable v, int west_east_stag, int south_north_stag) {
 
         Array uData = null;
         Array vData = null;
@@ -208,8 +219,6 @@ public class NetcdfFileReader {
         }
 
         // Get the shape of the arrays
-        int west_east_stag = ncfile.findDimension("west_east_stag").getLength();
-        int south_north_stag = ncfile.findDimension("south_north_stag").getLength();
         int west_east_dim = west_east_stag -1;
         int south_north_dim = south_north_stag -1;
 
@@ -219,8 +228,6 @@ public class NetcdfFileReader {
                 Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE};
         double [] windSpeedSum = new double[8];
         double [] windSpeedCount = new double[8];
-        double [] windSpeedAvg = new double[8];
-        String [] stringWindDir = {"North", "North East", "East", "South East", "South", "South West", "West", "North West"};
 
         int[] shape = uData.getShape();
         shape[shape.length-1]--; //Go from stag to unstag
@@ -258,13 +265,24 @@ public class NetcdfFileReader {
 
 //				System.out.println(windSpeed + "\t" + uUnstag + "\t" + vUnstag);
         }
-        double[] windSpeeds = new double[24];
-        for (int i = 0; i < 8; i++) {
-            windSpeedAvg[i] = windSpeedSum[i]/windSpeedCount[i];
 
-            windSpeeds[i*3] = windSpeedMin[i];
-            windSpeeds[i*3+1] = windSpeedMax[i];
-            windSpeeds[i*3+2] = windSpeedAvg[i];
+        String [] stringWindDir = {"North Wind", "North East Wind", "East Wind", "South East Wind", "South Wind", "South West Wind", "West Wind", "North West Wind"};
+        List<WildfireVariable> windSpeeds = new ArrayList<>();
+
+        for (int i = 0; i < stringWindDir.length; i++) {
+            WildfireVariable temp = new WildfireVariable();
+            temp.variableName = stringWindDir[i];
+            temp.type = DataType.FLOAT;
+
+            temp.maxValue = (float) windSpeedMax[i];
+            temp.minValue = (float) windSpeedMin[i];
+            temp.average = (float) (windSpeedSum[i]/windSpeedCount[i]);
+
+            temp.attributeList = new ArrayList<>();
+            temp.varDimensionList = new ArrayList<>();
+
+            windSpeeds.add(temp);
+
 //            System.out.printf("%10s\t%3.5f\t%3.5f\t%3.5f\n",stringWindDir[i], windSpeedMin[i], windSpeedMax[i], windSpeedAvg[i]);
         }
         return windSpeeds;
