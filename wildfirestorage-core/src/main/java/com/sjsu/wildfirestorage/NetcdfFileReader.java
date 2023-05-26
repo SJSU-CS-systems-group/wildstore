@@ -18,6 +18,10 @@ import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 public class NetcdfFileReader {
     private final String netcdfFilepath;
 
@@ -28,6 +32,7 @@ public class NetcdfFileReader {
     }
 
     public void processFile() {
+
         // Try and read the contents of the netCDF file
         try {
             this.netcdfFile = NetcdfFile.open(this.netcdfFilepath);
