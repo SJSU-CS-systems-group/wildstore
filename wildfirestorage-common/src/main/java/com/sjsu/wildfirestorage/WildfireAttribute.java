@@ -4,6 +4,6 @@ import ucar.ma2.DataType;
 
 public class WildfireAttribute {
     public String attributeName;
-    public DataType type;
+    public String type;
     public Object value;
 }

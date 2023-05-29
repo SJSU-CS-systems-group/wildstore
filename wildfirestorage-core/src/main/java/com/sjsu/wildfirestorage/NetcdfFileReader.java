@@ -18,10 +18,6 @@ import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
 public class NetcdfFileReader {
     private final String netcdfFilepath;
 
@@ -32,7 +28,6 @@ public class NetcdfFileReader {
     }
 
     public void processFile() {
-
         // Try and read the contents of the netCDF file
         try {
             this.netcdfFile = NetcdfFile.open(this.netcdfFilepath);
@@ -50,7 +45,44 @@ public class NetcdfFileReader {
 
         metadata.variables = readVariables();
 
-        printAllData(metadata);
+        //Special processing @Todo: Find a more efficient way to do this
+        //Wind
+        Variable U = netcdfFile.findVariable("U");
+        Variable V = netcdfFile.findVariable("V");
+        if (U != null && V != null) {
+            int west_east_stag = netcdfFile.findDimension("west_east_stag").getLength();
+            int south_north_stag = netcdfFile.findDimension("south_north_stag").getLength();
+
+            metadata.variables.addAll(findWind(U, V, west_east_stag, south_north_stag));
+        }
+        //Time
+        Variable times = netcdfFile.findVariable("Times");
+        if (times != null) {
+            metadata.globalAttributes.addAll(findTime(times));
+        }
+        //Corners
+        Variable xlat = netcdfFile.findVariable("XLAT");
+        Variable xlong = netcdfFile.findVariable("XLONG");
+        if (xlat != null && xlong != null) {
+            float xMin = 0, xMax = 0, yMin = 0, yMax = 0;
+            for (WildfireVariable v : metadata.variables) {
+                if (v.variableName.equals("XLAT")) {
+                    xMin = v.minValue;
+                    xMax = v.maxValue;
+                    break;
+                }
+            }
+            for (WildfireVariable v : metadata.variables) {
+                if (v.variableName.equals("XLONG")) {
+                    yMin = v.minValue;
+                    yMax = v.maxValue;
+                    break;
+                }
+            }
+            metadata.globalAttributes.add(calculateCorners(xMin, xMax, yMin, yMax));
+        }
+
+//        printAllData(metadata);
     }
     public void printAllData(Metadata metadata)
     {
@@ -63,11 +95,11 @@ public class NetcdfFileReader {
         for (WildfireAttribute a : metadata.globalAttributes)
         {
             System.out.print(a.attributeName + "\t" + a.type + "\t");
-            if (a.type == DataType.INT)
+            if (a.type.equalsIgnoreCase("int"))
                 System.out.println(Arrays.toString((int[]) a.value));
-            else if (a.type == DataType.FLOAT)
+            else if (a.type.equalsIgnoreCase("float"))
                 System.out.println(Arrays.toString((float[]) a.value));
-            else
+            else if (a.type.equalsIgnoreCase("string"))
                 System.out.println(Arrays.toString((Object[]) a.value));
         }
 
@@ -79,9 +111,9 @@ public class NetcdfFileReader {
             for (WildfireAttribute a : v.attributeList)
             {
                 System.out.print(a.attributeName + "\t" + a.type + "\t");
-                if (a.type == DataType.INT)
+                if (a.type.equalsIgnoreCase("int"))
                     System.out.println(Arrays.toString((int[]) a.value));
-                else if (a.type == DataType.FLOAT)
+                else if (a.type.equalsIgnoreCase("float"))
                     System.out.println(Arrays.toString((float[]) a.value));
                 else
                     System.out.println(Arrays.toString((Object[]) a.value));
@@ -145,16 +177,6 @@ public class NetcdfFileReader {
             processedVariables.add(tempVar);
         }
 
-        //Special processing
-        Variable U = netcdfFile.findVariable("U");
-        Variable V = netcdfFile.findVariable("V");
-        if (U != null && V != null) {
-            int west_east_stag = netcdfFile.findDimension("west_east_stag").getLength();
-            int south_north_stag = netcdfFile.findDimension("south_north_stag").getLength();
-
-            processedVariables.addAll(findWind(U, V, west_east_stag, south_north_stag));
-        }
-
         return processedVariables;
     }
 
@@ -167,7 +189,7 @@ public class NetcdfFileReader {
             // @Todo: If data is byte[], convert it to string
             WildfireAttribute tempAttr = new WildfireAttribute();
             tempAttr.attributeName = attribute.getFullName();
-            tempAttr.type = attribute.getDataType(); //float, char, or int
+            tempAttr.type = attribute.getDataType().toString(); //float, char, or int
             //@Todo: Convert it to an java type array instead of object?
             tempAttr.value = attribute.getValues().get1DJavaArray(attribute.getDataType().getPrimitiveClassType()); //Not sure if we want to keep this as an Array or convert
             attributeList.add(tempAttr);
@@ -299,7 +321,7 @@ public class NetcdfFileReader {
      * @param time Variable Time from NetCDFFile
      * @return Date[] Array of 2 element (Start Date, Finish Date)
      */
-    private static Date[] findTime(Variable time) {
+    private static List<WildfireAttribute> findTime(Variable time) {
 
         int[] dim = time.getShape();
         Array uData;
@@ -340,6 +362,8 @@ public class NetcdfFileReader {
             }
         }
         catch (NumberFormatException e) {
+            System.out.println("No Date Found");
+            return new ArrayList<>();
         }
 
 
@@ -349,7 +373,20 @@ public class NetcdfFileReader {
         Date date2 = new Calendar.Builder().setDate(time2Year, time2Month, time2Day)
                 .setTimeOfDay(time2Hour, time2Minute, time2Second,0).build().getTime();
 
-        return new Date[]{date1, date2};
+        WildfireAttribute startDate = new WildfireAttribute();
+        startDate.attributeName = "Start Date";
+        startDate.type = "Date";
+        startDate.value = date1;
+        WildfireAttribute endDate = new WildfireAttribute();
+        endDate.attributeName = "End Date";
+        endDate.type = "Date";
+        endDate.value = date2;
+
+        List<WildfireAttribute> dates = new ArrayList<>();
+        dates.add(startDate);
+        dates.add(endDate);
+
+        return dates;
     }
 
     /**
@@ -360,7 +397,7 @@ public class NetcdfFileReader {
      * @param lonMax Longitude Maximum
      * @return Polygon GeoJSON Object of corners (@Todo: Can be changed to Feature)
      */
-    private Polygon calculateCorners(float latMin, float latMax, float lonMin, float lonMax) {
+    private WildfireAttribute calculateCorners(float latMin, float latMax, float lonMin, float lonMax) {
         Position topLeft = new Position(latMin, lonMin);
         Position topRight = new Position(latMin, lonMax);
         Position botRight = new Position(latMax, lonMax);
@@ -369,6 +406,12 @@ public class NetcdfFileReader {
         Position[] positions = {topLeft, topRight, botRight, botLeft, topLeft};
         PolygonCoordinates corners = new PolygonCoordinates(Arrays.asList(positions));
 
-        return new Polygon(corners);
+        WildfireAttribute cornerAttribute = new WildfireAttribute();
+
+        cornerAttribute.attributeName = "Corners";
+        cornerAttribute.type = "Polygon";
+        cornerAttribute.value = new Polygon(corners);
+
+        return cornerAttribute;
     }
 }
