@@ -39,5 +39,11 @@
             <artifactId>netcdf</artifactId>
             <version>4.3.22</version>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.14.2</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 </project>

@@ -1,5 +1,7 @@
 package com.sjsu.wildfirestorage;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.springframework.data.mongodb.core.geo.GeoJsonPolygon;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.util.List;
 
@@ -9,4 +11,6 @@ public class Metadata {
     public List<WildfireAttribute> globalAttributes;
     public String fileName;
     public String filePath;
+    @JsonSerialize(using = GeoJsonPolygonSerializer.class)
+    public GeoJsonPolygon location;
 }
