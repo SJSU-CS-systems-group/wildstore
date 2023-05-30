@@ -1,5 +1,7 @@
 wildfirestorage-common/target/
 wildfirestorage-core/target/
 wildfirestorage-spring/target/
+Wildfirestorage-core/.idea/
+.idea/
+.DS_Store
 wildfirestorage-cli/target/
-

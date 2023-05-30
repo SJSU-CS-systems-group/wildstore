@@ -5,7 +5,8 @@ import java.util.List;
 
 @Document(collection = "metadata")
 public class Metadata {
-    public List<Variable> variables;
-    public List<GlobalAttribute> globalAttributes;
+    public List<WildfireVariable> variables;
+    public List<WildfireAttribute> globalAttributes;
     public String fileName;
+    public String filePath;
 }
