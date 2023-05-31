@@ -1,8 +1,7 @@
 package com.sjsu.wildfirestorage;
 
-import com.mongodb.client.model.geojson.Polygon;
-import com.mongodb.client.model.geojson.PolygonCoordinates;
-import com.mongodb.client.model.geojson.Position;
+import org.springframework.data.geo.Point;
+import org.springframework.data.mongodb.core.geo.GeoJsonPolygon;
 import ucar.ma2.Array;
 import ucar.ma2.DataType;
 import ucar.nc2.Attribute;
@@ -106,7 +105,7 @@ public class NetcdfFileReader {
             metadata.corners = null;
         }
 
-//        Client.post( /*PATH*/, metadata); //Post metadata content @Todo: Figure out what path to use
+//        Client.post( "http://localhost:8080/api/metadata", metadata); //Post metadata content
 //        printAllData(metadata);
     }
     public void printAllData(Metadata metadata)
@@ -425,16 +424,13 @@ public class NetcdfFileReader {
      * @param lonMax Longitude Maximum
      * @return Polygon GeoJSON Object of corners
      */
-    private Polygon calculateCorners(float latMin, float latMax, float lonMin, float lonMax) {
-        Position topLeft = new Position(latMin, lonMax);
-        Position topRight = new Position(latMax, lonMax);
-        Position botRight = new Position(latMax, lonMin);
-        Position botLeft = new Position(latMin, lonMin);
+    private GeoJsonPolygon calculateCorners(float latMin, float latMax, float lonMin, float lonMax) {
+        Point topLeft = new Point(latMin, lonMax);
+        Point topRight = new Point(latMax, lonMax);
+        Point botRight = new Point(latMax, lonMin);
+        Point botLeft = new Point(latMin, lonMin);
 
-        Position[] positions = {topLeft, topRight, botRight, botLeft, topLeft};
-        PolygonCoordinates corners = new PolygonCoordinates(Arrays.asList(positions));
-
-        return new Polygon(corners);
+        return new GeoJsonPolygon(List.of(topLeft, topRight, botRight, botLeft));
     }
 
     private String[] parseName(String fileName) {
@@ -443,7 +439,6 @@ public class NetcdfFileReader {
 
         String fileType = null, domain = null, year = "0000", month="00", day="00", hour="00", min="00", sec="00";
         if(matcher.find()) {
-            System.out.println(matcher.group(0)); //File name
             fileType = (matcher.group(1) == null) ? "" : matcher.group(1); //File qualifier
             domain = (matcher.group(2) == null) ? "" : matcher.group(2); //Domain
             year = (matcher.group(3) == null) ? "0000" : matcher.group(3); //Year
