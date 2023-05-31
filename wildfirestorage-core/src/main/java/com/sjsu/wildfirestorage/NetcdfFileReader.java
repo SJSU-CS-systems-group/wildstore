@@ -10,6 +10,8 @@ import ucar.nc2.Dimension;
 import ucar.nc2.NetcdfFile;
 import ucar.nc2.Variable;
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -35,8 +37,6 @@ public class NetcdfFileReader {
             throw new RuntimeException(e);
         }
 
-        // @Todo: Try to read the date from the file metadata
-
         Metadata metadata = new Metadata();
         metadata.fileName = netcdfFilepath.substring(netcdfFilepath.lastIndexOf('/')+1);
         metadata.filePath = netcdfFilepath;
@@ -46,6 +46,20 @@ public class NetcdfFileReader {
         metadata.variables = readVariables();
 
         //Special processing @Todo: Find a more efficient way to do this
+        //FileName
+        String[] fileNameParsed = parseName(metadata.fileName);
+        metadata.fileType = (fileNameParsed[0] != null) ? fileNameParsed[0] : null;
+        metadata.domain = (fileNameParsed[1] != null && !fileNameParsed[1].equals("")) ? Integer.parseInt(fileNameParsed[1]) : 0;
+        Date startDateValue = null;
+        if (fileNameParsed[2] != null && !fileNameParsed[2].startsWith("0000")){
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy MM dd HH mm ss");
+            try {
+                startDateValue = dateFormat.parse(fileNameParsed[2]);
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
+
+        }
         //Wind
         Variable U = netcdfFile.findVariable("U");
         Variable V = netcdfFile.findVariable("V");
@@ -59,6 +73,13 @@ public class NetcdfFileReader {
         Variable times = netcdfFile.findVariable("Times");
         if (times != null) {
             metadata.globalAttributes.addAll(findTime(times));
+        }
+        else if (startDateValue != null) {
+            WildfireAttribute startDate = new WildfireAttribute();
+            startDate.attributeName = "Start Date";
+            startDate.type = "Date";
+            startDate.value = startDateValue;
+            metadata.globalAttributes.add(startDate);
         }
         //Corners
         Variable xlat = netcdfFile.findVariable("XLAT");
@@ -79,9 +100,13 @@ public class NetcdfFileReader {
                     break;
                 }
             }
-            metadata.globalAttributes.add(calculateCorners(xMin, xMax, yMin, yMax));
+            metadata.corners = calculateCorners(xMin, xMax, yMin, yMax);
+        }
+        else {
+            metadata.corners = null;
         }
 
+//        Client.post( /*PATH*/, metadata); //Post metadata content @Todo: Figure out what path to use
 //        printAllData(metadata);
     }
     public void printAllData(Metadata metadata)
@@ -89,6 +114,9 @@ public class NetcdfFileReader {
         //Print Name and filepath
         System.out.println("Filename: " + metadata.fileName);
         System.out.println("FilePath: " + metadata.filePath);
+        System.out.println("FileType: " + metadata.fileType);
+        System.out.println("Domain: " + metadata.domain);
+        System.out.println("Corners: " + metadata.corners.toString());
 
         //Print All Attributes
         System.out.println("\nAttributes");
@@ -395,23 +423,37 @@ public class NetcdfFileReader {
      * @param latMax Latitude Maximum
      * @param lonMin Longitude Minimum
      * @param lonMax Longitude Maximum
-     * @return Polygon GeoJSON Object of corners (@Todo: Can be changed to Feature)
+     * @return Polygon GeoJSON Object of corners
      */
-    private WildfireAttribute calculateCorners(float latMin, float latMax, float lonMin, float lonMax) {
-        Position topLeft = new Position(latMin, lonMin);
-        Position topRight = new Position(latMin, lonMax);
-        Position botRight = new Position(latMax, lonMax);
-        Position botLeft = new Position(latMin, lonMax);
+    private Polygon calculateCorners(float latMin, float latMax, float lonMin, float lonMax) {
+        Position topLeft = new Position(latMin, lonMax);
+        Position topRight = new Position(latMax, lonMax);
+        Position botRight = new Position(latMax, lonMin);
+        Position botLeft = new Position(latMin, lonMin);
 
         Position[] positions = {topLeft, topRight, botRight, botLeft, topLeft};
         PolygonCoordinates corners = new PolygonCoordinates(Arrays.asList(positions));
 
-        WildfireAttribute cornerAttribute = new WildfireAttribute();
+        return new Polygon(corners);
+    }
 
-        cornerAttribute.attributeName = "Corners";
-        cornerAttribute.type = "Polygon";
-        cornerAttribute.value = new Polygon(corners);
+    private String[] parseName(String fileName) {
+        Pattern pattern = Pattern.compile("(.*)?.+?d([0-9][0-9])?.?([0-9][0-9][0-9][0-9])?.?([0-9][0-9])?.?([0-9][0-9])?.?([0-9][0-9])?.?([0-9][0-9])?.?([0-9][0-9])?");
+        Matcher matcher = pattern.matcher(fileName);
 
-        return cornerAttribute;
+        String fileType = null, domain = null, year = "0000", month="00", day="00", hour="00", min="00", sec="00";
+        if(matcher.find()) {
+            System.out.println(matcher.group(0)); //File name
+            fileType = (matcher.group(1) == null) ? "" : matcher.group(1); //File qualifier
+            domain = (matcher.group(2) == null) ? "" : matcher.group(2); //Domain
+            year = (matcher.group(3) == null) ? "0000" : matcher.group(3); //Year
+            month = (matcher.group(4) == null) ? "00" : matcher.group(4); //Month
+            day = (matcher.group(5) == null) ? "00" : matcher.group(5); //Day
+            hour = (matcher.group(6) == null) ? "00" : matcher.group(6); //Hour
+            min = (matcher.group(7) == null) ? "00" : matcher.group(7); //Minute
+            sec = (matcher.group(8) == null) ? "00" : matcher.group(8); //Seconds
+        }
+        String date = String.format("%s %s %s %s %s %s", year, month, day, hour, min, sec);
+        return new String[]{fileType, domain, date};
     }
 }

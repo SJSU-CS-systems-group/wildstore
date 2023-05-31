@@ -9,4 +9,7 @@ public class Metadata {
     public List<WildfireAttribute> globalAttributes;
     public String fileName;
     public String filePath;
+    public Object corners;
+    public String fileType;
+    public int domain;
 }
