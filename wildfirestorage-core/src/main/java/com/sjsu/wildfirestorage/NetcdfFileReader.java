@@ -98,16 +98,16 @@ public class NetcdfFileReader {
                     break;
                 }
             }
-            metadata.corners = calculateCorners(xMin, xMax, yMin, yMax);
+            metadata.location = calculateCorners(xMin, xMax, yMin, yMax);
         }
         else {
-            metadata.corners = null;
+            metadata.location = null;
         }
 
 //        Client.post( "http://localhost:8080/api/metadata", metadata); //Post metadata content
 //        Client.post( "http://cloud.homeofcode.com:27777/api/metadata", metadata); //Post metadata content
 
-//        printAllData(metadata);
+        printAllData(metadata);
     }
     public void printAllData(Metadata metadata)
     {
@@ -116,7 +116,7 @@ public class NetcdfFileReader {
         System.out.println("FilePath: " + metadata.filePath);
         System.out.println("FileType: " + metadata.fileType);
         System.out.println("Domain: " + metadata.domain);
-        System.out.println("Corners: " + metadata.corners.toString());
+        System.out.println("Corners: " + metadata.location.toString());
 
         //Print All Attributes
         System.out.println("\nAttributes");
