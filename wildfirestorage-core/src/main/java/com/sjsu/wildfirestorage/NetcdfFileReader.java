@@ -13,7 +13,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.Arrays;
 import java.util.regex.Matcher;
@@ -106,6 +105,8 @@ public class NetcdfFileReader {
         }
 
 //        Client.post( "http://localhost:8080/api/metadata", metadata); //Post metadata content
+//        Client.post( "http://cloud.homeofcode.com:27777/api/metadata", metadata); //Post metadata content
+
 //        printAllData(metadata);
     }
     public void printAllData(Metadata metadata)
@@ -128,6 +129,8 @@ public class NetcdfFileReader {
                 System.out.println(Arrays.toString((float[]) a.value));
             else if (a.type.equalsIgnoreCase("string"))
                 System.out.println(Arrays.toString((Object[]) a.value));
+            else if (a.type.equalsIgnoreCase("date"))
+                System.out.println(a.value.toString());
         }
 
         //Print All Variables
@@ -363,55 +366,46 @@ public class NetcdfFileReader {
 
         Pattern pattern = Pattern.compile("(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d)_(\\d\\d):(\\d\\d):(\\d\\d)");
 
-        Matcher time1Matcher = pattern.matcher(firstTime);
-        Matcher time2Matcher = pattern.matcher(lastTime);
-
-        int time1Year=0, time1Month=0, time1Day = 0, time1Hour=0, time1Minute=0, time1Second=0;
-        int time2Year=0, time2Month=0, time2Day=0, time2Hour=0, time2Minute=0, time2Second=0;
-
-        try {
-            if(time1Matcher.find()) {
-                time1Year = Integer.parseInt(time1Matcher.group(1));
-                time1Month = Integer.parseInt(time1Matcher.group(2));
-                time1Day = Integer.parseInt(time1Matcher.group(3));
-                time1Hour = Integer.parseInt(time1Matcher.group(4));
-                time1Minute = Integer.parseInt(time1Matcher.group(5));
-                time1Second = Integer.parseInt(time1Matcher.group(6));
-            }
-
-            if(time2Matcher.find()) {
-                time2Year = Integer.parseInt(time2Matcher.group(1));
-                time2Month = Integer.parseInt(time2Matcher.group(2));
-                time2Day = Integer.parseInt(time2Matcher.group(3));
-                time2Hour = Integer.parseInt(time2Matcher.group(4));
-                time2Minute = Integer.parseInt(time2Matcher.group(5));
-                time2Second = Integer.parseInt(time2Matcher.group(6));
-            }
-        }
-        catch (NumberFormatException e) {
-            System.out.println("No Date Found");
-            return new ArrayList<>();
-        }
-
-
-        Date date1 = new Calendar.Builder().setDate(time1Year, time1Month, time1Day)
-                .setTimeOfDay(time1Hour, time1Minute, time1Second,0).build().getTime();
-
-        Date date2 = new Calendar.Builder().setDate(time2Year, time2Month, time2Day)
-                .setTimeOfDay(time2Hour, time2Minute, time2Second,0).build().getTime();
-
-        WildfireAttribute startDate = new WildfireAttribute();
-        startDate.attributeName = "Start Date";
-        startDate.type = "Date";
-        startDate.value = date1;
-        WildfireAttribute endDate = new WildfireAttribute();
-        endDate.attributeName = "End Date";
-        endDate.type = "Date";
-        endDate.value = date2;
-
+        String[] dateName = {"Start Date", "End Date"};
+        String[] times = {firstTime, lastTime};
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy MM dd HH mm ss");
         List<WildfireAttribute> dates = new ArrayList<>();
-        dates.add(startDate);
-        dates.add(endDate);
+
+        for (int i = 0; i < dateName.length; i++) {
+            Matcher timeMatch = pattern.matcher(times[i]);
+
+            String year = "0000";
+            String month = "00";
+            String day = "00";
+            String hour = "00";
+            String min = "00";
+            String sec = "00";
+            if (timeMatch.find()) {
+                year = (timeMatch.group(1) == null) ? "0000" : timeMatch.group(1); //Year
+                month = (timeMatch.group(2) == null) ? "00" : timeMatch.group(2); //Month
+                day = (timeMatch.group(3) == null) ? "00" : timeMatch.group(3); //Day
+                hour = (timeMatch.group(4) == null) ? "00" : timeMatch.group(4); //Hour
+                min = (timeMatch.group(5) == null) ? "00" : timeMatch.group(5); //Minute
+                sec = (timeMatch.group(6) == null) ? "00" : timeMatch.group(6); //Seconds
+            }
+            String stringDate = String.format("%s %s %s %s %s %s", year, month, day, hour, min, sec);
+
+            Date dateValue;
+            try {
+                if (year.equals("0000"))
+                    dateValue = null;
+                else
+                    dateValue = dateFormat.parse(stringDate);
+            } catch (ParseException e) {
+                dateValue = null;
+            }
+
+            WildfireAttribute date = new WildfireAttribute();
+            date.attributeName = dateName[i];
+            date.type = "Date";
+            date.value = dateValue;
+            dates.add(date);
+        }
 
         return dates;
     }
@@ -434,13 +428,18 @@ public class NetcdfFileReader {
     }
 
     private String[] parseName(String fileName) {
-        Pattern pattern = Pattern.compile("(.*)?.+?d([0-9][0-9])?.?([0-9][0-9][0-9][0-9])?.?([0-9][0-9])?.?([0-9][0-9])?.?([0-9][0-9])?.?([0-9][0-9])?.?([0-9][0-9])?");
+        Pattern pattern = Pattern.compile("(.*).+?d([0-9][0-9]).?([0-9][0-9][0-9][0-9])?.?([0-9][0-9])?.?([0-9][0-9])?.?([0-9][0-9])?.?([0-9][0-9])?.?([0-9][0-9])?");
         Matcher matcher = pattern.matcher(fileName);
 
-        String fileType = null, domain = null, year = "0000", month="00", day="00", hour="00", min="00", sec="00";
+        String fileType = null;
+        String domain = null;
+        String year = "0000";
+        String month="00";
+        String day="00";
+        String hour="00";
+        String min="00";
+        String sec="00";
         if(matcher.find()) {
-            fileType = (matcher.group(1) == null) ? "" : matcher.group(1); //File qualifier
-            domain = (matcher.group(2) == null) ? "" : matcher.group(2); //Domain
             year = (matcher.group(3) == null) ? "0000" : matcher.group(3); //Year
             month = (matcher.group(4) == null) ? "00" : matcher.group(4); //Month
             day = (matcher.group(5) == null) ? "00" : matcher.group(5); //Day
