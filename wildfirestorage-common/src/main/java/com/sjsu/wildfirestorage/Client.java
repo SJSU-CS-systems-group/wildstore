@@ -1,17 +1,18 @@
 package com.sjsu.wildfirestorage;
 
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 public class Client {
-    public static Object get(String path, MultiValueMap<String, String> queryParams) {
+    public static Object get(String path, MultiValueMap<String, String> queryParams, ParameterizedTypeReference parameterizedTypeReference) {
         WebClient webClient = WebClient.create(path);
 
         Object response = webClient.get()
                 .uri(uriBuilder -> uriBuilder.queryParams(queryParams).build())
                 .retrieve()
-                .bodyToMono(Object.class).block();
+                .bodyToMono(parameterizedTypeReference).block();
 
         System.out.println("GET Response received: \n" + response);
         return response;

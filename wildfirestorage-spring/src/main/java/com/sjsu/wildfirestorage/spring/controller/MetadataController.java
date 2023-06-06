@@ -3,7 +3,7 @@ package com.sjsu.wildfirestorage.spring.controller;
 import com.mongodb.DBObject;
 import com.mongodb.MongoWriteException;
 import com.sjsu.wildfirestorage.Metadata;
-import com.sjsu.wildfirestorage.spring.MetadataRequest;
+import com.sjsu.wildfirestorage.MetadataRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -26,8 +26,7 @@ public class MetadataController {
     @PostMapping("/metadata/search")
     public List<Metadata> getMetadataWithin(@RequestBody MetadataRequest request) {
         Query query = new Query();
-        query.addCriteria(Criteria.where("corner").intersects(request.polygon));
-        query.addCriteria(Criteria.where("fileName").in(Arrays.asList("file1")));
+        query.addCriteria(Criteria.where("fileName").in(Arrays.asList(request.filename)));
         query.addCriteria(Criteria.where("globalAttributes").elemMatch(Criteria.where("attributeName").is("simulationDate").and("value").gt(new Date())));
         return mongoTemplate.find(query, Metadata.class);
     }
