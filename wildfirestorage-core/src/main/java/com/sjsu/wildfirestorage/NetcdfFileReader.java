@@ -104,10 +104,9 @@ public class NetcdfFileReader {
             metadata.location = null;
         }
 
-//        Client.post( "http://localhost:8080/api/metadata", metadata); //Post metadata content
 //        Client.post( "http://cloud.homeofcode.com:27777/api/metadata", metadata); //Post metadata content
 
-        printAllData(metadata);
+//        printAllData(metadata);
     }
     public void printAllData(Metadata metadata)
     {
@@ -116,7 +115,10 @@ public class NetcdfFileReader {
         System.out.println("FilePath: " + metadata.filePath);
         System.out.println("FileType: " + metadata.fileType);
         System.out.println("Domain: " + metadata.domain);
-        System.out.println("Corners: " + metadata.location.toString());
+        if(metadata.location != null)
+            System.out.println("Corners: " + metadata.location.toString());
+        else
+            System.out.println("Corners: Null");
 
         //Print All Attributes
         System.out.println("\nAttributes");
@@ -392,10 +394,7 @@ public class NetcdfFileReader {
 
             Date dateValue;
             try {
-                if (year.equals("0000"))
-                    dateValue = null;
-                else
-                    dateValue = dateFormat.parse(stringDate);
+                dateValue = dateFormat.parse(stringDate);
             } catch (ParseException e) {
                 dateValue = null;
             }
@@ -404,7 +403,8 @@ public class NetcdfFileReader {
             date.attributeName = dateName[i];
             date.type = "Date";
             date.value = dateValue;
-            dates.add(date);
+            if (!year.equals("0000"))
+                dates.add(date);
         }
 
         return dates;
