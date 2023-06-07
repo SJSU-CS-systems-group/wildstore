@@ -19,9 +19,40 @@ public class Main {
 
         @CommandLine.Command
         public void datasetInfo(@CommandLine.Parameters(paramLabel = "fileName") String fileName) throws InterruptedException {
-            System.out.println("GET returned: " + Client.get("http://localhost:8080/api/metadata",
+            System.out.println("GET returned: " + Client.get("http://cloud.homeofcode.com:27777/api/metadata",
                     new LinkedMultiValueMap<String, String>(Map.of("filename", List.of(fileName))),
                     new ParameterizedTypeReference<ArrayList<Metadata>>(){}));
+        }
+
+        @CommandLine.Command
+        public void search2() throws InterruptedException {
+            // FIRE_AREA > 10 AND RAINC < 120
+            MetadataQueryParam gt = new MetadataQueryParam();
+            gt.type = MetadataQueryParam.PARAM_TYPE.VARIABLE;
+            gt.operator = MetadataQueryParam.OPERATOR.LESS_THAN;
+            gt.lhs = "RAINC";
+            gt.rhs = (float) 10;
+            MetadataQueryParam lt = new MetadataQueryParam();
+            lt.type = MetadataQueryParam.PARAM_TYPE.ATTRIBUTE;
+            lt.operator = MetadataQueryParam.OPERATOR.LESS_THAN;
+            lt.lhs = "RAINC";
+            lt.rhs = (float) 120;
+            MetadataQueryParam and = new MetadataQueryParam();
+            and.type = MetadataQueryParam.PARAM_TYPE.AND;
+            and.operator = MetadataQueryParam.OPERATOR.AND;
+            and.lhs = gt;
+            and.rhs = lt;
+            MetadataRequest request = new MetadataRequest();
+            request.queryParam = gt;
+            System.out.println("GET returned: " + Client.post("http://localhost:8080/api/metadata/search", request
+                    ));
+        }
+
+        @CommandLine.Command
+        public void search(@CommandLine.Parameters(paramLabel = "query") String query) throws InterruptedException {
+            MetadataRequest metadataRequest = new MetadataRequest();
+            metadataRequest.searchQuery = query;
+            System.out.println("GET returned: " + Client.post("http://localhost:8080/api/metadata/search", metadataRequest));
         }
 
         // Dummy method for post
