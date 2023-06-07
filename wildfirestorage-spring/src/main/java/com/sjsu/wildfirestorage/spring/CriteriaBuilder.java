@@ -1,6 +1,5 @@
 package com.sjsu.wildfirestorage.spring;
 
-import com.sjsu.wildfirestorage.MetadataQueryParam;
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.expression.*;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
@@ -20,111 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CriteriaBuilder {
-
-    public static Criteria build(MetadataQueryParam metadataQuery){
-        if(metadataQuery.type != null) {
-            switch (metadataQuery.type){
-                case LOCATION : {
-                    return (Criteria.where("location").intersects((GeoJsonPolygon) metadataQuery.rhs));
-                }
-                case VARIABLE: {
-                    Criteria elemCriteria = Criteria.where("variableName").is((String)metadataQuery.lhs);
-                    switch (metadataQuery.operator){
-                        case EQUALS: {
-                            // What is the condition?
-                            elemCriteria.and("maxValue").gte((double)metadataQuery.rhs).and("minValue").lte((double)metadataQuery.rhs);
-                            break;
-                        }
-                        case NOT_EQUALS: {
-                            // What is the condition?
-                            elemCriteria.and("maxValue").lt((double)metadataQuery.rhs).and("minValue").gt((double)metadataQuery.rhs);
-                            break;
-                        }
-                        case GREATER_THAN: {
-                            elemCriteria.and("minValue").gt((double) metadataQuery.rhs);
-                            break;
-                        }
-                        case GREATER_THAN_OR_EQUALS: {
-                            elemCriteria.and("minValue").gte((double) metadataQuery.rhs);
-                            break;
-                        }
-                        case LESS_THAN: {
-                            elemCriteria.and("maxValue").lt((double) metadataQuery.rhs);
-                            break;
-                        }
-                        case LESS_THAN_OR_EQUALS: {
-                            elemCriteria.and("maxValue").lte((double) metadataQuery.rhs);
-                            break;
-                        }
-                        case IN: {
-                            System.out.println("IN");
-                            break;
-                        }
-                        case NOT: {
-                            System.out.println("NOT");
-                            break;
-                        }
-                    }
-                    Criteria criteria = Criteria.where("variables").elemMatch(elemCriteria);
-                    return criteria;
-                }
-                case ATTRIBUTE: {
-                    Criteria elemCriteria = Criteria.where("attributeName").is((String)metadataQuery.lhs);
-                    switch (metadataQuery.operator){
-                        case EQUALS: {
-                            // What is the condition?
-                            elemCriteria.and("maxValue").gte((double)metadataQuery.rhs).and("minValue").lte((double)metadataQuery.rhs);
-                            break;
-                        }
-                        case NOT_EQUALS: {
-                            // What is the condition?
-                            elemCriteria.and("maxValue").lt((double)metadataQuery.rhs).and("minValue").gt((double)metadataQuery.rhs);
-                            break;
-                        }
-                        case GREATER_THAN: {
-                            elemCriteria.and("minValue").gt((double) metadataQuery.rhs);
-                            break;
-                        }
-                        case GREATER_THAN_OR_EQUALS: {
-                            elemCriteria.and("minValue").gte((double) metadataQuery.rhs);
-                            break;
-                        }
-                        case LESS_THAN: {
-                            elemCriteria.and("maxValue").lt((double) metadataQuery.rhs);
-                            break;
-                        }
-                        case LESS_THAN_OR_EQUALS: {
-                            elemCriteria.and("maxValue").lte((double) metadataQuery.rhs);
-                            break;
-                        }
-                        case IN: {
-                            System.out.println("IN");
-                            break;
-                        }
-                        case NOT: {
-                            System.out.println("NOT");
-                            break;
-                        }
-                    }
-                    Criteria criteria = Criteria.where("globalAttributes").elemMatch(elemCriteria);
-                    return criteria;
-                }
-                case AND: {
-                    Criteria lhs = build((MetadataQueryParam) metadataQuery.lhs);
-                    Criteria rhs = build((MetadataQueryParam) metadataQuery.rhs);
-                    Criteria criteria = new Criteria();
-                    return (criteria.andOperator(lhs, rhs));
-                }
-                case OR: {
-                    Criteria lhs = build((MetadataQueryParam) metadataQuery.lhs);
-                    Criteria rhs = build((MetadataQueryParam) metadataQuery.rhs);
-                    Criteria criteria = new Criteria();
-                    return (criteria.orOperator(lhs, rhs));
-                }
-            }
-        }
-        return null;
-    }
 
     /**
      *
