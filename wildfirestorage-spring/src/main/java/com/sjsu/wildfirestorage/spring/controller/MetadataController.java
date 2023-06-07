@@ -23,6 +23,8 @@ public class MetadataController {
     @Autowired
     private MongoTemplate mongoTemplate;
 
+    public final String METADATA_COLLECTION = "metadata";
+
     /**
      * Searches metadata documents corresponding to the query
      * @param request A request object that contains the search query
@@ -45,7 +47,7 @@ public class MetadataController {
     @GetMapping("/metadata")
     public List<DBObject> getFileMetadata(@RequestParam("filename") String fileName) {
         Query query = new Query(Criteria.where("fileName").regex(".*"+fileName+".*"));
-        List<DBObject> res = mongoTemplate.find(query, DBObject.class, "metadata");
+        List<DBObject> res = mongoTemplate.find(query, DBObject.class, METADATA_COLLECTION);
         return res;
     }
 
@@ -59,7 +61,6 @@ public class MetadataController {
     public int upsertMetadata(@RequestBody Metadata metadata) throws MongoWriteException {
         // Convert string date to date type to allow querying on dates
         metadata.globalAttributes.forEach(attr -> {
-            System.out.println("type is "+attr.type);
             if(attr.type.equals("Date")) {
                 try {
                     attr.value = new Date((long)attr.value);
@@ -68,7 +69,7 @@ public class MetadataController {
                 }
             }
         });
-        mongoTemplate.save(metadata, "metadata");
+        mongoTemplate.save(metadata, METADATA_COLLECTION);
         return 0;
     }
 }

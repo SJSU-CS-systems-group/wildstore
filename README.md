@@ -34,3 +34,8 @@ Without authentication:
 ```
    java -jar wildfirestorage-spring/target/wildfirestorage-spring.jar --spring.data.mongodb.uri=mongodb://localhost:27017/wildfire --server.port=<port_number>
 ```
+
+## Running the crawler
+```
+java -jar wildfirestorage-core/target/wildfirestorage-core-1.0-SNAPSHOT.jar --hostname=<optional server host:port> --ncFilePath=<path of NetCDF file>
+```

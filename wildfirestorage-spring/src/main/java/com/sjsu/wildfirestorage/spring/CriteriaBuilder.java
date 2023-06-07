@@ -20,6 +20,17 @@ import java.util.List;
 
 public class CriteriaBuilder {
 
+    public static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
+    public static final String VAR_TYPE = "VAR";
+    public static final String ATTRIBUTE_TYPE = "ATTR";
+    public static final String LOCATION_TYPE = "LOCATION";
+    public static final String SQL_PREFIX = "SELECT * FROM metadata WHERE ";
+    public static final String VARIABLE_NAME_FIELD = "variableName";
+    public static final String VARIABLES_ARRAY_FIELD = "variables";
+    public static final String ATTRIBUTE_NAME_FIELD = "attributeName";
+    public static final String ATTRIBUTES_ARRAY_FIELD = "globalAttributes";
+    public static final String LOCATION_FIELD = "location";
+
     /**
      *
      * @param query WHERE clause of an SQL query
@@ -28,7 +39,7 @@ public class CriteriaBuilder {
      */
     public static Criteria buildFromSQL(String query) throws JSQLParserException {
         // Set SELECT clause for parsing
-        query = "SELECT * FROM metadata WHERE " + query;
+        query = SQL_PREFIX + query;
         PlainSelect select = (PlainSelect) ((Select) CCJSqlParserUtil.parse(query)).getSelectBody();
         return build(select.getWhere());
     }
@@ -123,7 +134,7 @@ public class CriteriaBuilder {
             case "InExpression" : {
                 InExpression in = (InExpression) ex;
                 Column column = (Column) in.getLeftExpression();
-                if(column.getColumnName().equals("LOCATION")) {
+                if(column.getColumnName().equals(LOCATION_TYPE)) {
                     List<Point> polygonPoints = new ArrayList<>();
                     for(var item: ((ExpressionList)in.getRightItemsList()).getExpressions()){
                         ArrayList<Double> pt = new ArrayList<>();
@@ -134,7 +145,7 @@ public class CriteriaBuilder {
                     }
                     polygonPoints.add(polygonPoints.get(0));
                     GeoJsonPolygon polygon = new GeoJsonPolygon(polygonPoints);
-                    return (Criteria.where("location").intersects(polygon));
+                    return (Criteria.where(LOCATION_FIELD).intersects(polygon));
                 } else {
                     Criteria arrayCriteria = getArrayMatchCriteria(column);
                     List<Object> inListItems = new ArrayList<>();
@@ -169,11 +180,11 @@ public class CriteriaBuilder {
     private static Criteria getArrayMatchCriteria(Column column) {
         if(column.getTable().getSchemaName() != null) {
             switch (column.getTable().getSchemaName()) {
-                case "VAR": {
-                    return Criteria.where("variableName").is(column.getTable().getName());
+                case VAR_TYPE: {
+                    return Criteria.where(VARIABLE_NAME_FIELD).is(column.getTable().getName());
                 }
-                case "ATTR": {
-                    return Criteria.where("attributeName").is(column.getTable().getName());
+                case ATTRIBUTE_TYPE: {
+                    return Criteria.where(ATTRIBUTE_NAME_FIELD).is(column.getTable().getName());
                 }
                 default: {
                     return null;
@@ -191,11 +202,11 @@ public class CriteriaBuilder {
      */
     private static Criteria getElemMatchCriteria(Column column, Criteria elemCriteria) {
         switch (column.getTable().getSchemaName()) {
-            case "VAR": {
-                return Criteria.where("variables").elemMatch(elemCriteria);
+            case VAR_TYPE: {
+                return Criteria.where(VARIABLES_ARRAY_FIELD).elemMatch(elemCriteria);
             }
-            case "ATTR": {
-                return Criteria.where("globalAttributes").elemMatch(elemCriteria);
+            case ATTRIBUTE_TYPE: {
+                return Criteria.where(ATTRIBUTES_ARRAY_FIELD).elemMatch(elemCriteria);
             }
         }
         return null;
@@ -215,7 +226,7 @@ public class CriteriaBuilder {
                 return (double) ((DoubleValue)ex).getValue();
             }
             case "DateTimeLiteralExpression": {
-                SimpleDateFormat isoFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                SimpleDateFormat isoFormat = new SimpleDateFormat(DATE_FORMAT);
                 try {
                     String datetime = ((DateTimeLiteralExpression) ex).getValue();
                     return isoFormat.parse(datetime.substring(1, datetime.length()-1));
@@ -227,7 +238,7 @@ public class CriteriaBuilder {
                 return ((StringValue)ex).getValue();
             }
             default: {
-                System.out.println("Why is this defaulting?");
+                System.out.println("Unknown JSQLParser Value type");
                 break;
             }
         }

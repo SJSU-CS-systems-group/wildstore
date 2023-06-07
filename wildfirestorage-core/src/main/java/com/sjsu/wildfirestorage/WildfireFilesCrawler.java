@@ -1,20 +1,26 @@
 package com.sjsu.wildfirestorage;
 
-public class WildfireFilesCrawler
-{
-    public static void main( String[] args )
-    {
-        // Get file name
-//        String ncFilePath = "/Users/alow/Desktop/CSProjects/WildStorage/wrfout_d04_2018-11-14_20:00:00";
-         String ncFilePath = "/Users/alow/Desktop/CSProjects/WildStorage/wrfout_d01_2019-06-20_18:00:00";
+import picocli.CommandLine;
 
-        if (args.length > 0) {
-            ncFilePath = args[0];
-            System.out.println("Using NetcdfFile: " + args[0]);
-        }
+public class WildfireFilesCrawler {
+    public static void main( String[] args ) {
+        CrawlerArgs crawlerArgs = new CrawlerArgs();
+        new CommandLine(crawlerArgs).parseArgs(args);
 
-        NetcdfFileReader fileReader = new NetcdfFileReader(ncFilePath);
-        fileReader.processFile();
+        System.out.println("Using NetcdfFile: " + crawlerArgs.ncFilePath);
+
+        NetcdfFileReader fileReader = new NetcdfFileReader(crawlerArgs.ncFilePath);
+        Metadata metadata = fileReader.processFile();
+        Client.post(crawlerArgs.hostname + "/api/metadata", metadata);
         System.out.println("End of main");
+    }
+
+    static class CrawlerArgs {
+        @CommandLine.Option(names = "--hostname", description = "Host name of the API server")
+        String hostname = "http://localhost:8080";
+
+        @CommandLine.Option(names = "--ncFilePath", description = "Path of the file to be crawled", required = true)
+//        String ncFilePath = "/Users/spartan/Applications/WildStorage/datafiles/met_em.d01.2019-06-21_09:00:00.nc";
+        String ncFilePath = "C:\\Users\\apoor\\wildfire\\wrfout.nc";
     }
 }

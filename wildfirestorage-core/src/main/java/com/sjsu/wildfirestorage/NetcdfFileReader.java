@@ -27,7 +27,7 @@ public class NetcdfFileReader {
         this.netcdfFilepath = netcdfFilepath;
     }
 
-    public void processFile() {
+    public Metadata processFile() {
         // Try and read the contents of the netCDF file
         try {
             this.netcdfFile = NetcdfFile.open(this.netcdfFilepath);
@@ -103,10 +103,7 @@ public class NetcdfFileReader {
         else {
             metadata.location = null;
         }
-
-//        Client.post( "http://cloud.homeofcode.com:27777/api/metadata", metadata); //Post metadata content
-
-//        printAllData(metadata);
+        return metadata;
     }
     public void printAllData(Metadata metadata)
     {
