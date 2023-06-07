@@ -9,7 +9,11 @@ import ucar.nc2.Attribute;
 import ucar.nc2.Dimension;
 import ucar.nc2.NetcdfFile;
 import ucar.nc2.Variable;
+import ucar.nc2.util.CancelTask;
+import ucar.unidata.io.RandomAccessFile;
+
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -23,6 +27,9 @@ public class NetcdfFileReader {
 
     private NetcdfFile netcdfFile;
 
+    private DigestingRandomAccessFile randomAccessFile;
+    public DigestingRandomAccessFile getRandomAccessFile() { return randomAccessFile; }
+
     public NetcdfFileReader(String netcdfFilepath) {
         this.netcdfFilepath = netcdfFilepath;
     }
@@ -30,8 +37,12 @@ public class NetcdfFileReader {
     public void processFile() {
         // Try and read the contents of the netCDF file
         try {
-            this.netcdfFile = NetcdfFile.open(this.netcdfFilepath);
-        } catch (IOException e) {
+            var method = NetcdfFile.class.getDeclaredMethod("open", RandomAccessFile.class, String.class, CancelTask.class, Object.class);
+            method.setAccessible(true);
+            randomAccessFile = new DigestingRandomAccessFile(netcdfFilepath);
+            this.netcdfFile =
+                    (NetcdfFile) method.invoke(null, randomAccessFile, netcdfFilepath, null, null);
+        } catch (IOException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
 
