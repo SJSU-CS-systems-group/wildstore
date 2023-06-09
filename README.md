@@ -37,5 +37,5 @@ Without authentication:
 
 ## Running the crawler
 ```
-java -jar wildfirestorage-core/target/wildfirestorage-core-1.0-SNAPSHOT.jar --hostname=<optional server host:port> --ncFilePath=<path of NetCDF file>
+java -jar wildfirestorage-core/target/wildfirestorage-core-1.0-SNAPSHOT.jar --hostname=<optional server host:port> <"all" or "basic"> <path of NetCDF file>
 ```
