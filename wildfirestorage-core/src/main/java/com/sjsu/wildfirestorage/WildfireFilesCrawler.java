@@ -32,3 +32,4 @@ public class WildfireFilesCrawler implements Runnable {
     public static void main(String[] args) {
         System.exit(new CommandLine(new WildfireFilesCrawler()).execute(args));
     }
+}
