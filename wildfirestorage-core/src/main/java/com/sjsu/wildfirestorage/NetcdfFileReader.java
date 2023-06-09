@@ -462,12 +462,12 @@ public class NetcdfFileReader {
      * @return Polygon GeoJSON Object of corners
      */
     private GeoJsonPolygon calculateCorners(float latMin, float latMax, float lonMin, float lonMax) {
-        Point topLeft = new Point(latMin, lonMax);
-        Point topRight = new Point(latMax, lonMax);
-        Point botRight = new Point(latMax, lonMin);
-        Point botLeft = new Point(latMin, lonMin);
+        Point topLeft = new Point(lonMax, latMin);
+        Point topRight = new Point(lonMax, latMax);
+        Point botRight = new Point(lonMin, latMax);
+        Point botLeft = new Point(lonMin, latMin);
 
-        return new GeoJsonPolygon(List.of(topLeft, topRight, botRight, botLeft));
+        return new GeoJsonPolygon(List.of(topLeft, topRight, botRight, botLeft, topLeft));
     }
 
     private String[] parseName(String fileName) {
