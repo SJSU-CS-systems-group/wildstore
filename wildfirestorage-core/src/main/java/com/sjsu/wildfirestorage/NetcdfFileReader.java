@@ -23,6 +23,8 @@ public class NetcdfFileReader {
 
     private NetcdfFile netcdfFile;
 
+    public Metadata meta;
+
     public NetcdfFileReader(String netcdfFilepath) {
         this.netcdfFilepath = netcdfFilepath;
     }
@@ -106,7 +108,8 @@ public class NetcdfFileReader {
 
 //        Client.post( "http://cloud.homeofcode.com:27777/api/metadata", metadata); //Post metadata content
 
-//        printAllData(metadata);
+        meta = metadata;
+        //printAllData(metadata);
     }
     public void printAllData(Metadata metadata)
     {
@@ -149,6 +152,51 @@ public class NetcdfFileReader {
                     System.out.println(Arrays.toString((float[]) a.value));
                 else
                     System.out.println(Arrays.toString((Object[]) a.value));
+            }
+            System.out.println();
+        }
+    }
+
+    public void printBasic(Metadata metadata) {
+        System.out.println("Filename: " + metadata.fileName);
+        System.out.println("FilePath: " + metadata.filePath);
+        System.out.println("FileType: " + metadata.fileType);
+        System.out.println("Domain: " + metadata.domain);
+        if(metadata.location != null)
+            System.out.println("Corners: " + metadata.location.toString());
+        else
+            System.out.println("Corners: Null");
+
+        //Attributes
+        System.out.println("\nAttributes:");
+        for (WildfireAttribute a : metadata.globalAttributes)
+        {
+            System.out.print(a.attributeName + "\t");
+            if (a.type.equalsIgnoreCase("int"))
+                System.out.println(Arrays.toString((int[]) a.value));
+            else if (a.type.equalsIgnoreCase("float"))
+                System.out.println(Arrays.toString((float[]) a.value));
+            else if (a.type.equalsIgnoreCase("string"))
+                System.out.println(Arrays.toString((Object[]) a.value));
+            else if (a.type.equalsIgnoreCase("date"))
+                System.out.println(a.value.toString());
+        }
+
+        //Variables
+        System.out.println("\nVariables:");
+        for (WildfireVariable v : metadata.variables)
+        {
+            System.out.print(v.variableName + "\t" + v.average + "\t");
+            for (WildfireAttribute a : v.attributeList)
+            {
+                if (a.attributeName.equals("units")) {
+                    if (a.type.equalsIgnoreCase("int"))
+                        System.out.println(Arrays.toString((int[]) a.value));
+                    else if (a.type.equalsIgnoreCase("float"))
+                        System.out.println(Arrays.toString((float[]) a.value));
+                    else
+                        System.out.println(Arrays.toString((Object[]) a.value));
+                }
             }
             System.out.println();
         }
