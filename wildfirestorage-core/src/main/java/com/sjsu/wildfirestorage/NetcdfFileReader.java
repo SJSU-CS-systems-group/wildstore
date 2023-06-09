@@ -115,6 +115,14 @@ public class NetcdfFileReader {
             metadata.location = null;
         }
 
+        try {
+            metadata.digestString = randomAccessFile.getDigestString(true);
+        } catch (IOException e) {
+            metadata.digestString = null;
+            System.out.println("No digest was found for this file.");
+            throw new RuntimeException(e);
+        }
+
 //        Client.post( "http://cloud.homeofcode.com:27777/api/metadata", metadata); //Post metadata content
 
 //        printAllData(metadata);
@@ -126,6 +134,7 @@ public class NetcdfFileReader {
         System.out.println("FilePath: " + metadata.filePath);
         System.out.println("FileType: " + metadata.fileType);
         System.out.println("Domain: " + metadata.domain);
+        System.out.println("Digest String: " + metadata.digestString);
         if(metadata.location != null)
             System.out.println("Corners: " + metadata.location.toString());
         else
