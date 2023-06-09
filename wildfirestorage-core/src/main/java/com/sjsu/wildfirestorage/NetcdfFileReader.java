@@ -23,13 +23,11 @@ public class NetcdfFileReader {
 
     private NetcdfFile netcdfFile;
 
-    public Metadata meta;
-
     public NetcdfFileReader(String netcdfFilepath) {
         this.netcdfFilepath = netcdfFilepath;
     }
 
-    public void processFile() {
+    public Metadata processFile() {
         // Try and read the contents of the netCDF file
         try {
             this.netcdfFile = NetcdfFile.open(this.netcdfFilepath);
@@ -105,12 +103,9 @@ public class NetcdfFileReader {
         else {
             metadata.location = null;
         }
-
-//        Client.post( "http://cloud.homeofcode.com:27777/api/metadata", metadata); //Post metadata content
-
-        meta = metadata;
-        //printAllData(metadata);
+        return metadata;
     }
+  
     public void printAllData(Metadata metadata)
     {
         //Print Name and filepath
@@ -467,12 +462,12 @@ public class NetcdfFileReader {
      * @return Polygon GeoJSON Object of corners
      */
     private GeoJsonPolygon calculateCorners(float latMin, float latMax, float lonMin, float lonMax) {
-        Point topLeft = new Point(latMin, lonMax);
-        Point topRight = new Point(latMax, lonMax);
-        Point botRight = new Point(latMax, lonMin);
-        Point botLeft = new Point(latMin, lonMin);
+        Point topLeft = new Point(lonMax, latMin);
+        Point topRight = new Point(lonMax, latMax);
+        Point botRight = new Point(lonMin, latMax);
+        Point botLeft = new Point(lonMin, latMin);
 
-        return new GeoJsonPolygon(List.of(topLeft, topRight, botRight, botLeft));
+        return new GeoJsonPolygon(List.of(topLeft, topRight, botRight, botLeft, topLeft));
     }
 
     private String[] parseName(String fileName) {

@@ -18,16 +18,23 @@ public class Main {
     static class Cli {
 
         @CommandLine.Command
-        public void datasetInfo(@CommandLine.Parameters(paramLabel = "fileName") String fileName) throws InterruptedException {
-            System.out.println("GET returned: " + Client.get("http://localhost:8080/api/metadata",
+        public void datasetInfo(@CommandLine.Parameters(paramLabel = "fileName") String fileName, @CommandLine.Parameters(paramLabel = "hostname") String hostname) throws InterruptedException {
+            System.out.println("GET returned: " + Client.get(hostname + "/api/metadata",
                     new LinkedMultiValueMap<String, String>(Map.of("filename", List.of(fileName))),
                     new ParameterizedTypeReference<ArrayList<Metadata>>(){}));
         }
 
+        @CommandLine.Command
+        public void search(@CommandLine.Parameters(paramLabel = "query") String query, @CommandLine.Parameters(paramLabel = "hostname") String hostname) throws InterruptedException {
+            MetadataRequest metadataRequest = new MetadataRequest();
+            metadataRequest.searchQuery = query;
+            System.out.println("GET returned: " + Client.post(hostname + "/api/metadata/search", metadataRequest));
+        }
+
         // Dummy method for post
         @CommandLine.Command
-        public void addDataset() throws InterruptedException {
-            ArrayList<Metadata> mdtList = (ArrayList<Metadata>)Client.get("http://localhost:8080/api/metadata",
+        public void addDataset(@CommandLine.Parameters(paramLabel = "hostname") String hostname) throws InterruptedException {
+            ArrayList<Metadata> mdtList = (ArrayList<Metadata>)Client.get(hostname + "/api/metadata",
                     new LinkedMultiValueMap<String, String>(Map.of("filename", List.of("wrfout"))),
                     new ParameterizedTypeReference<ArrayList<Metadata>>(){});
 
@@ -45,7 +52,7 @@ public class Main {
             metadata.location = polygon;
 
             // Send POST request
-            System.out.println("POST returned: " +  Client.post("http://localhost:8080/api/metadata", metadata));
+            System.out.println("POST returned: " +  Client.post(hostname + "/api/metadata", metadata));
         }
     }
 }
