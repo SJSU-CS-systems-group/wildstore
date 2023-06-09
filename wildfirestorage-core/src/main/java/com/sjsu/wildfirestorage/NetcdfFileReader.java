@@ -30,6 +30,8 @@ public class NetcdfFileReader {
     private DigestingRandomAccessFile randomAccessFile;
     public DigestingRandomAccessFile getRandomAccessFile() { return randomAccessFile; }
 
+    public Metadata meta;
+
     public NetcdfFileReader(String netcdfFilepath) {
         this.netcdfFilepath = netcdfFilepath;
     }
@@ -122,8 +124,11 @@ public class NetcdfFileReader {
             System.out.println("No digest was found for this file.");
             throw new RuntimeException(e);
         }
-        
-        return metadata;
+
+//        Client.post( "http://cloud.homeofcode.com:27777/api/metadata", metadata); //Post metadata content
+
+        meta = metadata;
+        //printAllData(metadata);
     }
     public void printAllData(Metadata metadata)
     {
