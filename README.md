@@ -39,3 +39,13 @@ Without authentication:
 ```
 java -jar wildfirestorage-core/target/wildfirestorage-core-1.0-SNAPSHOT.jar --hostname=<optional server host:port> <"all" or "basic"> <path of NetCDF file>
 ```
+
+## Running the CLI
+Search MongoDB document by filename
+```
+java -jar wildfirestorage-cli/target/wildfirestorage-cli-1.0-SNAPSHOT.jar addDataset <netcdf file path> <hostname>
+```
+Search based on query
+```
+java -jar wildfirestorage-cli/target/wildfirestorage-cli-1.0-SNAPSHOT.jar search <search query> <hostname>
+```
