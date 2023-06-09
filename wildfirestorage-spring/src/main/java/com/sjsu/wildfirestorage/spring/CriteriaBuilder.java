@@ -178,7 +178,7 @@ public class CriteriaBuilder {
      * @return A Criteria that simply matches the variableName or attributeName fields with the requested value
      */
     private static Criteria getArrayMatchCriteria(Column column) {
-        if(column.getTable().getSchemaName() != null) {
+        if(column.getTable() != null && column.getTable().getSchemaName() != null) {
             switch (column.getTable().getSchemaName()) {
                 case VAR_TYPE: {
                     return Criteria.where(VARIABLE_NAME_FIELD).is(column.getTable().getName());
@@ -201,12 +201,17 @@ public class CriteriaBuilder {
      * @return Criteria with elemMatch operator
      */
     private static Criteria getElemMatchCriteria(Column column, Criteria elemCriteria) {
-        switch (column.getTable().getSchemaName()) {
-            case VAR_TYPE: {
-                return Criteria.where(VARIABLES_ARRAY_FIELD).elemMatch(elemCriteria);
-            }
-            case ATTRIBUTE_TYPE: {
-                return Criteria.where(ATTRIBUTES_ARRAY_FIELD).elemMatch(elemCriteria);
+        if(column.getTable() != null && column.getTable().getSchemaName() != null) {
+            switch (column.getTable().getSchemaName()) {
+                case VAR_TYPE: {
+                    return Criteria.where(VARIABLES_ARRAY_FIELD).elemMatch(elemCriteria);
+                }
+                case ATTRIBUTE_TYPE: {
+                    return Criteria.where(ATTRIBUTES_ARRAY_FIELD).elemMatch(elemCriteria);
+                }
+                default: {
+                    return null;
+                }
             }
         }
         return null;
