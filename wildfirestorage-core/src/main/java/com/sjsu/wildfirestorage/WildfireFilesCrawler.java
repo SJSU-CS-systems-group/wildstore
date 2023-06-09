@@ -2,8 +2,6 @@ package com.sjsu.wildfirestorage;
 
 import picocli.CommandLine;
 
-import java.util.List;
-
 @CommandLine.Command(name = "GET", mixinStandardHelpOptions = true)
 public class WildfireFilesCrawler implements Runnable {
     @CommandLine.Parameters(paramLabel = "<option>", defaultValue = "all", description = "Which information to print.")
