@@ -43,7 +43,7 @@ java -jar wildfirestorage-core/target/wildfirestorage-core-1.0-SNAPSHOT.jar --ho
 ## Running the CLI
 Search MongoDB document by filename
 ```
-java -jar wildfirestorage-cli/target/wildfirestorage-cli-1.0-SNAPSHOT.jar addDataset <netcdf file path> <hostname>
+java -jar wildfirestorage-cli/target/wildfirestorage-cli-1.0-SNAPSHOT.jar datasetInfo <netcdf file name> <hostname>
 ```
 Search based on query
 ```

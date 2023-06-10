@@ -13,13 +13,14 @@ public class Client {
         Object response = webClient.get()
                 .uri(uriBuilder -> uriBuilder.queryParams(queryParams).build())
                 .retrieve()
-                .bodyToMono(parameterizedTypeReference).block();
+                .bodyToMono(parameterizedTypeReference)
+                .block();
 
         System.out.println("GET Response received: \n" + response);
         return response;
     }
 
-    public static Object post(String path, Object body){
+    public static Object post(String path, Object body, ParameterizedTypeReference parameterizedTypeReference){
         WebClient webClient = WebClient.builder().exchangeStrategies(ExchangeStrategies.builder()
                 .codecs(configurer -> configurer
                         .defaultCodecs()
@@ -29,8 +30,7 @@ public class Client {
         Object response = webClient.post()
                 .body(Mono.just(body), Object.class)
                 .retrieve()
-                .bodyToMono(Object.class)
-
+                .bodyToMono(parameterizedTypeReference)
                 .block();
         System.out.println("POST Response received: \n" + response);
         return response;

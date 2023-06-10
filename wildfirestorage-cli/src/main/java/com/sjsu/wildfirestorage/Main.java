@@ -28,31 +28,8 @@ public class Main {
         public void search(@CommandLine.Parameters(paramLabel = "query") String query, @CommandLine.Parameters(paramLabel = "hostname") String hostname) throws InterruptedException {
             MetadataRequest metadataRequest = new MetadataRequest();
             metadataRequest.searchQuery = query;
-            System.out.println("GET returned: " + Client.post(hostname + "/api/metadata/search", metadataRequest));
-        }
-
-        // Dummy method for post
-        @CommandLine.Command
-        public void addDataset(@CommandLine.Parameters(paramLabel = "hostname") String hostname) throws InterruptedException {
-            ArrayList<Metadata> mdtList = (ArrayList<Metadata>)Client.get(hostname + "/api/metadata",
-                    new LinkedMultiValueMap<String, String>(Map.of("filename", List.of("wrfout"))),
-                    new ParameterizedTypeReference<ArrayList<Metadata>>(){});
-
-            Metadata metadata = mdtList.get(0);
-
-            // Modify metadata filename
-            metadata.fileName = "newfilename" + System.currentTimeMillis();
-
-            // Set location
-            Point p1 = new Point(10,10);
-            Point p2 = new Point(20,30);
-            Point p3 = new Point(30,10);
-            Point p4 = new Point(10,10);
-            GeoJsonPolygon polygon =new GeoJsonPolygon(List.of(p1, p2, p3, p4));
-            metadata.location = polygon;
-
-            // Send POST request
-            System.out.println("POST returned: " +  Client.post(hostname + "/api/metadata", metadata));
+            var res = (ArrayList<Metadata>)Client.post(hostname + "/api/metadata/search", metadataRequest, new ParameterizedTypeReference<ArrayList<Metadata>>(){});
+            System.out.println("SEARCH returned: " + res);
         }
     }
 }
