@@ -8,7 +8,11 @@ import ucar.nc2.Attribute;
 import ucar.nc2.Dimension;
 import ucar.nc2.NetcdfFile;
 import ucar.nc2.Variable;
+import ucar.nc2.util.CancelTask;
+import ucar.unidata.io.RandomAccessFile;
+
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.List;
@@ -23,6 +27,9 @@ public class NetcdfFileReader {
 
     private NetcdfFile netcdfFile;
 
+    private DigestingRandomAccessFile randomAccessFile;
+    public DigestingRandomAccessFile getRandomAccessFile() { return randomAccessFile; }
+
     public NetcdfFileReader(String netcdfFilepath) {
         this.netcdfFilepath = netcdfFilepath;
     }
@@ -30,8 +37,12 @@ public class NetcdfFileReader {
     public Metadata processFile() {
         // Try and read the contents of the netCDF file
         try {
-            this.netcdfFile = NetcdfFile.open(this.netcdfFilepath);
-        } catch (IOException e) {
+            var method = NetcdfFile.class.getDeclaredMethod("open", RandomAccessFile.class, String.class, CancelTask.class, Object.class);
+            method.setAccessible(true);
+            randomAccessFile = new DigestingRandomAccessFile(netcdfFilepath);
+            this.netcdfFile =
+                    (NetcdfFile) method.invoke(null, randomAccessFile, netcdfFilepath, null, null);
+        } catch (IOException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
 
@@ -103,6 +114,14 @@ public class NetcdfFileReader {
         else {
             metadata.location = null;
         }
+        try {
+            metadata.digestString = randomAccessFile.getDigestString(true);
+        } catch (IOException e) {
+            metadata.digestString = null;
+            System.out.println("No digest was found for this file.");
+            throw new RuntimeException(e);
+        }
+
         return metadata;
     }
   
@@ -113,6 +132,7 @@ public class NetcdfFileReader {
         System.out.println("FilePath: " + metadata.filePath);
         System.out.println("FileType: " + metadata.fileType);
         System.out.println("Domain: " + metadata.domain);
+        System.out.println("Digest String: " + metadata.digestString);
         if(metadata.location != null)
             System.out.println("Corners: " + metadata.location.toString());
         else
