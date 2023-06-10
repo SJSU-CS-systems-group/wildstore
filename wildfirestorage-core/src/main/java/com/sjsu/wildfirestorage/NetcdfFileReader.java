@@ -99,10 +99,13 @@ public class NetcdfFileReader {
             Array lat_values = corner_lat.getValues();
             Array lon_values = corner_lon.getValues();
             List <Point> points = new ArrayList<>();
+
             for (int i = (int) (lat_values.getSize()-4); i < lat_values.getSize(); i++)
             {
                 points.add(new Point(lat_values.getFloat(i), lon_values.getFloat(i)));
             }
+            points.add(new Point(lat_values.getFloat((int) (lat_values.getSize()-4)), lon_values.getFloat((int) (lat_values.getSize()-4))));
+
             metadata.location = new GeoJsonPolygon(points);
         }
         else if (xlat != null && xlong != null) {
