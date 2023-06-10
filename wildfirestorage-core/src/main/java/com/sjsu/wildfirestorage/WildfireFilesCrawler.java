@@ -1,6 +1,9 @@
 package com.sjsu.wildfirestorage;
 
+import org.springframework.core.ParameterizedTypeReference;
 import picocli.CommandLine;
+
+import java.util.ArrayList;
 
 @CommandLine.Command(name = "GET", mixinStandardHelpOptions = true)
 public class WildfireFilesCrawler implements Runnable {
@@ -26,7 +29,7 @@ public class WildfireFilesCrawler implements Runnable {
         if (hostname == null) {
             System.out.println("No hostname specified. Skipping metadata update.");
         } else {
-            Client.post(hostname + "/api/metadata", metadata);
+            Client.post(hostname + "/api/metadata", metadata, new ParameterizedTypeReference<ArrayList<Metadata>>(){});
         }
     }
     public static void main(String[] args) {
