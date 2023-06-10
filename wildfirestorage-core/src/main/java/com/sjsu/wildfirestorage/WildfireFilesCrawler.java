@@ -18,10 +18,10 @@ public class WildfireFilesCrawler implements Runnable {
         var metadata = fileReader.processFile();
 
         if (option.equals("all")) {
-            fileReader.printAllData(metadata);
+            PrintData.printAllData(metadata);
         }
         else if (option.equals("basic")) {
-            fileReader.printBasic(metadata);
+            PrintData.printBasic(metadata);
         }
         if (hostname == null) {
             System.out.println("No hostname specified. Skipping metadata update.");
