@@ -11,8 +11,6 @@ public class WildfireFilesCrawler implements Runnable {
     private String option;
     @CommandLine.Parameters(paramLabel = "<file>", description = "File to process")
     private String ncFilePath = "/Users/ysabella/Downloads/wrfout_d01_2019-06-20_18_00_00";
-    // private String ncFilePath = "/Users/spartan/Applications/WildStorage/datafiles/met_em.d01.2019-06-21_09:00:00.nc";
-    // private String ncFilePath = "/Users/spartan/Applications/WildStorage/datafiles/wrfout_d05_2012-09-11_00:00:0069:00:00.nc";
     @CommandLine.Option(names = "--hostname", description = "Host name of the API server")
     String hostname;
 
