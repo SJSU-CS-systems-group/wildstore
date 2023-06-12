@@ -85,7 +85,7 @@ public class NetcdfFileReader {
         }
         else if (startDateValue != null) {
             WildfireAttribute startDate = new WildfireAttribute();
-            startDate.attributeName = "Start Date";
+            startDate.attributeName = "StartDate";
             startDate.type = "Date";
             startDate.value = startDateValue;
             metadata.globalAttributes.add(startDate);
@@ -93,7 +93,22 @@ public class NetcdfFileReader {
         //Corners
         Variable xlat = netcdfFile.findVariable("XLAT");
         Variable xlong = netcdfFile.findVariable("XLONG");
-        if (xlat != null && xlong != null) {
+        Attribute corner_lat = netcdfFile.findGlobalAttribute("corner_lats");
+        Attribute corner_lon = netcdfFile.findGlobalAttribute("corner_lons");
+        if (corner_lat != null && corner_lon != null) {
+            Array lat_values = corner_lat.getValues();
+            Array lon_values = corner_lon.getValues();
+            List <Point> points = new ArrayList<>();
+
+            for (int i = (int) (lat_values.getSize()-4); i < lat_values.getSize(); i++)
+            {
+                points.add(new Point(lat_values.getFloat(i), lon_values.getFloat(i)));
+            }
+            points.add(new Point(lat_values.getFloat((int) (lat_values.getSize()-4)), lon_values.getFloat((int) (lat_values.getSize()-4))));
+
+            metadata.location = new GeoJsonPolygon(points);
+        }
+        else if (xlat != null && xlong != null) {
             float xMin = 0, xMax = 0, yMin = 0, yMax = 0;
             for (WildfireVariable v : metadata.variables) {
                 if (v.variableName.equals("XLAT")) {
@@ -123,6 +138,98 @@ public class NetcdfFileReader {
         }
 
         return metadata;
+    }
+
+    public void printAllData(Metadata metadata)
+    {
+        //Print Name and filepath
+        System.out.println("Filename: " + metadata.fileName);
+        System.out.println("FilePath: " + metadata.filePath);
+        System.out.println("FileType: " + metadata.fileType);
+        System.out.println("Domain: " + metadata.domain);
+        System.out.println("Digest String: " + metadata.digestString);
+        if(metadata.location != null)
+            System.out.println("Corners: " + metadata.location.toString());
+        else
+            System.out.println("Corners: Null");
+
+        //Print All Attributes
+        System.out.println("\nAttributes");
+        for (WildfireAttribute a : metadata.globalAttributes)
+        {
+            System.out.print(a.attributeName + "\t" + a.type + "\t");
+            if (a.type.equalsIgnoreCase("int"))
+                System.out.println(Arrays.toString((int[]) a.value));
+            else if (a.type.equalsIgnoreCase("float"))
+                System.out.println(Arrays.toString((float[]) a.value));
+            else if (a.type.equalsIgnoreCase("string"))
+                System.out.println(Arrays.toString((Object[]) a.value));
+            else if (a.type.equalsIgnoreCase("date"))
+                System.out.println(a.value.toString());
+        }
+
+        //Print All Variables
+        System.out.println("\nVariables");
+        for (WildfireVariable v : metadata.variables)
+        {
+            System.out.println(v.variableName + "\t" + v.type + "\t" + v.minValue +"\t" + v.maxValue + "\t" + v.average);
+            for (WildfireAttribute a : v.attributeList)
+            {
+                System.out.print(a.attributeName + "\t" + a.type + "\t");
+                if (a.type.equalsIgnoreCase("int"))
+                    System.out.println(Arrays.toString((int[]) a.value));
+                else if (a.type.equalsIgnoreCase("float"))
+                    System.out.println(Arrays.toString((float[]) a.value));
+                else
+                    System.out.println(Arrays.toString((Object[]) a.value));
+            }
+            System.out.println();
+        }
+    }
+
+    public void printBasic(Metadata metadata) {
+        System.out.println("Filename: " + metadata.fileName);
+        System.out.println("FilePath: " + metadata.filePath);
+        System.out.println("FileType: " + metadata.fileType);
+        System.out.println("Domain: " + metadata.domain);
+        if(metadata.location != null)
+            System.out.println("Corners: " + metadata.location.toString());
+        else
+            System.out.println("Corners: Null");
+
+        //Attributes
+        System.out.println("\nAttributes:");
+        for (WildfireAttribute a : metadata.globalAttributes)
+        {
+            System.out.print(a.attributeName + "\t");
+            if (a.type.equalsIgnoreCase("int"))
+                System.out.println(Arrays.toString((int[]) a.value));
+            else if (a.type.equalsIgnoreCase("float"))
+                System.out.println(Arrays.toString((float[]) a.value));
+            else if (a.type.equalsIgnoreCase("string"))
+                System.out.println(Arrays.toString((Object[]) a.value));
+            else if (a.type.equalsIgnoreCase("date"))
+                System.out.println(a.value.toString());
+        }
+
+        //Variables
+        System.out.println("\nVariables:");
+        for (WildfireVariable v : metadata.variables)
+        {
+            System.out.print(v.variableName + "\t" + v.average + "\t");
+            for (WildfireAttribute a : v.attributeList)
+            {
+                if (a.attributeName.equals("units")) {
+                    if (a.type.equalsIgnoreCase("int"))
+                        System.out.println(Arrays.toString((int[]) a.value));
+                    else if (a.type.equalsIgnoreCase("float"))
+                        System.out.println(Arrays.toString((float[]) a.value));
+                    else
+                        System.out.println(Arrays.toString((Object[]) a.value));
+                }
+            }
+            System.out.println();
+        }
     }
 
     public List<WildfireAttribute> readGlobalAttributes() {
@@ -296,7 +403,7 @@ public class NetcdfFileReader {
 //				System.out.println(windSpeed + "\t" + uUnstag + "\t" + vUnstag);
         }
 
-        String [] stringWindDir = {"North Wind", "North East Wind", "East Wind", "South East Wind", "South Wind", "South West Wind", "West Wind", "North West Wind"};
+        String [] stringWindDir = {"NorthWind", "NorthEastWind", "EastWind", "SouthEastWind", "SouthWind", "SouthWestWind", "WestWind", "NorthWestWind"};
         List<WildfireVariable> windSpeeds = new ArrayList<>();
 
         for (int i = 0; i < stringWindDir.length; i++) {
@@ -339,7 +446,7 @@ public class NetcdfFileReader {
 
         Pattern pattern = Pattern.compile("(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d)_(\\d\\d):(\\d\\d):(\\d\\d)");
 
-        String[] dateName = {"Start Date", "End Date"};
+        String[] dateName = {"StartDate", "EndDate"};
         String[] times = {firstTime, lastTime};
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy MM dd HH mm ss");
         List<WildfireAttribute> dates = new ArrayList<>();
