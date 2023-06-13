@@ -31,7 +31,7 @@ public class Main {
             MetadataRequest metadataRequest = new MetadataRequest();
             metadataRequest.searchQuery = query;
             var res = (ArrayList<Metadata>)Client.post(hostname + "/api/metadata/search", metadataRequest, new ParameterizedTypeReference<ArrayList<Metadata>>(){});
-            System.out.println("SEARCH returned: " + res);
+            System.out.println("SEARCH returned: " + res.size() + " results");
 
             if (option.equals("all")) {
                 for (Metadata m: res)
