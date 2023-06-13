@@ -25,12 +25,22 @@ public class Main {
         }
 
         @CommandLine.Command
-        public void search(@CommandLine.Parameters(paramLabel = "query") String query, @CommandLine.Parameters(paramLabel = "hostname") String hostname) throws InterruptedException {
+        public void search(@CommandLine.Parameters(paramLabel = "query") String query, @CommandLine.Parameters(paramLabel = "hostname") String hostname,
+                           @CommandLine.Parameters(paramLabel = "<option>", defaultValue = "all", description = "Which information to print - 'all' or 'basic'") String option) throws InterruptedException {
+
             MetadataRequest metadataRequest = new MetadataRequest();
             metadataRequest.searchQuery = query;
             var res = (ArrayList<Metadata>)Client.post(hostname + "/api/metadata/search", metadataRequest, new ParameterizedTypeReference<ArrayList<Metadata>>(){});
             System.out.println("SEARCH returned: " + res);
-            //PrintData.printBasic();
+
+            if (option.equals("all")) {
+                for (Metadata m: res)
+                    PrintData.printAllData(m);
+            }
+            else {
+                for (Metadata m: res)
+                    PrintData.printBasic(m);
+            }
         }
     }
 }
