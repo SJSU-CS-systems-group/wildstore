@@ -29,7 +29,7 @@ public class WildfireFilesCrawler implements Runnable {
         if (hostname == null) {
             System.out.println("No hostname specified. Skipping metadata update.");
         } else {
-            Client.post(hostname + "/api/metadata", metadata, new ParameterizedTypeReference<ArrayList<Metadata>>(){});
+            Client.post(hostname + "/api/metadata", metadata, new ParameterizedTypeReference<Integer>(){});
         }
     }
     public static void main(String[] args) {
