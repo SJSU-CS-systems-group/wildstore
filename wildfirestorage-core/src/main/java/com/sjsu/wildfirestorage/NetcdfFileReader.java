@@ -15,10 +15,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Arrays;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -47,8 +44,9 @@ public class NetcdfFileReader {
         }
 
         Metadata metadata = new Metadata();
-        metadata.fileName = netcdfFilepath.substring(netcdfFilepath.lastIndexOf('/')+1);
-        metadata.filePath = netcdfFilepath;
+        String fileNameStr = netcdfFilepath.substring(netcdfFilepath.lastIndexOf('/')+1);
+        metadata.fileName = Set.of(fileNameStr);
+        metadata.filePath = Set.of(netcdfFilepath);
 
         metadata.globalAttributes = readGlobalAttributes();
 
@@ -56,8 +54,8 @@ public class NetcdfFileReader {
 
         //Special processing @Todo: Find a more efficient way to do this
         //FileName
-        String[] fileNameParsed = parseName(metadata.fileName);
-        metadata.fileType = (fileNameParsed[0] != null) ? fileNameParsed[0] : null;
+        String[] fileNameParsed = parseName(fileNameStr);
+        metadata.fileType = (fileNameParsed[0] != null) ? Set.of(fileNameParsed[0]) : null;
         metadata.domain = (fileNameParsed[1] != null && !fileNameParsed[1].equals("")) ? Integer.parseInt(fileNameParsed[1]) : 0;
         Date startDateValue = null;
         if (fileNameParsed[2] != null && !fileNameParsed[2].startsWith("0000")){
