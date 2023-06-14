@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
@@ -69,7 +70,24 @@ public class MetadataController {
                 }
             }
         });
-        mongoTemplate.save(metadata, METADATA_COLLECTION);
+        Query query = new Query(Criteria.where("digestString").is(metadata.digestString));
+        query.fields().exclude("variables", "globalAttributes");
+        var existingDoc = mongoTemplate.find(query, Metadata.class);
+        if(!existingDoc.isEmpty()) {
+            existingDoc.get(0).fileName.addAll(metadata.fileName);
+            existingDoc.get(0).filePath.addAll(metadata.filePath);
+            Update update = new Update().set("fileName", existingDoc.get(0).fileName)
+                .set("filePath", existingDoc.get(0).filePath);
+            if(existingDoc.get(0).fileType != null && metadata.fileType != null) {
+                existingDoc.get(0).fileType.addAll(metadata.fileType);
+                update.set("fileType", existingDoc.get(0).fileType);
+            } else if ( metadata.fileType != null ){
+                update.set("fileType", metadata.fileType);
+            }
+            mongoTemplate.updateFirst(query, update, Metadata.class);
+        } else {
+            mongoTemplate.save(metadata, METADATA_COLLECTION);
+        }
         return 0;
     }
 }

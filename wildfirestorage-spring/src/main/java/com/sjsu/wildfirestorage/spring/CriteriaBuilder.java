@@ -139,7 +139,7 @@ public class CriteriaBuilder {
                     for(var item: ((ExpressionList)in.getRightItemsList()).getExpressions()){
                         ArrayList<Double> pt = new ArrayList<>();
                         for(var coordinate : ((RowConstructor)item).getExprList().getExpressions()) {
-                            pt.add(((DoubleValue)coordinate).getValue());
+                            pt.add((Double)getPrimitiveValue(coordinate));
                         }
                         polygonPoints.add(new Point(pt.get(0), pt.get(1)));
                     }
@@ -241,6 +241,9 @@ public class CriteriaBuilder {
             }
             case "StringValue": {
                 return ((StringValue)ex).getValue();
+            }
+            case "SignedExpression": {
+                return ((DoubleValue)((SignedExpression)ex).getExpression()).getValue() * -1;
             }
             default: {
                 System.out.println("Unknown JSQLParser Value type");

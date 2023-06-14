@@ -15,8 +15,6 @@ public class Client {
                 .retrieve()
                 .bodyToMono(parameterizedTypeReference)
                 .block();
-
-        System.out.println("GET Response received: \n" + response);
         return response;
     }
 
@@ -32,7 +30,6 @@ public class Client {
                 .retrieve()
                 .bodyToMono(parameterizedTypeReference)
                 .block();
-        System.out.println("POST Response received: \n" + response);
         return response;
     }
 }
