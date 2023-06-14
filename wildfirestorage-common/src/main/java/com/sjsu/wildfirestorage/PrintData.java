@@ -21,7 +21,8 @@ public class PrintData {
         for (WildfireAttribute a : metadata.globalAttributes)
         {
             System.out.print(a.attributeName + "\t" + a.type + "\t");
-            System.out.println(a.value);
+            System.out.print(a.value);
+            System.out.print("\n");
         }
 
         //Print All Variables
@@ -32,9 +33,9 @@ public class PrintData {
             for (WildfireAttribute a : v.attributeList)
             {
                 System.out.print(a.attributeName + "\t" + a.type + "\t");
-                System.out.println(a.value);
+                System.out.print(a.value);
             }
-            System.out.println();
+            System.out.print("\n");
         }
     }
 
@@ -53,7 +54,8 @@ public class PrintData {
         for (WildfireAttribute a : metadata.globalAttributes)
         {
             System.out.print(a.attributeName + "\t");
-            System.out.println(a.value);
+            System.out.print(a.value);
+            System.out.print("\n");
         }
 
         //Variables
@@ -64,10 +66,10 @@ public class PrintData {
             for (WildfireAttribute a : v.attributeList)
             {
                 if (a.attributeName.equals("units")) {
-                    System.out.println(a.value);
+                    System.out.print(a.value);
                 }
             }
-            System.out.println();
+            System.out.print("\n");
         }
     }
 }
