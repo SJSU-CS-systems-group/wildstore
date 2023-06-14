@@ -21,14 +21,7 @@ public class PrintData {
         for (WildfireAttribute a : metadata.globalAttributes)
         {
             System.out.print(a.attributeName + "\t" + a.type + "\t");
-            if (a.type.equalsIgnoreCase("int"))
-                System.out.println(Arrays.toString((int[]) a.value));
-            else if (a.type.equalsIgnoreCase("float"))
-                System.out.println(Arrays.toString((float[]) a.value));
-            else if (a.type.equalsIgnoreCase("string"))
-                System.out.println(Arrays.toString((Object[]) a.value));
-            else if (a.type.equalsIgnoreCase("date"))
-                System.out.println(a.value.toString());
+            System.out.println(a.value);
         }
 
         //Print All Variables
@@ -39,12 +32,7 @@ public class PrintData {
             for (WildfireAttribute a : v.attributeList)
             {
                 System.out.print(a.attributeName + "\t" + a.type + "\t");
-                if (a.type.equalsIgnoreCase("int"))
-                    System.out.println(Arrays.toString((int[]) a.value));
-                else if (a.type.equalsIgnoreCase("float"))
-                    System.out.println(Arrays.toString((float[]) a.value));
-                else
-                    System.out.println(Arrays.toString((Object[]) a.value));
+                System.out.println(a.value);
             }
             System.out.println();
         }
@@ -65,14 +53,7 @@ public class PrintData {
         for (WildfireAttribute a : metadata.globalAttributes)
         {
             System.out.print(a.attributeName + "\t");
-            if (a.type.equalsIgnoreCase("int"))
-                System.out.println(Arrays.toString((int[]) a.value));
-            else if (a.type.equalsIgnoreCase("float"))
-                System.out.println(Arrays.toString((float[]) a.value));
-            else if (a.type.equalsIgnoreCase("string"))
-                System.out.println(Arrays.toString((Object[]) a.value));
-            else if (a.type.equalsIgnoreCase("date"))
-                System.out.println(a.value.toString());
+            System.out.println(a.value);
         }
 
         //Variables
@@ -83,12 +64,7 @@ public class PrintData {
             for (WildfireAttribute a : v.attributeList)
             {
                 if (a.attributeName.equals("units")) {
-                    if (a.type.equalsIgnoreCase("int"))
-                        System.out.println(Arrays.toString((int[]) a.value));
-                    else if (a.type.equalsIgnoreCase("float"))
-                        System.out.println(Arrays.toString((float[]) a.value));
-                    else
-                        System.out.println(Arrays.toString((Object[]) a.value));
+                    System.out.println(a.value);
                 }
             }
             System.out.println();

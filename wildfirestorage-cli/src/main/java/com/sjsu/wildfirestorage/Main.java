@@ -31,7 +31,6 @@ public class Main {
             MetadataRequest metadataRequest = new MetadataRequest();
             metadataRequest.searchQuery = query;
             var res = (ArrayList<Metadata>)Client.post(hostname + "/api/metadata/search", metadataRequest, new ParameterizedTypeReference<ArrayList<Metadata>>(){});
-            System.out.println("SEARCH returned: " + res.size() + " results");
 
             if (option.equals("all")) {
                 for (Metadata m: res)
@@ -41,6 +40,7 @@ public class Main {
                 for (Metadata m: res)
                     PrintData.printBasic(m);
             }
+            System.out.println("SEARCH returned: " + res.size() + " results");
         }
     }
 }
