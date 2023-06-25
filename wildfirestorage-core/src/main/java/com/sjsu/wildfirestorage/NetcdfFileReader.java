@@ -60,6 +60,7 @@ public class NetcdfFileReader {
         Date startDateValue = null;
         if (fileNameParsed[2] != null && !fileNameParsed[2].startsWith("0000")){
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy MM dd HH mm ss");
+            dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
             try {
                 startDateValue = dateFormat.parse(fileNameParsed[2]);
             } catch (ParseException e) {
@@ -348,6 +349,7 @@ public class NetcdfFileReader {
         String[] dateName = {"StartDate", "EndDate"};
         String[] times = {firstTime, lastTime};
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy MM dd HH mm ss");
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         List<WildfireAttribute> dates = new ArrayList<>();
 
         for (int i = 0; i < dateName.length; i++) {
