@@ -1,7 +1,5 @@
 package com.sjsu.wildfirestorage;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.data.geo.Point;
-import org.springframework.data.mongodb.core.geo.GeoJsonPolygon;
 import org.springframework.util.LinkedMultiValueMap;
 import picocli.CommandLine;
 
