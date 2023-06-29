@@ -60,6 +60,7 @@ public class NetcdfFileReader {
         Date startDateValue = null;
         if (fileNameParsed[2] != null && !fileNameParsed[2].startsWith("0000")){
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy MM dd HH mm ss");
+            dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
             try {
                 startDateValue = dateFormat.parse(fileNameParsed[2]);
             } catch (ParseException e) {
@@ -98,11 +99,10 @@ public class NetcdfFileReader {
             Array lon_values = corner_lon.getValues();
             List <Point> points = new ArrayList<>();
 
-            for (int i = (int) (lat_values.getSize()-4); i < lat_values.getSize(); i++)
-            {
-                points.add(new Point(lat_values.getFloat(i), lon_values.getFloat(i)));
+            for (int i = (int) (lat_values.getSize()-4); i < lat_values.getSize(); i++) {
+                points.add(new Point(lon_values.getFloat(i), lat_values.getFloat(i)));
             }
-            points.add(new Point(lat_values.getFloat((int) (lat_values.getSize()-4)), lon_values.getFloat((int) (lat_values.getSize()-4))));
+            points.add(new Point(lon_values.getFloat((int) (lat_values.getSize()-4)), lat_values.getFloat((int) (lat_values.getSize()-4))));
 
             metadata.location = new GeoJsonPolygon(points);
         }
@@ -138,98 +138,6 @@ public class NetcdfFileReader {
         return metadata;
     }
 
-    public void printAllData(Metadata metadata)
-    {
-        //Print Name and filepath
-        System.out.println("Filename: " + metadata.fileName);
-        System.out.println("FilePath: " + metadata.filePath);
-        System.out.println("FileType: " + metadata.fileType);
-        System.out.println("Domain: " + metadata.domain);
-        System.out.println("Digest String: " + metadata.digestString);
-        if(metadata.location != null)
-            System.out.println("Corners: " + metadata.location.toString());
-        else
-            System.out.println("Corners: Null");
-
-        //Print All Attributes
-        System.out.println("\nAttributes");
-        for (WildfireAttribute a : metadata.globalAttributes)
-        {
-            System.out.print(a.attributeName + "\t" + a.type + "\t");
-            if (a.type.equalsIgnoreCase("int"))
-                System.out.println(Arrays.toString((int[]) a.value));
-            else if (a.type.equalsIgnoreCase("float"))
-                System.out.println(Arrays.toString((float[]) a.value));
-            else if (a.type.equalsIgnoreCase("string"))
-                System.out.println(Arrays.toString((Object[]) a.value));
-            else if (a.type.equalsIgnoreCase("date"))
-                System.out.println(a.value.toString());
-        }
-
-        //Print All Variables
-        System.out.println("\nVariables");
-        for (WildfireVariable v : metadata.variables)
-        {
-            System.out.println(v.variableName + "\t" + v.type + "\t" + v.minValue +"\t" + v.maxValue + "\t" + v.average);
-            for (WildfireAttribute a : v.attributeList)
-            {
-                System.out.print(a.attributeName + "\t" + a.type + "\t");
-                if (a.type.equalsIgnoreCase("int"))
-                    System.out.println(Arrays.toString((int[]) a.value));
-                else if (a.type.equalsIgnoreCase("float"))
-                    System.out.println(Arrays.toString((float[]) a.value));
-                else
-                    System.out.println(Arrays.toString((Object[]) a.value));
-            }
-            System.out.println();
-        }
-    }
-
-    public void printBasic(Metadata metadata) {
-        System.out.println("Filename: " + metadata.fileName);
-        System.out.println("FilePath: " + metadata.filePath);
-        System.out.println("FileType: " + metadata.fileType);
-        System.out.println("Domain: " + metadata.domain);
-        if(metadata.location != null)
-            System.out.println("Corners: " + metadata.location.toString());
-        else
-            System.out.println("Corners: Null");
-
-        //Attributes
-        System.out.println("\nAttributes:");
-        for (WildfireAttribute a : metadata.globalAttributes)
-        {
-            System.out.print(a.attributeName + "\t");
-            if (a.type.equalsIgnoreCase("int"))
-                System.out.println(Arrays.toString((int[]) a.value));
-            else if (a.type.equalsIgnoreCase("float"))
-                System.out.println(Arrays.toString((float[]) a.value));
-            else if (a.type.equalsIgnoreCase("string"))
-                System.out.println(Arrays.toString((Object[]) a.value));
-            else if (a.type.equalsIgnoreCase("date"))
-                System.out.println(a.value.toString());
-        }
-
-        //Variables
-        System.out.println("\nVariables:");
-        for (WildfireVariable v : metadata.variables)
-        {
-            System.out.print(v.variableName + "\t" + v.average + "\t");
-            for (WildfireAttribute a : v.attributeList)
-            {
-                if (a.attributeName.equals("units")) {
-                    if (a.type.equalsIgnoreCase("int"))
-                        System.out.println(Arrays.toString((int[]) a.value));
-                    else if (a.type.equalsIgnoreCase("float"))
-                        System.out.println(Arrays.toString((float[]) a.value));
-                    else
-                        System.out.println(Arrays.toString((Object[]) a.value));
-                }
-            }
-            System.out.println();
-        }
-    }
-
     public List<WildfireAttribute> readGlobalAttributes() {
 
         List<Attribute> attributes = this.netcdfFile.getGlobalAttributes();
@@ -240,7 +148,6 @@ public class NetcdfFileReader {
     // Record to store processed attributes
     public List<WildfireVariable> readVariables() {
         List<Variable> variables = netcdfFile.getVariables();
-//        System.out.println("Variables from file: " + variables);
 
         //@Todo: Need to configure for special variables and attributes
         List<WildfireVariable> processedVariables = new ArrayList<>();
@@ -376,7 +283,6 @@ public class NetcdfFileReader {
         int uIndex = 0;
         int vIndex = 0;
         for (int i = 0; i < arraySize; i++) {
-//				System.out.print(i + "\t" +uIndex + "\t" + vIndex + "\t" + uData.getFloat(uIndex) + "\t"+vData.getFloat(vIndex) +"\t");
             double uUnstag = 0.5 * (uData.getFloat(uIndex) + uData.getFloat(uIndex+1));
             double vUnstag = 0.5 * (vData.getFloat(vIndex) + vData.getFloat(vIndex + west_east_dim));
 
@@ -397,8 +303,6 @@ public class NetcdfFileReader {
                 uIndex++;
             if((i+1) % (west_east_dim*south_north_dim)== 0) //Skip the last row of each rectangle
                 vIndex+=west_east_dim;
-
-//				System.out.println(windSpeed + "\t" + uUnstag + "\t" + vUnstag);
         }
 
         String [] stringWindDir = {"NorthWind", "NorthEastWind", "EastWind", "SouthEastWind", "SouthWind", "SouthWestWind", "WestWind", "NorthWestWind"};
@@ -417,8 +321,6 @@ public class NetcdfFileReader {
             temp.varDimensionList = new ArrayList<>();
 
             windSpeeds.add(temp);
-
-//            System.out.printf("%10s\t%3.5f\t%3.5f\t%3.5f\n",stringWindDir[i], windSpeedMin[i], windSpeedMax[i], windSpeedAvg[i]);
         }
         return windSpeeds;
     }
@@ -447,6 +349,7 @@ public class NetcdfFileReader {
         String[] dateName = {"StartDate", "EndDate"};
         String[] times = {firstTime, lastTime};
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy MM dd HH mm ss");
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         List<WildfireAttribute> dates = new ArrayList<>();
 
         for (int i = 0; i < dateName.length; i++) {
