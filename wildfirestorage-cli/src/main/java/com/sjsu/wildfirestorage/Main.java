@@ -28,7 +28,12 @@ public class Main {
 
             MetadataRequest metadataRequest = new MetadataRequest();
             metadataRequest.searchQuery = query;
-            var res = (ArrayList<Metadata>)Client.post(hostname + "/api/metadata/search", metadataRequest, new ParameterizedTypeReference<ArrayList<Metadata>>(){});
+            var res = (ArrayList<Metadata>)(Client.post(hostname + "/api/metadata/search", metadataRequest, new ParameterizedTypeReference<ArrayList<Metadata>>(){}, error -> {
+                error.bodyToMono(String.class)
+                        .subscribe(errBody -> System.out.println("Response body: "+ errBody));
+                return null;
+            })).block();
+            System.out.println("SEARCH returned: " + res.size() + " results");
             if (option.equals("all")) {
                 for (Metadata m: res) {
                     System.out.println("========================================================================");
