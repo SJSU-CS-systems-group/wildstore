@@ -3,6 +3,7 @@ package com.sjsu.wildfirestorage;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import picocli.CommandLine;
+import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -43,8 +44,19 @@ public class WildfireFilesCrawler implements Runnable {
                     if (hostname == null) {
                         System.out.println("No hostname specified. Skipping metadata update.");
                     } else {
-                        var response = (Integer) Client.post(hostname + "/api/metadata", metadata, new ParameterizedTypeReference<Integer>(){});
-                        System.out.println("POST response: " + response);
+
+                        Client.post(hostname + "/api/metadata", metadata, new ParameterizedTypeReference<Integer>(){}, error -> {
+                            try {
+                                var errBody = error.bodyToMono(String.class).toFuture().get();
+                                System.out.println("POST Error: "+errBody);
+                                status.put(file, errBody);
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                            return null;
+                        }).subscribe(response -> {
+                            System.out.println("POST response: " + (Integer)response);
+                        });
                     }
                 } catch (WebClientRequestException ex) {
                     StringWriter errors = new StringWriter();
@@ -61,6 +73,11 @@ public class WildfireFilesCrawler implements Runnable {
                 }
             });
         } catch (IOException e) {
+            System.out.println("There was an exception: " + e.getMessage());
+        }
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
         if(log) {
