@@ -1,18 +1,17 @@
 package com.sjsu.wildfirestorage;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import picocli.CommandLine;
-import reactor.core.publisher.Mono;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.concurrent.*;
 import java.util.stream.Stream;
 
 @CommandLine.Command(name = "GET", mixinStandardHelpOptions = true)
@@ -23,60 +22,38 @@ public class WildfireFilesCrawler implements Runnable {
     private String filesToProcessPath;
     @CommandLine.Option(names = "--hostname", description = "Host name of the API server")
     String hostname;
-
     @CommandLine.Option(names = "--log", description = "Whether to generate a log")
     Boolean log = false;
+    @CommandLine.Option(names = "--parallelism", description = "Number of threads to use")
+    int parallelism = 1;
 
     public void run() {
-        Map<String, String> status = new ConcurrentHashMap<>();
+        Instant start = Instant.now();
+        ConcurrentHashMap<String, String> status = new ConcurrentHashMap<>();
+        ExecutorService executorService = Executors.newFixedThreadPool(parallelism);
+        WebClient webClient = Client.getWebClient(hostname + "/api/metadata");
+        Semaphore semaphore = new Semaphore(parallelism);
         try (Stream<String> stream = Files.lines(Paths.get(filesToProcessPath))) {
-            stream.parallel().forEach(file -> {
+            stream.forEach(file -> {
                 try {
-                    NetcdfFileReader fileReader = new NetcdfFileReader(file);
-                    var metadata = fileReader.processFile();
-
-                    if (option.equals("all")) {
-                        PrintData.printAllData(metadata);
-                    }
-                    else if (option.equals("basic")) {
-                        PrintData.printBasic(metadata);
-                    }
-                    if (hostname == null) {
-                        System.out.println("No hostname specified. Skipping metadata update.");
-                    } else {
-
-                        Client.post(hostname + "/api/metadata", metadata, new ParameterizedTypeReference<Integer>(){}, error -> {
-                            try {
-                                var errBody = error.bodyToMono(String.class).toFuture().get();
-                                System.out.println("POST Error: "+errBody);
-                                status.put(file, errBody);
-                            } catch (Exception e) {
-                                throw new RuntimeException(e);
-                            }
-                            return null;
-                        }).subscribe(response -> {
-                            System.out.println("POST response: " + (Integer)response);
-                        });
-                    }
-                } catch (WebClientRequestException ex) {
-                    StringWriter errors = new StringWriter();
-                    ex.printStackTrace(new PrintWriter(errors));
-                    System.out.println(file + " -> " + ex.getMostSpecificCause() + ex.getMessage());
-                    ex.printStackTrace();
-                    status.put(file, errors.toString());
-                } catch (Exception ex) {
-                    StringWriter errors = new StringWriter();
-                    ex.printStackTrace(new PrintWriter(errors));
-                    System.out.println(file + " -> " + ex.getMessage());
-                    ex.printStackTrace();
-                    status.put(file, errors.toString());
+                    semaphore.acquire();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
                 }
+                executorService.submit(()->{
+                    try {
+                        crawl(file, webClient, status);
+                    } finally {
+                        semaphore.release();
+                    }
+                });
             });
+            semaphore.acquire(parallelism);
+            executorService.shutdown();
+            executorService.awaitTermination(1, TimeUnit.SECONDS);
+
         } catch (IOException e) {
             System.out.println("There was an exception: " + e.getMessage());
-        }
-        try {
-            Thread.sleep(1000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -94,8 +71,36 @@ public class WildfireFilesCrawler implements Runnable {
                 throw new RuntimeException(e);
             }
         }
+        Instant finish = Instant.now();
+        System.out.println("Execution Completed in: "+ Duration.between(start, finish).toMillis() + "ms");
     }
     public static void main(String[] args) {
         System.exit(new CommandLine(new WildfireFilesCrawler()).execute(args));
+    }
+
+    private void crawl(String file, WebClient webClient, ConcurrentHashMap<String,String> status){
+        try {
+            NetcdfFileReader fileReader = new NetcdfFileReader(file);
+            var metadata = fileReader.processFile();
+
+            if (option.equals("all")) {
+                PrintData.printAllData(metadata);
+            }
+            else if (option.equals("basic")) {
+                PrintData.printBasic(metadata);
+            }
+            if (hostname == null) {
+                System.out.println("No hostname specified. Skipping metadata update.");
+            } else {
+                var res = Client.post(webClient, metadata, new ParameterizedTypeReference<Integer>(){});
+                System.out.println("FILE: "+file+" DIGEST: " + metadata.digestString+" RESULT: " + res);
+            }
+        } catch (WebClientRequestException ex) {
+            System.out.println(file + " -> " + ex.getMostSpecificCause() + ex.getMessage());
+            status.put(file, ex.toString());
+        } catch (Exception ex) {
+            System.out.println(file + " -> " + ex.getMessage());
+            status.put(file, ex.toString());
+        }
     }
 }
