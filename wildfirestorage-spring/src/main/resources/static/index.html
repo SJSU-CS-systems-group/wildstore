@@ -1,24 +1,55 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity4">
 <head>
-    <meta charset="utf-8"/>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
-    <title>Demo</title>
-    <meta name="description" content=""/>
-    <meta name="viewport" content="width=device-width"/>
-    <meta name="google-signin-client_id" content="1001653257718-19em61oarhpd12385ukgfu3ldbk6rjd5.apps.googleusercontent.com">
-    <base href="/"/>
-
-    <script src="https://apis.google.com/js/platform.js" async defer></script>
-        </head>
-        <body>
-        <div class="g-signin2" data-onsuccess="onSignIn"></div>
-        <div class="unauthenticated">
-            With GitHub: <a href="/oauth2/authorization/github">click here</a>
-        </div>
-        <div class="authenticated" style="display:none">
-            Logged in as: <span id="user"></span>
-        </div>
-    </body>
+    <title>Spring Security - OAuth 2.0 Login</title>
+    <meta charset="utf-8" />
+</head>
+<body>
+<div style="float: right" th:fragment="logout" sec:authorize="isAuthenticated()">
+    <div style="float:left">
+        <span style="font-weight:bold">User: </span><span sec:authentication="name"></span>
+    </div>
+    <div style="float:none">&nbsp;</div>
+    <div style="float:right">
+        <form action="#" th:action="@{/logout}" method="post">
+            <input type="submit" value="Logout" />
+        </form>
+    </div>
+</div>
+<h1>OAuth 2.0 Login with Spring Security</h1>
+<div>
+    You are successfully logged in <span style="font-weight:bold" th:text="${userName}"></span>
+    via the OAuth 2.0 Client <span style="font-weight:bold" th:text="${clientName}"></span>
+</div>
+<div>&nbsp;</div>
+<div>
+    <a href="/userinfo" th:href="@{/userinfo}">Display User Info</a>
+</div>
+</body>
 </html>
+
+<!--<!doctype html>-->
+<!--<html lang="en">-->
+<!--<head>-->
+<!--    <meta charset="utf-8"/>-->
+<!--    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>-->
+<!--    <title>Demo</title>-->
+<!--    <meta name="description" content=""/>-->
+<!--    <meta name="viewport" content="width=device-width"/>-->
+<!--    <meta name="google-signin-client_id" content="clientid">-->
+<!--    <a href="/@{/oauth2/authorization/github}">Login with GitHub</a>-->
+<!--    <base href="/"/>-->
+
+<!--    <script src="https://apis.google.com/js/platform.js" async defer></script>-->
+<!--        </head>-->
+<!--        <body>-->
+<!--        <div class="g-signin2" data-onsuccess="onSignIn"></div>-->
+<!--        <div class="unauthenticated">-->
+<!--            With GitHub: <a href="/@{/oauth2/authorization/github}">Login with GitHub</a>-->
+<!--        </div>-->
+<!--        <div class="authenticated" style="display:none">-->
+<!--            Logged in as: <span id="user"></span>-->
+<!--        </div>-->
+<!--    </body>-->
+<!--</html>-->
 
