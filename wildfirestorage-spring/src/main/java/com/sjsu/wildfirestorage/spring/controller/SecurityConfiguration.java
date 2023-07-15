@@ -12,7 +12,7 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfiguration {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.authorizeHttpRequests(ac -> ac.requestMatchers("/api").permitAll().anyRequest().authenticated())
+        http.authorizeHttpRequests(ac -> ac.requestMatchers("/api/**").permitAll().anyRequest().authenticated())
                 .oauth2Login(Customizer.withDefaults()).logout(Customizer.withDefaults());
         return http.build();
     }
