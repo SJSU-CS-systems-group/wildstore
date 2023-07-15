@@ -11,6 +11,5 @@ public class OauthController {
     public ResponseEntity<String> index() {
         return new ResponseEntity<>("hello", HttpStatus.OK);
     }
-
 }
 
