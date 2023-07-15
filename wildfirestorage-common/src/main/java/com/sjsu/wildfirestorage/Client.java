@@ -7,6 +7,7 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
 public class Client {
@@ -21,17 +22,24 @@ public class Client {
         return response;
     }
 
-    public static Mono post(String path, Object body, ParameterizedTypeReference parameterizedTypeReference, Function<ClientResponse, Mono<? extends Throwable>> errorHandler){
+    public static WebClient getWebClient(String path) {
         WebClient webClient = WebClient.builder().exchangeStrategies(ExchangeStrategies.builder()
                 .codecs(configurer -> configurer
                         .defaultCodecs()
                         .maxInMemorySize(16 * 1024 * 1024))
                 .build()).baseUrl(path).build();
+        return webClient;
+    }
+
+    public static Object post(WebClient webClient, Object body, ParameterizedTypeReference parameterizedTypeReference) throws ExecutionException, InterruptedException {
+
         var response = webClient.post()
                 .body(Mono.just(body), Object.class)
                 .retrieve()
-                .onStatus(httpStatusCode -> httpStatusCode.isError(), errorHandler)
-                .bodyToMono(parameterizedTypeReference);
+                .bodyToMono(parameterizedTypeReference)
+                .retry(1)
+                .toFuture()
+                .get();
         return response;
     }
 }

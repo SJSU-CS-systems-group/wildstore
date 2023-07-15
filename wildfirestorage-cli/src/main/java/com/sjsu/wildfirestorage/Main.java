@@ -1,11 +1,13 @@
 package com.sjsu.wildfirestorage;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.web.reactive.function.client.WebClient;
 import picocli.CommandLine;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 public class Main {
     public static void main(String[] args) {
@@ -24,15 +26,12 @@ public class Main {
 
         @CommandLine.Command
         public void search(@CommandLine.Parameters(paramLabel = "query") String query, @CommandLine.Parameters(paramLabel = "hostname") String hostname,
-                           @CommandLine.Parameters(paramLabel = "<option>", defaultValue = "all", description = "Which information to print - 'all' or 'basic'") String option) throws InterruptedException {
+                           @CommandLine.Parameters(paramLabel = "<option>", defaultValue = "all", description = "Which information to print - 'all' or 'basic'") String option) throws InterruptedException, ExecutionException {
 
             MetadataRequest metadataRequest = new MetadataRequest();
             metadataRequest.searchQuery = query;
-            var res = (ArrayList<Metadata>)(Client.post(hostname + "/api/metadata/search", metadataRequest, new ParameterizedTypeReference<ArrayList<Metadata>>(){}, error -> {
-                error.bodyToMono(String.class)
-                        .subscribe(errBody -> System.out.println("Response body: "+ errBody));
-                return null;
-            })).block();
+            WebClient webClient = Client.getWebClient(hostname + "/api/metadata/search");
+            var res = (ArrayList<Metadata>)(Client.post(webClient, metadataRequest, new ParameterizedTypeReference<ArrayList<Metadata>>(){}));
             System.out.println("SEARCH returned: " + res.size() + " results");
             if (option.equals("all")) {
                 for (Metadata m: res) {
