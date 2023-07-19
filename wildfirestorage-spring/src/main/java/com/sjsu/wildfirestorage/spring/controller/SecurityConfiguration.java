@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -12,8 +13,7 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfiguration {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.authorizeHttpRequests(ac -> ac.requestMatchers("/api").permitAll().anyRequest().authenticated())
-                .oauth2Login(Customizer.withDefaults()).logout(Customizer.withDefaults());
+        http.csrf(CsrfConfigurer::disable).authorizeHttpRequests(ac -> ac.requestMatchers("/api/**", "/error").permitAll().anyRequest().authenticated()).oauth2Login(Customizer.withDefaults()).logout(Customizer.withDefaults());
         return http.build();
     }
 }
