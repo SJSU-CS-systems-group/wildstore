@@ -8,6 +8,7 @@ import com.sjsu.wildfirestorage.spring.CriteriaBuilder;
 import net.sf.jsqlparser.JSQLParserException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -88,6 +89,30 @@ public class MetadataController {
         } else {
             mongoTemplate.save(metadata, METADATA_COLLECTION);
         }
+        return 0;
+    }
+
+    @GetMapping("/metadata/filepath")
+    public List<String> getFilePaths(@RequestParam("limit") int limit, @RequestParam("offset") int offset) {
+        Aggregation aggregation = Aggregation.newAggregation(
+                Aggregation.skip(offset),
+                Aggregation.limit(limit),
+                Aggregation.unwind("filePath"),
+                Aggregation.group().addToSet("filePath").as("files"),
+                Aggregation.project("files"));
+
+        List<DBObject> res = mongoTemplate.aggregate(aggregation, "metadata", DBObject.class).getMappedResults();
+        if(res.isEmpty()) {
+            return List.of();
+        }
+        List<String> files = (List<String>)res.get(0).get("files");
+        return files;
+    }
+
+    @PostMapping("/metadata/filepath")
+    public int deleteMetadata(@RequestBody List<String> filePaths) {
+        Query query = new Query(Criteria.where("filePath").in(filePaths));
+        mongoTemplate.remove(query, METADATA_COLLECTION);
         return 0;
     }
 }

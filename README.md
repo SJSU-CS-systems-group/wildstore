@@ -49,3 +49,9 @@ Search based on query
 ```
 java -jar wildfirestorage-cli/target/wildfirestorage-cli-1.0-SNAPSHOT.jar search <search query> <hostname>
 ```
+
+## Clean
+To clean up metadata documents of files that were deleted,
+```
+java -jar wildfirestorage-cli/target/wildfirestorage-cli-1.0-SNAPSHOT.jar clean <LIMIT: Number of records to delete at a time> <hostname>
+```
