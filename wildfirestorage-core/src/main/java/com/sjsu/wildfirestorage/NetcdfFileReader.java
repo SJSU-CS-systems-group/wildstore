@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 
 public class NetcdfFileReader {
     private final String netcdfFilepath;
+    private final long MAX_READ_SIZE = 1000000000;
 
     private NetcdfFile netcdfFile;
 
@@ -228,7 +229,7 @@ public class NetcdfFileReader {
             if (num != fillValue && num != missingValue) {
                 max = Math.max(max, data.getFloat(i));
                 min = Math.min(min, data.getFloat(i));
-                avg += data.getFloat(i);
+                avg = ((avg/(i+1))*(i)) + (data.getFloat(i)/(i+1));
             }
         }
         avg = avg / data.getSize();
@@ -449,6 +450,9 @@ public class NetcdfFileReader {
         for (int i = shape.length - 2; i >= 0; i--) {
             try {
                 numElementsToRead = Math.multiplyExact(numElementsToRead, shape[i]);
+                if(numElementsToRead > MAX_READ_SIZE) {
+                    break;
+                }
                 loopTo = i - 1;
             } catch (ArithmeticException ex) {
                 break;
@@ -515,7 +519,7 @@ public class NetcdfFileReader {
         for (int i = 1; i < statsArray.length; i++) {
             min = Math.min(min, statsArray[i][0]);
             max = Math.max(max, statsArray[i][1]);
-            avg += statsArray[i][2];
+            avg = (avg/(i+1))*i + (statsArray[i][2]/(i+1));
         }
         avg = avg / statsArray.length;
         return new float[]{min, max, avg};
