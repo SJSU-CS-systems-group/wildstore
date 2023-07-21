@@ -1,13 +1,16 @@
 <?xml version="1.0"?>
 <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
          xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns:mvc="http://www.springframework.org/schema/mvc">
+
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.sjsu.wildfirestorage</groupId>
         <artifactId>wildfirestorage</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
+
     <groupId>com.sjsu.wildfirestorage</groupId>
     <artifactId>wildfirestorage-spring</artifactId>
     <version>1.0-SNAPSHOT</version>
@@ -41,6 +44,31 @@
             <groupId>com.github.jsqlparser</groupId>
             <artifactId>jsqlparser</artifactId>
             <version>4.6</version>
+        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.webjars</groupId>-->
+<!--            <artifactId>bootstrap</artifactId>-->
+<!--            <version>3.3.7-1</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>org.webjars</groupId>-->
+<!--            <artifactId>jquery</artifactId>-->
+<!--            <version>3.1.1</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>org.webjars</groupId>-->
+<!--            <artifactId>webjars-locator-core</artifactId>-->
+<!--            <version>0.43</version>-->
+<!--        </dependency>-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+            <version>3.0.6</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-client</artifactId>
+            <version>3.0.6</version>
         </dependency>
     </dependencies>
     <build>
