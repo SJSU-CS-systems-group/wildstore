@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
 
 public class NetcdfFileReader {
     private final String netcdfFilepath;
-    private final long MAX_READ_SIZE = 1000000000;
+    private long maxReadSize = 1000000000;
 
     private NetcdfFile netcdfFile;
 
@@ -34,7 +34,7 @@ public class NetcdfFileReader {
         this.netcdfFilepath = netcdfFilepath;
     }
 
-    public Metadata processFile() {
+    public Metadata processFile(int maxReadSize) {
         // Try and read the contents of the netCDF file
         try {
             var method = NetcdfFile.class.getDeclaredMethod("open", RandomAccessFile.class, String.class, CancelTask.class, Object.class);
@@ -45,7 +45,7 @@ public class NetcdfFileReader {
         } catch (IOException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
-
+        this.maxReadSize = maxReadSize;
         Metadata metadata = new Metadata();
         String fileNameStr = netcdfFilepath.substring(netcdfFilepath.lastIndexOf('/') + 1);
         metadata.fileName = Set.of(fileNameStr);
@@ -450,7 +450,7 @@ public class NetcdfFileReader {
         for (int i = shape.length - 2; i >= 0; i--) {
             try {
                 numElementsToRead = Math.multiplyExact(numElementsToRead, shape[i]);
-                if(numElementsToRead > MAX_READ_SIZE) {
+                if(numElementsToRead > maxReadSize) {
                     break;
                 }
                 loopTo = i - 1;
