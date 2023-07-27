@@ -5,3 +5,4 @@ Wildfirestorage-core/.idea/
 .idea/
 .DS_Store
 wildfirestorage-cli/target/
+oauth.yml

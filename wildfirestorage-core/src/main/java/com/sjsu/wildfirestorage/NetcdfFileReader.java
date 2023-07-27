@@ -21,11 +21,10 @@ import java.util.regex.Pattern;
 
 public class NetcdfFileReader {
     private final String netcdfFilepath;
-
     private NetcdfFile netcdfFile;
-
     private DigestingRandomAccessFile randomAccessFile;
     public DigestingRandomAccessFile getRandomAccessFile() { return randomAccessFile; }
+    private final int ENUM_THRESHOLD = 20;
 
     public NetcdfFileReader(String netcdfFilepath) {
         this.netcdfFilepath = netcdfFilepath;
@@ -169,17 +168,41 @@ public class NetcdfFileReader {
             WildfireVariable tempVar = new WildfireVariable();
 
             Array data = null;
-            float[] stats; //stats = [min, max, avg]
             float fillValue = variable.findAttributeIgnoreCase("_fillvalue") != null ? (float) variable.findAttribute("_FillValue").getNumericValue() : Float.MAX_VALUE;
             float missingValue = variable.findAttributeIgnoreCase("missing_value") != null ? (float) variable.findAttribute("missing_value").getNumericValue() : Float.MAX_VALUE;
+            float max = -Float.MAX_VALUE;
+            float min = Float.MAX_VALUE;
+            float avg = 0;
+            HashSet<Float> uniqueElements = new HashSet<>();
+
             // Read data from the variable
             try {
                 data = variable.read();
-                stats = floatRange(data, fillValue, missingValue); //@Todo: Need to adjust for chars
 
-                tempVar.minValue = stats[0];
-                tempVar.maxValue = stats[1];
-                tempVar.average = stats[2];
+                for(int i = 0; i < data.getSize(); i++) {
+
+                    float num = data.getFloat(i);
+                    if (num != fillValue && num != missingValue) {
+                        max = Math.max(max, num);
+                        min = Math.min(min, num);
+                        avg += num;
+                        if (uniqueElements.size() < ENUM_THRESHOLD + 1 ) {
+                            uniqueElements.add(num);
+                        }
+                    }
+                }
+                avg = avg/data.getSize();
+
+                tempVar.minValue = min;
+                tempVar.maxValue = max;
+                tempVar.average = avg;
+
+                if (uniqueElements.size() > 1 && uniqueElements.size() < ENUM_THRESHOLD && !variable.getDataType().toString().equalsIgnoreCase("char")) {
+                    tempVar.elementSet = uniqueElements;
+                }
+                else {
+                    tempVar.elementSet = new HashSet<>();
+                }
             } catch (IOException e) {
                 System.out.println("Failed to read data for variable: " + varName);
                 continue;
