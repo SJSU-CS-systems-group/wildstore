@@ -173,7 +173,7 @@ public class NetcdfFileReader {
             float max = -Float.MAX_VALUE;
             float min = Float.MAX_VALUE;
             float avg = 0;
-            HashSet<Float> uniqueElements = new HashSet<>();
+            HashMap<Float, Float> uniqueElements = new HashMap<>();
 
             // Read data from the variable
             try {
@@ -187,7 +187,7 @@ public class NetcdfFileReader {
                         min = Math.min(min, num);
                         avg += num;
                         if (uniqueElements.size() < ENUM_THRESHOLD + 1 ) {
-                            uniqueElements.add(num);
+                            uniqueElements.compute(data.getFloat(i), (key, val) -> (val == null) ? 1 : val + 1);
                         }
                     }
                 }
@@ -197,11 +197,21 @@ public class NetcdfFileReader {
                 tempVar.maxValue = max;
                 tempVar.average = avg;
 
-                if (uniqueElements.size() > 1 && uniqueElements.size() < ENUM_THRESHOLD && !variable.getDataType().toString().equalsIgnoreCase("char")) {
-                    tempVar.elementSet = uniqueElements;
+                boolean hasFractionalValue = false;
+                for(Float key : uniqueElements.keySet()) {
+                    if (key % 1 > 0) {
+                        hasFractionalValue = true;
+                    }
+                    else {
+                        uniqueElements.put(key, uniqueElements.get(key) / data.getSize());
+                    }
+                }
+
+                if (uniqueElements.size() > 1 && uniqueElements.size() < ENUM_THRESHOLD && !variable.getDataType().toString().equalsIgnoreCase("char") && !hasFractionalValue) {
+                    tempVar.elementMap = uniqueElements;
                 }
                 else {
-                    tempVar.elementSet = new HashSet<>();
+                    tempVar.elementMap = new HashMap<>();
                 }
             } catch (IOException e) {
                 System.out.println("Failed to read data for variable: " + varName);

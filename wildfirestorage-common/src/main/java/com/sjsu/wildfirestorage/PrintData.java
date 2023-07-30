@@ -35,7 +35,7 @@ public class PrintData {
         for (WildfireVariable v : metadata.variables)
         {
             System.out.println(v.variableName + "\t" + v.type + "\t" + v.minValue +"\t" + v.maxValue + "\t" + v.average);
-            System.out.println("Unique Set: " + v.elementSet);
+            System.out.println("Unique Elements (HashMap): " + v.elementMap);
             for (WildfireAttribute a : v.attributeList)
             {
                 System.out.print(a.attributeName + "\t" + a.type + "\t");
@@ -68,7 +68,7 @@ public class PrintData {
         System.out.println("\nVariables:");
         for (WildfireVariable v : metadata.variables)
         {
-            System.out.print(v.variableName + "\t" + v.average + "\t" + v.elementSet);
+            System.out.print(v.variableName + "\t" + v.average + "\t" + v.elementMap);
             for (WildfireAttribute a : v.attributeList)
             {
                 if (a.attributeName.equals("units")) {
@@ -92,7 +92,7 @@ public class PrintData {
         try {
             for (WildfireVariable v : metadata.variables)
             {
-                if (v.elementSet != null && v.elementSet.size() != 0 && !enumVars.contains(v.variableName)) {
+                if (v.elementMap != null && v.elementMap.size() != 0 && !enumVars.contains(v.variableName)) {
                     Files.writeString(enumFile, v.variableName+"\n", StandardOpenOption.APPEND);
                 }
             }
