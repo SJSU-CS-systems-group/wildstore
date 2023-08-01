@@ -76,6 +76,14 @@ public class NetcdfFileReader {
 
             metadata.variables.addAll(findWind(U, V, west_east_stag, south_north_stag));
         }
+        //NFUEL_CAT_BURNT
+        Variable fire_area = netcdfFile.findVariable("FIRE_AREA");
+        Variable nfuel_cat = netcdfFile.findVariable("NFUEL_CAT");
+        if (fire_area != null && nfuel_cat != null) {
+            WildfireVariable nfuel_burnt = findNFUEL_CAT_BURNT(fire_area, nfuel_cat);
+            if(nfuel_burnt.elementMap.size() > 0)
+                metadata.variables.add(nfuel_burnt);
+        }
         //Time
         Variable times = netcdfFile.findVariable("Times");
         if (times != null) {
@@ -126,6 +134,7 @@ public class NetcdfFileReader {
         else {
             metadata.location = null;
         }
+        //Digest
         try {
             metadata.digestString = randomAccessFile.getDigestString(true);
         } catch (IOException e) {
@@ -461,5 +470,64 @@ public class NetcdfFileReader {
         }
         String date = String.format("%s %s %s %s %s %s", year, month, day, hour, min, sec);
         return new String[]{fileType, domain, date};
+    }
+    private static WildfireVariable findNFUEL_CAT_BURNT(Variable fire_area, Variable nfuel_cat) {
+
+        Array fire_area_data;
+        Array nfuel_data;
+        HashMap<Float, Float> nfuel_counts = new HashMap<>();
+        try {
+            fire_area_data = fire_area.read();
+            nfuel_data = nfuel_cat.read();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        float fillValue = fire_area.findAttributeIgnoreCase("_fillvalue") != null ? (float) fire_area.findAttribute("_FillValue").getNumericValue() : Float.MAX_VALUE;
+        float missingValue = fire_area.findAttributeIgnoreCase("missing_value") != null ? (float) fire_area.findAttribute("missing_value").getNumericValue() : Float.MAX_VALUE;
+        float max = -Float.MAX_VALUE;
+        float min = Float.MAX_VALUE;
+        float sum = 0;
+        float count = 0;
+
+        for (int i = 0; i < nfuel_data.getSize(); i++) {
+
+            float num = fire_area_data.getFloat(i);
+            if (num != fillValue && num != missingValue && fire_area_data.getFloat(i) > 0) {
+                sum += nfuel_data.getFloat(i);
+                count++;
+                nfuel_counts.compute(nfuel_data.getFloat(i), (key, val) -> (val == null) ? 1 : val + 1);
+            }
+        }
+
+        for(Float key : nfuel_counts.keySet()) {
+            if (key > max) {
+                max = key;
+            }
+            else if (key < min) {
+                min = key;
+            }
+            nfuel_counts.put(key, nfuel_counts.get(key) / count);
+        }
+
+        WildfireVariable tempVar = new WildfireVariable();
+
+        tempVar.variableName = "NFUEL_CAT_BURNT";
+        tempVar.type = DataType.FLOAT;
+        tempVar.elementMap = nfuel_counts;
+        tempVar.attributeList = new ArrayList<>();
+
+        tempVar.average = sum/count;
+        tempVar.minValue = min;
+        tempVar.maxValue = max;
+
+        List<WildfireVariable.VarDimension> varDimensions = new ArrayList<>();
+        for (Dimension dimension : fire_area.getDimensions()) {
+            String dimensionName = dimension.getFullName() != null ? dimension.getFullName() : dimension.getShortName();
+            varDimensions.add(new WildfireVariable.VarDimension(dimensionName, dimension.getLength()));
+        }
+        tempVar.varDimensionList = varDimensions;
+
+        return tempVar;
     }
 }
