@@ -217,7 +217,7 @@ public class NetcdfFileReader {
 
         Array data = null;
         float fillValue = variable.findAttributeIgnoreCase("_fillvalue") != null ? (float) variable.findAttributeIgnoreCase("_fillValue").getNumericValue() : Float.MAX_VALUE;
-        float missingValue = variable.findAttributeIgnoreCase("missing_value") != null ? (float) variable.findAttribute("missing_value").getNumericValue() : Float.MAX_VALUE;
+        float missingValue = variable.findAttributeIgnoreCase("missing_value") != null ? (float) variable.findAttributeIgnoreCase("missing_value").getNumericValue() : Float.MAX_VALUE;
         float max = -Float.MAX_VALUE;
         float min = Float.MAX_VALUE;
         float avg = 0;
@@ -490,7 +490,7 @@ public class NetcdfFileReader {
         }
 
         float fillValue = fire_area.findAttributeIgnoreCase("_fillvalue") != null ? (float) fire_area.findAttributeIgnoreCase("_fillValue").getNumericValue() : Float.MAX_VALUE;
-        float missingValue = fire_area.findAttributeIgnoreCase("missing_value") != null ? (float) fire_area.findAttribute("missing_value").getNumericValue() : Float.MAX_VALUE;
+        float missingValue = fire_area.findAttributeIgnoreCase("missing_value") != null ? (float) fire_area.findAttributeIgnoreCase("missing_value").getNumericValue() : Float.MAX_VALUE;
         float max = -Float.MAX_VALUE;
         float min = Float.MAX_VALUE;
         float sum = 0;
