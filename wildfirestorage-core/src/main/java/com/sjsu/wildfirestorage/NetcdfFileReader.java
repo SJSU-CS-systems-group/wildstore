@@ -216,7 +216,7 @@ public class NetcdfFileReader {
         WildfireVariable tempVar = new WildfireVariable();
 
         Array data = null;
-        float fillValue = variable.findAttributeIgnoreCase("_fillvalue") != null ? (float) variable.findAttribute("_FillValue").getNumericValue() : Float.MAX_VALUE;
+        float fillValue = variable.findAttributeIgnoreCase("_fillvalue") != null ? (float) variable.findAttributeIgnoreCase("_fillValue").getNumericValue() : Float.MAX_VALUE;
         float missingValue = variable.findAttributeIgnoreCase("missing_value") != null ? (float) variable.findAttribute("missing_value").getNumericValue() : Float.MAX_VALUE;
         float max = -Float.MAX_VALUE;
         float min = Float.MAX_VALUE;
@@ -234,7 +234,7 @@ public class NetcdfFileReader {
                     max = Math.max(max, num);
                     min = Math.min(min, num);
                     avg += num;
-                    if (uniqueElements.size() < ENUM_THRESHOLD + 1 ) {
+                    if (uniqueElements.size() <= ENUM_THRESHOLD) {
                         uniqueElements.compute(data.getFloat(i), (key, val) -> (val == null) ? 1 : val + 1);
                     }
                 }
@@ -489,7 +489,7 @@ public class NetcdfFileReader {
             }
         }
 
-        float fillValue = fire_area.findAttributeIgnoreCase("_fillvalue") != null ? (float) fire_area.findAttribute("_FillValue").getNumericValue() : Float.MAX_VALUE;
+        float fillValue = fire_area.findAttributeIgnoreCase("_fillvalue") != null ? (float) fire_area.findAttributeIgnoreCase("_fillValue").getNumericValue() : Float.MAX_VALUE;
         float missingValue = fire_area.findAttributeIgnoreCase("missing_value") != null ? (float) fire_area.findAttribute("missing_value").getNumericValue() : Float.MAX_VALUE;
         float max = -Float.MAX_VALUE;
         float min = Float.MAX_VALUE;
