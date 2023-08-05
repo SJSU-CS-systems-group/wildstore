@@ -1,6 +1,11 @@
 package com.sjsu.wildfirestorage;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
+import java.util.List;
 
 public class PrintData {
     public static void printAllData(Metadata metadata)
@@ -30,6 +35,7 @@ public class PrintData {
         for (WildfireVariable v : metadata.variables)
         {
             System.out.println(v.variableName + "\t" + v.type + "\t" + v.minValue +"\t" + v.maxValue + "\t" + v.average);
+            System.out.println("Unique Elements (HashMap): " + v.elementMap);
             for (WildfireAttribute a : v.attributeList)
             {
                 System.out.print(a.attributeName + "\t" + a.type + "\t");
@@ -62,7 +68,7 @@ public class PrintData {
         System.out.println("\nVariables:");
         for (WildfireVariable v : metadata.variables)
         {
-            System.out.print(v.variableName + "\t" + v.average + "\t");
+            System.out.print(v.variableName + "\t" + v.average + "\t" + v.elementMap);
             for (WildfireAttribute a : v.attributeList)
             {
                 if (a.attributeName.equals("units")) {
@@ -70,6 +76,29 @@ public class PrintData {
                 }
             }
             System.out.print("\n");
+        }
+    }
+
+    public static void printEnums(Path enumFile, Metadata metadata) {
+
+        List<String> enumVars;
+
+        try {
+            enumVars = Files.readAllLines(enumFile);
+        } catch (IOException e) {
+            System.out.println("Failed to read from Enum Variable Files");
+            throw new RuntimeException(e);
+        }
+        try {
+            for (WildfireVariable v : metadata.variables)
+            {
+                if (v.elementMap != null && v.elementMap.size() != 0 && !enumVars.contains(v.variableName)) {
+                    Files.writeString(enumFile, v.variableName+"\n", StandardOpenOption.APPEND);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Failed to write to EnumVariable Files");
+            throw new RuntimeException(e);
         }
     }
 }
