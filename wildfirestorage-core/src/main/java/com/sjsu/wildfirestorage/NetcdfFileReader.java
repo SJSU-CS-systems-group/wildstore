@@ -45,7 +45,7 @@ public class NetcdfFileReader {
         Metadata metadata = new Metadata();
         String fileNameStr = netcdfFilepath.substring(netcdfFilepath.lastIndexOf('/')+1);
         metadata.fileName = Set.of(fileNameStr);
-        metadata.filePath = Set.of(netcdfFilepath);
+        metadata.filePath = Set.of(netcdfFilepath.substring(0, netcdfFilepath.lastIndexOf('/')));
 
         metadata.globalAttributes = readGlobalAttributes();
 
@@ -448,6 +448,8 @@ public class NetcdfFileReader {
         String min="00";
         String sec="00";
         if(matcher.find()) {
+            fileType = (matcher.group(1) == null) ? "" : matcher.group(1); //File qualifier
+            domain = (matcher.group(2) == null) ? "" : matcher.group(2); //Domain
             year = (matcher.group(3) == null) ? "0000" : matcher.group(3); //Year
             month = (matcher.group(4) == null) ? "00" : matcher.group(4); //Month
             day = (matcher.group(5) == null) ? "00" : matcher.group(5); //Day
