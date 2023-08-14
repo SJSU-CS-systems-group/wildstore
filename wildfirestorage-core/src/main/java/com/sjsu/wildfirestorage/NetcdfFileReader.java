@@ -45,7 +45,7 @@ public class NetcdfFileReader {
         Metadata metadata = new Metadata();
         String fileNameStr = netcdfFilepath.substring(netcdfFilepath.lastIndexOf('/')+1);
         metadata.fileName = Set.of(fileNameStr);
-        metadata.filePath = Set.of(netcdfFilepath.substring(0, netcdfFilepath.lastIndexOf('/')));
+        metadata.filePath = Set.of(netcdfFilepath.substring(0, netcdfFilepath.lastIndexOf('/')+1));
 
         metadata.globalAttributes = readGlobalAttributes();
 
