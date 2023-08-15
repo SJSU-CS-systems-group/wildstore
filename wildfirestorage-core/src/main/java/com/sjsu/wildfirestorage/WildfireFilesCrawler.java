@@ -6,6 +6,7 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import picocli.CommandLine;
 
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -24,6 +25,8 @@ public class WildfireFilesCrawler implements Runnable {
     String hostname;
     @CommandLine.Option(names = "--log", description = "Whether to generate a log")
     Boolean log = false;
+    @CommandLine.Option(names = "--enums", description = "Generate log of Enum Variable names")
+    Boolean enumLog = false;
     @CommandLine.Option(names = "--parallelism", description = "Number of threads to use")
     int parallelism = 1;
 
@@ -88,6 +91,17 @@ public class WildfireFilesCrawler implements Runnable {
             }
             else if (option.equals("basic")) {
                 PrintData.printBasic(metadata);
+            }
+            if(enumLog) {
+                Path enumFile = Paths.get("enumVarList.txt");;
+                try {
+                    Files.createFile(enumFile);
+                } catch (FileAlreadyExistsException e) {
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                PrintData.printEnums(enumFile, metadata);
+
             }
             if (hostname == null) {
                 System.out.println("No hostname specified. Skipping metadata update.");
