@@ -8,8 +8,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class OauthController {
     @GetMapping("/")
-    public ResponseEntity<String> index() {
-        return new ResponseEntity<>("hello", HttpStatus.OK);
-    }
+    public String index () { return "index.html"; }
 }
 
