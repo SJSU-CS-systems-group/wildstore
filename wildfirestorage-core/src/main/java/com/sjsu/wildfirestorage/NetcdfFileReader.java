@@ -180,7 +180,7 @@ public class NetcdfFileReader {
             WildfireVariable tempVar = new WildfireVariable();
 
             Array data = null;
-            float[][] stats; //stats = [min, max, avg]
+            float[][] stats; //stats = [min, max, avg, totalCount], [keys], [values]
             float fillValue = variable.findAttributeIgnoreCase("_fillvalue") != null ? (float) variable.findAttributeIgnoreCase("_fillValue").getNumericValue() : Float.MAX_VALUE;
             float missingValue = variable.findAttributeIgnoreCase("missing_value") != null ? (float) variable.findAttributeIgnoreCase("missing_value").getNumericValue() : Float.MAX_VALUE;
             HashMap<Float, Float> uniqueElements = new HashMap<>();
@@ -265,23 +265,34 @@ public class NetcdfFileReader {
                 avg = ((avg/(i+1))*(i)) + (data.getFloat(i)/(i+1));
 
                 if (uniqueElements.size() <= ENUM_THRESHOLD) {
+                    //Add to counter of each unique element
                     uniqueElements.compute(data.getFloat(i), (key, val) -> (val == null) ? 1 : val + 1);
                 }
             }
         }
         avg = avg / data.getSize();
 
-        float[] keys = new float[uniqueElements.size()];
-        float[] values = new float[uniqueElements.size()];
-        int counter = 0;
-        for (Float key : uniqueElements.keySet())
-        {
-            keys[counter] = key;
-            values[counter] = uniqueElements.get(key) / data.getSize();
-            counter++;
+        float[] keys;
+        float[] values;
+        if (uniqueElements.size() > ENUM_THRESHOLD) {
+            //Skip calculations if number of elements i greater than threshold
+            keys = new float[21];
+            values = new float[21];
+        }
+        else {
+            keys = new float[uniqueElements.size()];
+            values = new float[uniqueElements.size()];
+            int counter = 0;
+            for (Float key : uniqueElements.keySet())
+            {
+                //Convert HashMap into arrays and calculate percentages
+                keys[counter] = key;
+                values[counter] = uniqueElements.get(key) / data.getSize();
+                counter++;
+            }
         }
 
-        return new float[][] {{min, max, avg}, keys, values};
+        return new float[][] {{min, max, avg, data.getSize()}, keys, values};
     }
     /**
      * Read data in maximum possible size chunks.
@@ -366,30 +377,48 @@ public class NetcdfFileReader {
 
     private float[][] summarizedStats(float[][][] statsArray) {
         float min = statsArray[0][0][0], max = statsArray[0][0][1], avg = statsArray[0][0][2];
+        float totalCount = 0;
         HashMap<Float, Float> uniqueElements = new HashMap<>();
+        boolean pass_enum_threshold = false;
 
-        for (int i = 0; i < statsArray[0][1].length; i++) {
-            uniqueElements.put(statsArray[0][1][i], statsArray[0][2][i]);
-        }
 
         for (int i = 1; i < statsArray.length; i++) {
             min = Math.min(min, statsArray[i][0][0]);
             max = Math.max(max, statsArray[i][0][1]);
             avg = (avg/(i+1))*i + (statsArray[i][0][2]/(i+1));
 
-            for (int j = 0; j < statsArray[i][1].length; j++) {
-                uniqueElements.put(statsArray[i][1][j], uniqueElements.get(statsArray[i][1][j]) + statsArray[i][2][j]);
+            if(statsArray[i][0][3] > ENUM_THRESHOLD) {
+                pass_enum_threshold = true;
+            } else {
+                totalCount += statsArray[i][0][3];
             }
         }
         avg = avg / statsArray.length;
 
-        float[] keys = new float[uniqueElements.size()];
-        float[] values = new float[uniqueElements.size()];
-        int counter = 0;
-        for (Float key : uniqueElements.keySet())
-        {
-            keys[counter] = key;
-            values[counter] = uniqueElements.get(key) / statsArray.length;;
+        float[] keys;
+        float[] values;
+        if (pass_enum_threshold) {
+            keys = new float[21];
+            values = new float[21];
+        }
+        else {
+            //Calculate percentage of each element based on weighted count
+            for (int i = 0; i < statsArray.length; i++) {
+                for (int j = 0; j < statsArray[i][1].length; j++) {
+                    uniqueElements.put(statsArray[i][1][j], uniqueElements.get(statsArray[i][1][j]) + (statsArray[i][2][j] * (statsArray[i][0][3] / totalCount)));
+                }
+            }
+
+            keys = new float[uniqueElements.size()];
+            values = new float[uniqueElements.size()];
+            int counter = 0;
+            for (Float key : uniqueElements.keySet())
+            {
+                //Convert HashMap into arrays and calculate percentages
+                keys[counter] = key;
+                values[counter] = uniqueElements.get(key);
+                counter++;
+            }
         }
 
         return new float[][] {{min, max, avg} , keys, values};
