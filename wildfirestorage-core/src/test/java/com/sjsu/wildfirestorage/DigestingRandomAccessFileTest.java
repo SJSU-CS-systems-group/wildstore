@@ -19,7 +19,9 @@ public class DigestingRandomAccessFileTest extends TestCase {
         }
         var readDigest = dis.getMessageDigest().digest();
         var reader = new NetcdfFileReader("test.nc");
-        reader.processFile();
+        int maxReadSize = 1000000000;
+
+        reader.processFile(maxReadSize);
         var readerDigest = reader.getRandomAccessFile().getDigest(true);
         assertTrue("file digest and DigestingRandomAccessFile do not match", Arrays.equals(readerDigest, readDigest));
         new File("test.nc").delete();

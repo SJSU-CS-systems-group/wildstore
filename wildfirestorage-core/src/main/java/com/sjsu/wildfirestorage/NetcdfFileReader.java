@@ -4,6 +4,8 @@ import org.springframework.data.geo.Point;
 import org.springframework.data.mongodb.core.geo.GeoJsonPolygon;
 import ucar.ma2.Array;
 import ucar.ma2.DataType;
+import ucar.ma2.InvalidRangeException;
+import ucar.ma2.Section;
 import ucar.nc2.Attribute;
 import ucar.nc2.Dimension;
 import ucar.nc2.NetcdfFile;
@@ -21,16 +23,19 @@ import java.util.regex.Pattern;
 
 public class NetcdfFileReader {
     private final String netcdfFilepath;
+    private long maxReadSize = 1000000000;
+    private static final int ENUM_THRESHOLD = 20;
     private NetcdfFile netcdfFile;
     private DigestingRandomAccessFile randomAccessFile;
-    public DigestingRandomAccessFile getRandomAccessFile() { return randomAccessFile; }
-    private static final int ENUM_THRESHOLD = 20;
+    public DigestingRandomAccessFile getRandomAccessFile() {
+        return randomAccessFile;
+    }
 
     public NetcdfFileReader(String netcdfFilepath) {
         this.netcdfFilepath = netcdfFilepath;
     }
 
-    public Metadata processFile() {
+    public Metadata processFile(int maxReadSize) {
         // Try and read the contents of the netCDF file
         try {
             var method = NetcdfFile.class.getDeclaredMethod("open", RandomAccessFile.class, String.class, CancelTask.class, Object.class);
@@ -42,10 +47,11 @@ public class NetcdfFileReader {
             throw new RuntimeException(e);
         }
 
+        this.maxReadSize = maxReadSize;
         Metadata metadata = new Metadata();
-        String fileNameStr = netcdfFilepath.substring(netcdfFilepath.lastIndexOf('/')+1);
+        String fileNameStr = netcdfFilepath.substring(netcdfFilepath.lastIndexOf('/') + 1);
         metadata.fileName = Set.of(fileNameStr);
-        metadata.filePath = Set.of(netcdfFilepath);
+        metadata.filePath = Set.of(netcdfFilepath.substring(0, netcdfFilepath.lastIndexOf('/') + 1));
 
         metadata.globalAttributes = readGlobalAttributes();
 
@@ -57,7 +63,7 @@ public class NetcdfFileReader {
         metadata.fileType = (fileNameParsed[0] != null) ? Set.of(fileNameParsed[0]) : null;
         metadata.domain = (fileNameParsed[1] != null && !fileNameParsed[1].equals("")) ? Integer.parseInt(fileNameParsed[1]) : 0;
         Date startDateValue = null;
-        if (fileNameParsed[2] != null && !fileNameParsed[2].startsWith("0000")){
+        if (fileNameParsed[2] != null && !fileNameParsed[2].startsWith("0000")) {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy MM dd HH mm ss");
             dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
             try {
@@ -88,8 +94,7 @@ public class NetcdfFileReader {
         Variable times = netcdfFile.findVariable("Times");
         if (times != null) {
             metadata.globalAttributes.addAll(findTime(times));
-        }
-        else if (startDateValue != null) {
+        } else if (startDateValue != null) {
             WildfireAttribute startDate = new WildfireAttribute();
             startDate.attributeName = "StartDate";
             startDate.type = "Date";
@@ -104,16 +109,15 @@ public class NetcdfFileReader {
         if (corner_lat != null && corner_lon != null) {
             Array lat_values = corner_lat.getValues();
             Array lon_values = corner_lon.getValues();
-            List <Point> points = new ArrayList<>();
+            List<Point> points = new ArrayList<>();
 
-            for (int i = (int) (lat_values.getSize()-4); i < lat_values.getSize(); i++) {
+            for (int i = (int) (lat_values.getSize() - 4); i < lat_values.getSize(); i++) {
                 points.add(new Point(lon_values.getFloat(i), lat_values.getFloat(i)));
             }
-            points.add(new Point(lon_values.getFloat((int) (lat_values.getSize()-4)), lat_values.getFloat((int) (lat_values.getSize()-4))));
+            points.add(new Point(lon_values.getFloat((int) (lat_values.getSize() - 4)), lat_values.getFloat((int) (lat_values.getSize() - 4))));
 
             metadata.location = new GeoJsonPolygon(points);
-        }
-        else if (xlat != null && xlong != null) {
+        } else if (xlat != null && xlong != null) {
             float xMin = 0, xMax = 0, yMin = 0, yMax = 0;
             for (WildfireVariable v : metadata.variables) {
                 if (v.variableName.equals("XLAT")) {
@@ -130,8 +134,7 @@ public class NetcdfFileReader {
                 }
             }
             metadata.location = calculateCorners(xMin, xMax, yMin, yMax);
-        }
-        else {
+        } else {
             metadata.location = null;
         }
         //Digest
@@ -170,11 +173,46 @@ public class NetcdfFileReader {
                 varDimensions.add(new WildfireVariable.VarDimension(dimensionName, dimension.getLength()));
             }
 
-            List <WildfireAttribute> attrList = processAttributes(variable.getAttributes());
+            List<WildfireAttribute> attrList = processAttributes(variable.getAttributes());
 
             DataType variableType = variable.getDataType();
 
-            WildfireVariable tempVar =  processData(variable); //Create new WildfireVar with Stats
+            WildfireVariable tempVar = new WildfireVariable();
+
+            Array data = null;
+            float[][] stats; //stats = [min, max, avg, totalCount], [keys], [values]
+            float fillValue = variable.findAttributeIgnoreCase("_fillvalue") != null ? (float) variable.findAttributeIgnoreCase("_fillValue").getNumericValue() : Float.MAX_VALUE;
+            float missingValue = variable.findAttributeIgnoreCase("missing_value") != null ? (float) variable.findAttributeIgnoreCase("missing_value").getNumericValue() : Float.MAX_VALUE;
+            HashMap<Float, Float> uniqueElements = new HashMap<>();
+
+            // Read data from the variable
+            try {
+                stats = read(variable, fillValue, missingValue);
+
+                tempVar.minValue = stats[0][0];
+                tempVar.maxValue = stats[0][1];
+                tempVar.average = stats[0][2];
+
+                for (int i = 0; i < stats[1].length; i++) {
+                    uniqueElements.put(stats[1][i], stats[2][i]);
+                }
+
+                boolean hasFractionalValue = false;
+                for (Float key : uniqueElements.keySet()) {
+                    if (key % 1 > 0) {
+                        hasFractionalValue = true;
+                        break;
+                    }
+                }
+
+                if (uniqueElements.size() > 1 && uniqueElements.size() < ENUM_THRESHOLD && !variable.getDataType().toString().equalsIgnoreCase("char") && !hasFractionalValue) {
+                    tempVar.elementMap = uniqueElements;
+                } else {
+                    tempVar.elementMap = new HashMap<>();
+                }
+            } catch (Exception e) {
+                System.out.println("Failed to read data for variable: " + variable.getShortName());
+            }
 
             tempVar.variableName = varName;
             tempVar.varDimensionList = varDimensions;
@@ -206,72 +244,191 @@ public class NetcdfFileReader {
     }
 
     /**
-     * @Todo: Need To Create different one for char types
-     * Returns the min, max, and avg of Array of data
-     * @param variable Variable data to process
+     * @param data Array data read from variables
      * @return WildfireVariable Variable with processed statistics
+     * @Todo: Need To Create different one for char types
+     * Returns the min, max, avg, and unique elements of Array of data
      */
-    public static WildfireVariable processData(Variable variable) {
+    public static float[][] floatRange(Array data, float fillValue, float missingValue) {
 
-        WildfireVariable tempVar = new WildfireVariable();
-
-        Array data = null;
-        float fillValue = variable.findAttributeIgnoreCase("_fillvalue") != null ? (float) variable.findAttributeIgnoreCase("_fillValue").getNumericValue() : Float.MAX_VALUE;
-        float missingValue = variable.findAttributeIgnoreCase("missing_value") != null ? (float) variable.findAttributeIgnoreCase("missing_value").getNumericValue() : Float.MAX_VALUE;
         float max = -Float.MAX_VALUE;
         float min = Float.MAX_VALUE;
         float avg = 0;
         HashMap<Float, Float> uniqueElements = new HashMap<>();
 
-        // Read data from the variable
-        try {
-            data = variable.read();
+        for (int i = 0; i < data.getSize(); i++) {
 
-            for(int i = 0; i < data.getSize(); i++) {
+            float num = data.getFloat(i);
+            if (num != fillValue && num != missingValue) {
+                max = Math.max(max, data.getFloat(i));
+                min = Math.min(min, data.getFloat(i));
+                avg = ((avg/(i+1))*(i)) + (data.getFloat(i)/(i+1));
 
-                float num = data.getFloat(i);
-                if (num != fillValue && num != missingValue) {
-                    max = Math.max(max, num);
-                    min = Math.min(min, num);
-                    avg += num;
-                    if (uniqueElements.size() <= ENUM_THRESHOLD) {
-                        uniqueElements.compute(data.getFloat(i), (key, val) -> (val == null) ? 1 : val + 1);
-                    }
+                if (uniqueElements.size() <= ENUM_THRESHOLD) {
+                    //Add to counter of each unique element
+                    uniqueElements.compute(data.getFloat(i), (key, val) -> (val == null) ? 1 : val + 1);
                 }
             }
-            avg = avg/data.getSize();
+        }
+        avg = avg / data.getSize();
 
-            tempVar.minValue = min;
-            tempVar.maxValue = max;
-            tempVar.average = avg;
-
-            boolean hasFractionalValue = false;
-            for(Float key : uniqueElements.keySet()) {
-                if (key % 1 > 0) {
-                    hasFractionalValue = true;
-                }
-                else {
-                    uniqueElements.put(key, uniqueElements.get(key) / data.getSize());
-                }
+        float[] keys;
+        float[] values;
+        if (uniqueElements.size() > ENUM_THRESHOLD) {
+            //Skip calculations if number of elements i greater than threshold
+            keys = new float[21];
+            values = new float[21];
+        }
+        else {
+            keys = new float[uniqueElements.size()];
+            values = new float[uniqueElements.size()];
+            int counter = 0;
+            for (Float key : uniqueElements.keySet())
+            {
+                //Convert HashMap into arrays and calculate percentages
+                keys[counter] = key;
+                values[counter] = uniqueElements.get(key) / data.getSize();
+                counter++;
             }
-
-            if (uniqueElements.size() > 1 && uniqueElements.size() < ENUM_THRESHOLD && !variable.getDataType().toString().equalsIgnoreCase("char") && !hasFractionalValue) {
-                tempVar.elementMap = uniqueElements;
-            }
-            else {
-                tempVar.elementMap = new HashMap<>();
-            }
-        } catch (IOException e) {
-            System.out.println("Failed to read data for variable: " + variable.getShortName());
         }
 
-        return tempVar;
+        return new float[][] {{min, max, avg, data.getSize()}, keys, values};
+    }
+    /**
+     * Read data in maximum possible size chunks.
+     * For example a multidimensional array of shape [10, 1000, 1000, 400, 400] cannot be read at once because java arrays can be at most 2^31 size
+     * 400 * 400 * 1000 * 1000 * 10 = 1,600,000,000,000 > Integer.MAX_VALUE.
+     * This method will minimize the reads by reading 400*400*1000 arrays by looping 100 times
+     * and looping this entire operation 10 times.
+     * @param variable
+     * @param fillValue
+     * @param missingValue
+     * @return stats containing min, max, avg
+     */
+    private float[][] read(Variable variable, float fillValue, float missingValue) {
+        // Calculate the maximum readable size
+        int[] shape = variable.getShape();
+        int numElementsToRead = shape[shape.length - 1];
+        int loopTo = shape.length - 2;
+        for (int i = shape.length - 2; i >= 0; i--) {
+            try {
+                numElementsToRead = Math.multiplyExact(numElementsToRead, shape[i]);
+                if(numElementsToRead > maxReadSize) {
+                    break;
+                }
+                loopTo = i - 1;
+            } catch (ArithmeticException ex) {
+                break;
+            }
+        }
+        if (loopTo < 0) {
+            // Single read
+            try {
+                Array data = variable.read();
+                var stats = floatRange(data, fillValue, missingValue);
+                return stats;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            // Recursive read
+
+            // Start reading from position 0
+            int[] origin = new int[shape.length];
+            int[] size = new int[shape.length];
+            for (int i = 0; i < shape.length; i++) {
+                if (i <= loopTo) {
+                    // Read 1 array at a time for the ith dimension, otherwise the readSize will overflow
+                    size[i] = 1;
+                } else {
+                    // Read the full ith dimension
+                    size[i] = shape[i];
+                }
+            }
+            var stats = recursiveRead(0, loopTo, shape, variable, origin, size, fillValue, missingValue);
+            return stats;
+        }
+    }
+
+    private float[][] recursiveRead(int cur, int loopTo, int[] shape, Variable variable, int[] origin, int[] size, float fillValue, float missingValue) {
+        Array data = null;
+        // Base condition for recursion
+        if (cur == loopTo) {
+            float[][][] statsArray = new float[shape[cur]][][];
+            for (int i = 0; i < shape[cur]; i++) {
+                origin[cur] = i;
+                try {
+                    data = variable.read(new Section(origin, size));
+                    statsArray[i] = floatRange(data, fillValue, missingValue);
+                } catch (InvalidRangeException | IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            return summarizedStats(statsArray);
+        } else {
+            float[][][] statsArray = new float[shape[cur]][][];
+            for (int i = 0; i < shape[cur]; i++) {
+                origin[cur] = i;
+                statsArray[i] = recursiveRead(cur + 1, loopTo, shape, variable, origin, size, fillValue, missingValue);
+            }
+            return summarizedStats(statsArray);
+        }
+    }
+
+    private float[][] summarizedStats(float[][][] statsArray) {
+        float min = statsArray[0][0][0], max = statsArray[0][0][1], avg = statsArray[0][0][2];
+        float totalCount = 0;
+        HashMap<Float, Float> uniqueElements = new HashMap<>();
+        boolean pass_enum_threshold = false;
+
+
+        for (int i = 1; i < statsArray.length; i++) {
+            min = Math.min(min, statsArray[i][0][0]);
+            max = Math.max(max, statsArray[i][0][1]);
+            avg = (avg/(i+1))*i + (statsArray[i][0][2]/(i+1));
+
+            if(statsArray[i][0][3] > ENUM_THRESHOLD) {
+                pass_enum_threshold = true;
+            } else {
+                totalCount += statsArray[i][0][3];
+            }
+        }
+        avg = avg / statsArray.length;
+
+        float[] keys;
+        float[] values;
+        if (pass_enum_threshold) {
+            keys = new float[21];
+            values = new float[21];
+        }
+        else {
+            //Calculate percentage of each element based on weighted count
+            for (int i = 0; i < statsArray.length; i++) {
+                for (int j = 0; j < statsArray[i][1].length; j++) {
+                    uniqueElements.put(statsArray[i][1][j], uniqueElements.get(statsArray[i][1][j]) + (statsArray[i][2][j] * (statsArray[i][0][3] / totalCount)));
+                }
+            }
+
+            keys = new float[uniqueElements.size()];
+            values = new float[uniqueElements.size()];
+            int counter = 0;
+            for (Float key : uniqueElements.keySet())
+            {
+                //Convert HashMap into arrays and calculate percentages
+                keys[counter] = key;
+                values[counter] = uniqueElements.get(key);
+                counter++;
+            }
+        }
+
+        return new float[][] {{min, max, avg} , keys, values};
     }
 
     /**
      * Calculates the windspeed from the U and V vectors, returns an array of 8 directions in order of ("North",
      * "North East", "East", "South East", "South", "South West", "West", "North West") with 3 values each of min,
      * max, avg
+     *
      * @param u Variable u
      * @param v Variable v
      * @param west_east_stag Length of West to east dimension
@@ -290,18 +447,18 @@ public class NetcdfFileReader {
         }
 
         // Get the shape of the arrays
-        int west_east_dim = west_east_stag -1;
-        int south_north_dim = south_north_stag -1;
+        int west_east_dim = west_east_stag - 1;
+        int south_north_dim = south_north_stag - 1;
 
         //Stored Data
-        double [] windSpeedMax = new double[8];
-        double [] windSpeedMin = {Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE,
+        double[] windSpeedMax = new double[8];
+        double[] windSpeedMin = {Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE,
                 Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE};
-        double [] windSpeedSum = new double[8];
-        double [] windSpeedCount = new double[8];
+        double[] windSpeedSum = new double[8];
+        double[] windSpeedCount = new double[8];
 
         int[] shape = uData.getShape();
-        shape[shape.length-1]--; //Go from stag to unstag
+        shape[shape.length - 1]--; //Go from stag to unstag
 
         //Calculate size of the whole area from dimension
         int arraySize = 1;
@@ -312,7 +469,7 @@ public class NetcdfFileReader {
         int uIndex = 0;
         int vIndex = 0;
         for (int i = 0; i < arraySize; i++) {
-            double uUnstag = 0.5 * (uData.getFloat(uIndex) + uData.getFloat(uIndex+1));
+            double uUnstag = 0.5 * (uData.getFloat(uIndex) + uData.getFloat(uIndex + 1));
             double vUnstag = 0.5 * (vData.getFloat(vIndex) + vData.getFloat(vIndex + west_east_dim));
 
             double windSpeed = Math.sqrt(uUnstag * uUnstag + vUnstag * vUnstag);
@@ -328,13 +485,13 @@ public class NetcdfFileReader {
             uIndex++;
             vIndex++;
 
-            if((i+1) % (west_east_dim)== 0) //Skip the last element of each row
+            if((i + 1) % (west_east_dim) == 0) //Skip the last element of each row
                 uIndex++;
-            if((i+1) % (west_east_dim*south_north_dim)== 0) //Skip the last row of each rectangle
-                vIndex+=west_east_dim;
+            if((i + 1) % (west_east_dim*south_north_dim) == 0) //Skip the last row of each rectangle
+                vIndex += west_east_dim;
         }
 
-        String [] stringWindDir = {"NorthWind", "NorthEastWind", "EastWind", "SouthEastWind", "SouthWind", "SouthWestWind", "WestWind", "NorthWestWind"};
+        String[] stringWindDir = {"NorthWind", "NorthEastWind", "EastWind", "SouthEastWind", "SouthWind", "SouthWestWind", "WestWind", "NorthWestWind"};
         List<WildfireVariable> windSpeeds = new ArrayList<>();
 
         for (int i = 0; i < stringWindDir.length; i++) {
@@ -344,7 +501,7 @@ public class NetcdfFileReader {
 
             temp.maxValue = (float) windSpeedMax[i];
             temp.minValue = (float) windSpeedMin[i];
-            temp.average = (float) (windSpeedSum[i]/windSpeedCount[i]);
+            temp.average = (float) (windSpeedSum[i] / windSpeedCount[i]);
 
             temp.attributeList = new ArrayList<>();
             temp.varDimensionList = new ArrayList<>();
@@ -357,6 +514,7 @@ public class NetcdfFileReader {
     /**
      * Calculates the start and finish date based on the Times Variable. Returns a 2-element array of Dates with
      * first element being start date and second element being finish date
+     *
      * @param time Variable Time from NetCDFFile
      * @return Date[] Array of 2 element (Start Date, Finish Date)
      */
@@ -371,7 +529,7 @@ public class NetcdfFileReader {
         }
 
         String firstTime = uData.slice(0, 0).toString();
-        String lastTime = uData.slice(0, dim[0]-1).toString();
+        String lastTime = uData.slice(0, dim[0] - 1).toString();
 
         Pattern pattern = Pattern.compile("(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d)_(\\d\\d):(\\d\\d):(\\d\\d)");
 
@@ -448,6 +606,8 @@ public class NetcdfFileReader {
         String min="00";
         String sec="00";
         if(matcher.find()) {
+            fileType = (matcher.group(1) == null) ? "" : matcher.group(1); //File qualifier
+            domain = (matcher.group(2) == null) ? "" : matcher.group(2); //Domain
             year = (matcher.group(3) == null) ? "0000" : matcher.group(3); //Year
             month = (matcher.group(4) == null) ? "00" : matcher.group(4); //Month
             day = (matcher.group(5) == null) ? "00" : matcher.group(5); //Day

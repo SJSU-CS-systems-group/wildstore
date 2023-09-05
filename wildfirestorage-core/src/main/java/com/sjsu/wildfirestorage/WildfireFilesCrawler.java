@@ -30,6 +30,9 @@ public class WildfireFilesCrawler implements Runnable {
     @CommandLine.Option(names = "--parallelism", description = "Number of threads to use")
     int parallelism = 1;
 
+    @CommandLine.Option(names = "--maxReadSize", description = "Number of data elements to read per read call")
+    int maxReadSize = 1000000000;
+
     public void run() {
         Instant start = Instant.now();
         ConcurrentHashMap<String, String> status = new ConcurrentHashMap<>();
@@ -84,7 +87,7 @@ public class WildfireFilesCrawler implements Runnable {
     private void crawl(String file, WebClient webClient, ConcurrentHashMap<String,String> status){
         try {
             NetcdfFileReader fileReader = new NetcdfFileReader(file);
-            var metadata = fileReader.processFile();
+            var metadata = fileReader.processFile(maxReadSize);
 
             if (option.equals("all")) {
                 PrintData.printAllData(metadata);

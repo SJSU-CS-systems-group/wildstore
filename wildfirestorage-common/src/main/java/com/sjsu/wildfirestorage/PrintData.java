@@ -41,7 +41,7 @@ public class PrintData {
                 System.out.print(a.attributeName + "\t" + a.type + "\t");
                 System.out.print(a.value);
             }
-            System.out.print("\n");
+            System.out.print("\n\n");
         }
     }
 
