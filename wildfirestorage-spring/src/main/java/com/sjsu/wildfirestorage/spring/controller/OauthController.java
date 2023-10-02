@@ -10,8 +10,11 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+
 import java.security.Principal;
 import java.util.Base64;
 import java.util.Collection;
@@ -24,6 +27,7 @@ public class OauthController {
     @Autowired
     private MongoTemplate mongoTemplate;
     public final String USER_COLLECTION = "userData";
+  
     @GetMapping("/")
     public String index () { return "index.html"; }
 
