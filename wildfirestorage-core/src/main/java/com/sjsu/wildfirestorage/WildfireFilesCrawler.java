@@ -86,7 +86,6 @@ public class WildfireFilesCrawler implements Runnable {
             if (hostname == null) {
                 System.out.println("No hostname specified. Skipping dataset update.");
             } else {
-                System.out.println("POSTING HERE");
                 var res = Client.post(datasetWebClient, "", new ParameterizedTypeReference<Integer>(){});
                 System.out.println("RESULT: " + res);
             }
