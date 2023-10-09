@@ -245,9 +245,10 @@ public class NetcdfFileReader {
 
     /**
      * @param data Array data read from variables
-     * @return WildfireVariable Variable with processed statistics
+     * @return float[][] Returns arrays of data
      * @Todo: Need To Create different one for char types
-     * Returns the min, max, avg, and unique elements of Array of data
+     * Returns the min, max, avg, and total count in the first array, all unique keys in
+     * the second array, and respective values for the keys in the third array
      */
     public static float[][] floatRange(Array data, float fillValue, float missingValue) {
 
@@ -300,10 +301,10 @@ public class NetcdfFileReader {
      * 400 * 400 * 1000 * 1000 * 10 = 1,600,000,000,000 > Integer.MAX_VALUE.
      * This method will minimize the reads by reading 400*400*1000 arrays by looping 100 times
      * and looping this entire operation 10 times.
-     * @param variable
-     * @param fillValue
-     * @param missingValue
-     * @return stats containing min, max, avg
+     * @param variable Variable to be read
+     * @param fillValue Value for data if no actual value
+     * @param missingValue Value for data if it is missing
+     * @return stats containing min, max, avg, totoal count, array of keys, array of values
      */
     private float[][] read(Variable variable, float fillValue, float missingValue) {
         // Calculate the maximum readable size
@@ -350,6 +351,12 @@ public class NetcdfFileReader {
         }
     }
 
+    /**
+     * @return float[][] Returns arrays of data
+     * Summarizes the stats based off of different stats returning from recursive Read. Returns the min, max, avg,
+     * and total count in the first array, all unique keys in the second array, and respective values for the keys
+     * in the third array
+     */
     private float[][] recursiveRead(int cur, int loopTo, int[] shape, Variable variable, int[] origin, int[] size, float fillValue, float missingValue) {
         Array data = null;
         // Base condition for recursion
