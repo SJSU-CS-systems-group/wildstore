@@ -37,7 +37,6 @@ public class SecurityConfiguration {
                         .permitAll().anyRequest().authenticated())
                 .oauth2Login(Customizer.withDefaults()).logout(Customizer.withDefaults());
         http.oauth2ResourceServer().authenticationManagerResolver(customAuthenticationManager());
-//        http.oauth2ResourceServer().opaqueToken();
         return http.build();
     }
 
@@ -56,22 +55,15 @@ public class SecurityConfiguration {
     }
 
     public AuthenticationManager opaque() {
-        String issuer = "https://accounts.google.com";
-        String introspectionUri = issuer + "/v1/introspect";
-
-        System.out.println(System.getProperty("spring.security.oauth2.client.registration.google.clientId"));
-        System.out.println(System.getProperty("test"));
-        OAuth2ClientProperties.Registration googleRegistration = oAuth2ClientProperties.getRegistration().get("google");
-
         OpaqueTokenIntrospector introspectionClient = b -> {
-          System.out.println(b);
-          System.out.println(UserInfo.tokenExist(b));
-          if (UserInfo.tokenExist(b)) {
-              return new DefaultOAuth2AuthenticatedPrincipal("user", Map.of("sub", "user"), null);
-          }
-          else {
-              return null;
-          }
+            System.out.println(b);
+            System.out.println(UserInfo.tokenExist(b));
+            if (UserInfo.tokenExist(b)) {
+                return new DefaultOAuth2AuthenticatedPrincipal("user", Map.of("sub", "user"), null);
+            }
+            else {
+                return null;
+            }
         };
         return new OpaqueTokenAuthenticationProvider(introspectionClient)::authenticate;
     }
