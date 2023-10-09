@@ -126,8 +126,8 @@ public class WildfireFilesCrawler implements Runnable {
             if (hostname == null) {
                 System.out.println("No hostname specified. Skipping metadata update.");
             } else {
-//                var res = Client.post(webClient, metadata, new ParameterizedTypeReference<Integer>(){});
-//                System.out.println("FILE: "+file+" DIGEST: " + metadata.digestString+" RESULT: " + res);
+                var res = Client.post(webClient, metadata, new ParameterizedTypeReference<Integer>(){});
+                System.out.println("FILE: "+file+" DIGEST: " + metadata.digestString+" RESULT: " + res);
             }
         } catch (WebClientRequestException ex) {
             System.out.println(file + " -> " + ex.getMostSpecificCause() + ex.getMessage());
