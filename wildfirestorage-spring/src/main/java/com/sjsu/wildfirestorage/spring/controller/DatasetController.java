@@ -30,7 +30,7 @@ public class DatasetController {
 
         mongoTemplate.createCollection(TEMP_DATASET_COLLECTION);
         //Query all metadata in the collection
-        mongoTemplate.stream(new Query(), Metadata.class, "metadata-temp").forEach( metadata -> {
+        mongoTemplate.stream(new Query(), Metadata.class, METADATA_COLLECTION).forEach( metadata -> {
             Set<String> filepath = metadata.filePath;
 
             //For each filepath in metadata, update corresponding dataset
