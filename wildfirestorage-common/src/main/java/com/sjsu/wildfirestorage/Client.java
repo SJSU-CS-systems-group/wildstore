@@ -11,9 +11,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
 public class Client {
-    public static Object get(String path, MultiValueMap<String, String> queryParams, ParameterizedTypeReference parameterizedTypeReference) {
-        WebClient webClient = WebClient.create(path);
-
+    public static Object get(WebClient webClient, MultiValueMap<String, String> queryParams, ParameterizedTypeReference parameterizedTypeReference) {
         Object response = webClient.get()
                 .uri(uriBuilder -> uriBuilder.queryParams(queryParams).build())
                 .retrieve()

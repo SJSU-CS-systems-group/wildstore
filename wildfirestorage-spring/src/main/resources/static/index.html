@@ -2,8 +2,26 @@
 <html lang="en">
 <body>
 Hello!
+
+Paste the file id here: <input type="text" name="fileId" id="fileId"/>
+Click here to generate a share link: <button onclick="generateShareLink()">Generate Share Link</button>
+<a id="share-link"></a>
 do you want to logout now?
 <a href="/logout">logout</a>
 </body>
+
+<script>
+    function generateShareLink() {
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+                document.getElementById("share-link").innerHTML = this.responseText;
+                document.getElementById("share-link").setAttribute("href", this.responseText);
+            }
+        };
+        xhttp.open("POST", "/api/share-link/create", true);
+        xhttp.send(document.getElementById("fileId").value);
+    }
+</script>
 </html>
 
