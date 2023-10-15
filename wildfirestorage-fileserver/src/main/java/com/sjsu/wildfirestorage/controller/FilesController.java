@@ -90,25 +90,19 @@ public class FilesController {
     }
 
     @GetMapping("/share/{shareId}")
-    public String downloadSharedFile(@PathVariable String shareId, HttpServletRequest request, HttpServletResponse response) {
-        return "yo!";
-//        final String verifyUri = metadataServerUrl + "/api/share-link/verify";
-//
-//        RestTemplate restTemplate = new RestTemplate();
-//        System.out.println("here1");
-//        Metadata result = restTemplate.postForObject(verifyUri, shareId, Metadata.class);
-//        System.out.println("here2");
-//        if(result == null) {
-//            System.out.println("here3");
-//            return;
-//        }
-//        downloadFile(result.digestString, request, response);
-//        System.out.println("here4");
-//        HttpHeaders headers = new HttpHeaders();
-//        headers.add("Authorization", request.getHeader("Authorization"));
-//        HttpEntity<String> entity = new HttpEntity<>(shareId, headers);
-//        System.out.println("here5");
-//        restTemplate.postForObject(metadataServerUrl + "/api/share-link/downloadhistory", entity, Integer.class);
-//        System.out.println("here6");
+    public void downloadSharedFile(@PathVariable String shareId, HttpServletRequest request, HttpServletResponse response) {
+        final String verifyUri = metadataServerUrl + "/api/share-link/verify";
+
+        RestTemplate restTemplate = new RestTemplate();
+        Metadata result = restTemplate.postForObject(verifyUri, shareId, Metadata.class);
+        if(result == null) {
+            System.out.println("here3");
+            return;
+        }
+        downloadFile(result.digestString, request, response);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", request.getHeader("Authorization"));
+        HttpEntity<String> entity = new HttpEntity<>(shareId, headers);
+        restTemplate.postForObject(metadataServerUrl + "/api/share-link/downloadhistory", entity, Integer.class);
     }
 }
