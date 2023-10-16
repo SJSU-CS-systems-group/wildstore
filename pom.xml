@@ -25,6 +25,7 @@
     <module>wildfirestorage-core</module>
     <module>wildfirestorage-common</module>
     <module>wildfirestorage-spring</module>
-      <module>wildfirestorage-cli</module>
+    <module>wildfirestorage-cli</module>
+    <module>wildfirestorage-fileserver</module>
   </modules>
 </project>

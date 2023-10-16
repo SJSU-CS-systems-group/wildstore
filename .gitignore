@@ -5,5 +5,6 @@ Wildfirestorage-core/.idea/
 .idea/
 .DS_Store
 wildfirestorage-cli/target/
+wildfirestorage-fileserver/target/
 oauth.yml
 enumVarList.txt
