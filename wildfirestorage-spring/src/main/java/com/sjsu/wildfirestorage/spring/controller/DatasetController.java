@@ -5,7 +5,11 @@ import com.sjsu.wildfirestorage.Dataset;
 import com.sjsu.wildfirestorage.Metadata;
 import com.sjsu.wildfirestorage.WildfireAttribute;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationOptions;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -13,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigInteger;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 @RestController
 @RequestMapping("/api")
@@ -23,40 +28,73 @@ public class DatasetController {
     public final String METADATA_COLLECTION = "metadata";
     public final String DATASET_COLLECTION = "dataset";
 
-    public final String TEMP_DATASET_COLLECTION = "dataset-temp";
-
     @PostMapping("/dataset")
     public int upsertDataset() throws MongoWriteException {
+        AggregationOptions options = AggregationOptions.builder().allowDiskUse(true).build();
+        Aggregation aggregation = Aggregation.newAggregation(
+                Aggregation.unwind("filePath"),
+                Aggregation.sort(Sort.Direction.ASC, "filePath")
+        ).withOptions(options);
 
-        mongoTemplate.createCollection(TEMP_DATASET_COLLECTION);
-        //Query all metadata in the collection
-        mongoTemplate.stream(new Query(), Metadata.class, METADATA_COLLECTION).forEach( metadata -> {
-            Set<String> filepath = metadata.filePath;
+        AtomicReference<String> currentFilePath = new AtomicReference<>("");
+        final Dataset[] currentDataset = {new Dataset()};
 
-            //For each filepath in metadata, update corresponding dataset
-            for (String path : filepath) {
-                path = path.substring(0, path.lastIndexOf('/')+1);
+        mongoTemplate.aggregateStream(aggregation, METADATA_COLLECTION, Metadata.class).forEach(metadata -> {
 
-                Query query = new Query(Criteria.where("datasetPath").is(path));
-                var existingDoc = mongoTemplate.find(query, Dataset.class, TEMP_DATASET_COLLECTION);
+            for(String path : metadata.filePath)
+            {
+                String tempPath = String.valueOf(currentFilePath);
 
-                if(!existingDoc.isEmpty()) {
-                    //If document exist, update it
-                    Update update = new Update();
-                    //Update dataDigestString
-                    BigInteger digest = base64decoding(existingDoc.get(0).digestString);
-                    digest = digest.add(base64decoding(metadata.digestString));
-                    update.set("digestString", base64encoding(digest));
+                if(!path.equals(tempPath))
+                {
+                    //Search the collection and update the current dataset
+                    if(currentDataset[0].digestString != null) {
+                        checkUpdate(currentDataset[0], tempPath);
+                    }
+                    //Update new current path
+                    currentFilePath.set(path);
+
+                    //Create new Dataset
+                    currentDataset[0] = new Dataset();
+
+                    // Initialize set and add dataset path
+                    currentDataset[0].datasetPath = new HashSet<>();
+                    currentDataset[0].datasetPath.add(path);
+
+                    // Initialize digest string and max domain
+                    currentDataset[0].digestString = metadata.digestString;
+                    currentDataset[0].maxDomain = metadata.domain;
+
+                    // Initialize list and add digest
+                    currentDataset[0].digestList = new ArrayList<>();
+                    currentDataset[0].digestList.add(metadata.digestString);
+
+                    //Initialize first and last time stamp in dataset
+                    for(int i = 0; i < metadata.globalAttributes.size(); i++)
+                    {
+                        var attribute = metadata.globalAttributes.get(i);
+                        if(attribute.attributeName.equals("StartDate") || attribute.attributeName.equals("Start_Date")) {
+                            if (attribute.type.equals("int")) {
+                                ArrayList<Integer> dateList = (ArrayList<Integer>) attribute.value;
+                                currentDataset[0].firstTimeStamp = new Date(dateList.get(0));
+                                currentDataset[0].lastTimeStamp = new Date(dateList.get(0));
+                            }
+                            else {
+                                currentDataset[0].firstTimeStamp = (Date) attribute.value;
+                                currentDataset[0].lastTimeStamp = (Date) attribute.value;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    BigInteger digest = base64decoding(currentDataset[0].digestString);
+                    currentDataset[0].digestString = base64encoding(digest.add(base64decoding(metadata.digestString)));
                     //Update digestList
-                    existingDoc.get(0).digestList.add(metadata.digestString);
-                    update.set("digestList", existingDoc.get(0).digestList);
-                    //Update filePath
-                    existingDoc.get(0).datasetPath.add(path);
-                    update.set("datasetPath", existingDoc.get(0).datasetPath);
+                    currentDataset[0].digestList.add(metadata.digestString);
                     //Update maxDomain
-                    if(existingDoc.get(0).maxDomain < metadata.domain) {
-                        existingDoc.get(0).maxDomain = metadata.domain;
-                        update.set("maxDomain", existingDoc.get(0).maxDomain);
+                    if(currentDataset[0].maxDomain < metadata.domain) {
+                        currentDataset[0].maxDomain = metadata.domain;
                     }
                     //Update first time and last stamp if timestamp is earlier or later
                     for (WildfireAttribute attr : metadata.globalAttributes)
@@ -71,99 +109,31 @@ public class DatasetController {
                             else {
                                 tempDate = (Date) attr.value;
                             }
-                            if (existingDoc.get(0).firstTimeStamp.compareTo(tempDate) > 0) {
-                                existingDoc.get(0).firstTimeStamp = tempDate;
-                                update.set("firstTimeStamp", existingDoc.get(0).firstTimeStamp);
+                            //Update  time stamps if null
+                            if (currentDataset[0].firstTimeStamp == null) {
+                                currentDataset[0].firstTimeStamp = tempDate;
                             }
-                            else if (existingDoc.get(0).lastTimeStamp.compareTo(tempDate) < 0) {
-                                existingDoc.get(0).lastTimeStamp = tempDate;
-                                update.set("lastTimeStamp", existingDoc.get(0).lastTimeStamp);
+                            if (currentDataset[0].lastTimeStamp == null) {
+                                currentDataset[0].lastTimeStamp = tempDate;
+                            }
+                            //Update time stamps if there is corresponding earlier or later one
+                            if (currentDataset[0].firstTimeStamp.compareTo(tempDate) > 0) {
+                                currentDataset[0].firstTimeStamp = tempDate;
+                            }
+                            else if (currentDataset[0].lastTimeStamp.compareTo(tempDate) < 0) {
+                                currentDataset[0].lastTimeStamp = tempDate;
                             }
                             break;
                         }
 
                     }
-                    mongoTemplate.updateFirst(query, update, Dataset.class, TEMP_DATASET_COLLECTION);
-                } else {
-                    //Create new Dataset
-                    Dataset dataset = new Dataset();
-
-                    // Initialize set and add dataset path
-                    dataset.datasetPath = new HashSet<>();
-                    dataset.datasetPath.add(path);
-
-                    // Initialize digest string and max domain
-                    dataset.digestString = metadata.digestString;
-                    dataset.maxDomain = metadata.domain;
-
-                    // Initialize list and add digest
-                    dataset.digestList = new ArrayList<>();
-                    dataset.digestList.add(metadata.digestString);
-
-                    //Initialize first and last time stamp in dataset
-                    for(int i = 0; i < metadata.globalAttributes.size(); i++)
-                    {
-                        var attribute = metadata.globalAttributes.get(i);
-                        if(attribute.attributeName.equals("StartDate") || attribute.attributeName.equals("Start_Date")) {
-                            if (attribute.type.equals("int")) {
-                                ArrayList<Integer> dateList = (ArrayList<Integer>) attribute.value;
-                                dataset.firstTimeStamp = new Date(dateList.get(0));
-                                dataset.lastTimeStamp = new Date(dateList.get(0));
-                            }
-                            else {
-                                dataset.firstTimeStamp = (Date) attribute.value;
-                                dataset.lastTimeStamp = (Date) attribute.value;
-                            }
-                        }
-                    }
-
-                    mongoTemplate.save(dataset, TEMP_DATASET_COLLECTION);
-                }
-            }
-
-        });
-
-        //For each path, if it exists in main database, update if different
-        mongoTemplate.stream(new Query(), Dataset.class, TEMP_DATASET_COLLECTION).forEach( dataset -> {
-            Set<String> dataPath = dataset.datasetPath;
-
-            //For each dataset_path in metadata, update corresponding dataset
-            for (String path : dataPath) {
-
-                Query query = new Query(Criteria.where("datasetPath").is(path));
-                var existingDoc = mongoTemplate.find(query, Dataset.class, DATASET_COLLECTION);
-
-                if(!existingDoc.isEmpty()) { //If doc exists, compare digestString
-                    //If digestString update, remove from old dataset add to new dataset
-                    //If the same do nothing
-                    if(!existingDoc.get(0).digestString.equals(dataset.digestString))
-                    {
-                        Update update = new Update();
-
-                        // We remove the dataset path from the old dataset
-                        existingDoc.get(0).datasetPath.remove(path);
-                        update.set("datasetPath", existingDoc.get(0).datasetPath);
-
-                        // If the dataset no longer has any paths, delete it
-                        if (existingDoc.get(0).datasetPath.size() == 0) {
-                            mongoTemplate.remove(new Query(Criteria.where("digestString").is(existingDoc.get(0).digestString)), DATASET_COLLECTION);
-                        }
-                        else {
-                            mongoTemplate.updateFirst(query, update, Dataset.class, DATASET_COLLECTION);
-                        }
-
-                        upsertDatasetPath(dataset, path);
-                    }
-
-                } else {
-                    //If document does not exist add it to the collection, using the object but single path
-                    //Also need to check if it is a duplicate digestString before creating new object
-                    upsertDatasetPath(dataset, path);
                 }
             }
         });
 
-        mongoTemplate.dropCollection(TEMP_DATASET_COLLECTION);
+        if(currentDataset[0].digestString != null) {
+            checkUpdate(currentDataset[0], String.valueOf(currentFilePath));
+        }
 
         return 0;
     }
@@ -187,6 +157,43 @@ public class DatasetController {
     }
 
     /**
+     * Check the collection to see if the dataset needs to be updated. If the document already exist but
+     * different digestString, remove path from the current document, and create or update a document.
+     * @param dataset Dataset to be checked and updated
+     * @param path Path of the current dataset
+     */
+    public void checkUpdate(Dataset dataset, String path)
+    {
+        Query query = new Query(Criteria.where("datasetPath").is(path));
+        List<Dataset> existingDoc = mongoTemplate.find(query, Dataset.class, DATASET_COLLECTION);
+
+        if (!existingDoc.isEmpty()) { //If doc exists, compare digestString
+            //If digestString update, remove from old dataset add to new dataset
+            //If the same do nothing
+            if (!existingDoc.get(0).digestString.equals(dataset.digestString)) {
+                Update update = new Update();
+
+                // We remove the dataset path from the old dataset
+                existingDoc.get(0).datasetPath.remove(path);
+
+                // If the dataset no longer has any paths, delete it
+                if (existingDoc.get(0).datasetPath.size() == 0) {
+                    mongoTemplate.remove(new Query(Criteria.where("digestString").is(existingDoc.get(0).digestString)), DATASET_COLLECTION);
+                } else {
+                    update.set("datasetPath", existingDoc.get(0).datasetPath);
+                    mongoTemplate.updateFirst(query, update, Dataset.class, DATASET_COLLECTION);
+                }
+
+                upsertDatasetPath(dataset, String.valueOf(dataset));
+            }
+        } else {
+            //If document does not exist add it to the collection, using the object but single path
+            //Also need to check if it is a duplicate digestString before creating new object
+            upsertDatasetPath(dataset, path);
+        }
+    }
+
+    /**
      * Checks if a dataset's digest string already exist, and if it does, adds it to the current object,
      * otherwise creates a new one
      * @param dataset Dataset object being searched
@@ -199,7 +206,7 @@ public class DatasetController {
         var existingDoc = mongoTemplate.find(query, Dataset.class, DATASET_COLLECTION);
 
         if(!existingDoc.isEmpty()) {
-            // Update new document with corresponding digest String with new path
+            // Update existing document with corresponding digest String with new path
             Update update = new Update();
 
             existingDoc.get(0).datasetPath.add(path);
@@ -210,18 +217,7 @@ public class DatasetController {
         else
         {
             //Create new document for the updated document
-            //Copy over all the data Todo can be copy constructor?
-            Dataset new_dataset = new Dataset();
-            new_dataset.digestString = dataset.digestString;
-            new_dataset.digestList = dataset.digestList;
-            new_dataset.maxDomain = dataset.maxDomain;
-            new_dataset.firstTimeStamp = dataset.firstTimeStamp;
-            new_dataset.lastTimeStamp = dataset.lastTimeStamp;
-
-            //Save new set of path to be only the current one
-            new_dataset.datasetPath = new HashSet<>();
-            new_dataset.datasetPath.add(path);
-            mongoTemplate.save(new_dataset, DATASET_COLLECTION);
+            mongoTemplate.save(dataset, DATASET_COLLECTION);
         }
     }
 
