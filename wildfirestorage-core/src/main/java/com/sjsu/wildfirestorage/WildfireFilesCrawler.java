@@ -79,6 +79,22 @@ public class WildfireFilesCrawler implements Runnable {
         }
         Instant finish = Instant.now();
         System.out.println("Execution Completed in: "+ Duration.between(start, finish).toMillis() + "ms");
+
+        //Write API service to call dataset routing
+        WebClient datasetWebClient = Client.getWebClient(hostname + "/api/dataset");
+        try {
+            if (hostname == null) {
+                System.out.println("No hostname specified. Skipping dataset update.");
+            } else {
+                var res = Client.post(datasetWebClient, "", new ParameterizedTypeReference<Integer>(){});
+                System.out.println("RESULT: " + res);
+            }
+        }
+        catch (WebClientRequestException ex) {
+            System.out.println("Dataset API call: "+ ex.getMostSpecificCause() + ex.getMessage());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
     public static void main(String[] args) {
         System.exit(new CommandLine(new WildfireFilesCrawler()).execute(args));
