@@ -14,6 +14,7 @@ public class PrintData {
         System.out.println("Filename: " + metadata.fileName);
         System.out.println("FilePath: " + metadata.filePath);
         System.out.println("FileType: " + metadata.fileType);
+        System.out.println("FileSize: " + metadata.fileSize);
         System.out.println("Domain: " + metadata.domain);
         System.out.println("Digest String: " + metadata.digestString);
         if(metadata.location != null)
@@ -49,6 +50,7 @@ public class PrintData {
         System.out.println("Filename: " + metadata.fileName);
         System.out.println("FilePath: " + metadata.filePath);
         System.out.println("FileType: " + metadata.fileType);
+        System.out.println("FileSize: " + metadata.fileSize);
         System.out.println("Domain: " + metadata.domain);
         if(metadata.location != null)
             System.out.println("Corners: " + metadata.location.toString());

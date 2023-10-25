@@ -1,8 +1,8 @@
 package com.sjsu.wildfirestorage.spring.controller;
 
-import com.mongodb.client.model.Accumulators;
 import com.sjsu.wildfirestorage.Metadata;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
@@ -13,7 +13,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api")
@@ -26,8 +28,8 @@ public class StatisticsController {
     public final String DATASET_COLLECTION = "dataset";
 
     @GetMapping("/stats/metadataBasic")
-    public HashMap<String, String> metadataBasic (@RequestParam("collectionName") String collectionName) {
-        HashMap <String, String> res = new HashMap<>();
+    public HashMap<String, Object> metadataBasic (@RequestParam("collectionName") String collectionName) {
+        HashMap <String, Object> res = new HashMap<>();
 
         long collectionSize = getCollectionSize(collectionName);
         res.put("collectionSize", String.valueOf(collectionSize));
@@ -41,6 +43,12 @@ public class StatisticsController {
 
             long numberOfAttributes = getNumberOfAttributes();
             res.put("numberOfAttributes", String.valueOf(numberOfAttributes));
+
+            List<String> uniqueVarNames = getUniqueVariableNames();
+            res.put("UniqueVariableNames", uniqueVarNames);
+
+            List<String> uniqueAttrNames = getUniqueAttributeNames();
+            res.put("UniqueAttributeNames", uniqueAttrNames);
         }
 
         return res;
@@ -85,7 +93,7 @@ public class StatisticsController {
     }
 
     /**
-     * Returns the nnumber of unique attributes in the metadata collection.
+     * Returns the number of unique variables in the metadata collection.
      * @return Number of unique variables
      */
     private long getNumberOfVariables() {
@@ -115,18 +123,60 @@ public class StatisticsController {
     /**
      * WIP
      * Should return the number of each variable mentioned in the metadata collection.
+     *
      * @return List of each variable and number of times mentioned
      */
-    private long getCountOfVariables() {
+    private List<String> getUniqueVariableNames() {
+        Aggregation aggregation = Aggregation.newAggregation(
+                Aggregation.project("variables"),
+                Aggregation.unwind("variables"),
+                Aggregation.group("variables.variableName"),
+                Aggregation.group().addToSet("_id").as("UniqueVars"),
+                Aggregation.project("UniqueVars").andExclude("_id"),
+                Aggregation.unwind("UniqueVars"),
+                Aggregation.sort(Sort.Direction.ASC, "UniqueVars")
+        );
+        AggregationResults<HashMap> aggregationResults = mongoTemplate.aggregate(aggregation, METADATA_COLLECTION, HashMap.class);
+
+        List<String> uniqueVars = new ArrayList<>();
+
+        aggregationResults.getMappedResults().forEach( attrName -> {
+            //Since result
+            uniqueVars.add((String) attrName.get("UniqueVars"));
+        });
+
+        return uniqueVars;
+    }
+
+    /**
+     * WIP
+     * Should return the number of each variable mentioned in the metadata collection.
+     *
+     * @return List of each variable and number of times mentioned
+     */
+    private List<String> getUniqueAttributeNames() {
         Aggregation aggregation = Aggregation.newAggregation(
                 Aggregation.project("globalAttributes"),
                 Aggregation.unwind("globalAttributes"),
-                Aggregation.group("globalAttributes.attributeName").count().as("NumAttributes")
+                Aggregation.group("globalAttributes.attributeName"),
+                Aggregation.group().addToSet("_id").as("UniqueAttrs"),
+                Aggregation.project("UniqueAttrs").andExclude("_id"),
+                Aggregation.unwind("UniqueAttrs"),
+                Aggregation.sort(Sort.Direction.ASC, "UniqueAttrs")
         );
-        AggregationResults<Object> aggregationResults = mongoTemplate.aggregate(aggregation, METADATA_COLLECTION, Object.class);
-//        return aggregationResults.getMappedResults();
-        return 0;
+        AggregationResults<HashMap> aggregationResults = mongoTemplate.aggregate(aggregation, METADATA_COLLECTION, HashMap.class);
+
+        List<String> uniqueAttr = new ArrayList<>();
+
+        aggregationResults.getMappedResults().forEach( attrName -> {
+            //Since result
+            uniqueAttr.add((String) attrName.get("UniqueAttrs"));
+        });
+
+        return uniqueAttr;
     }
+
+
 
 
 }

@@ -15,6 +15,8 @@ public class Metadata {
     public Set<String> filePath;
     public Set<String> fileType;
     public int domain;
+
+    public long fileSize;
     public String digestString;
   
     @JsonDeserialize(using = GeoJsonPolygonDeserializer.class)
