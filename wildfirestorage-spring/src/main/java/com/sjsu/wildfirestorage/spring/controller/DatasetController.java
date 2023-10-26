@@ -4,6 +4,7 @@ import com.mongodb.MongoWriteException;
 import com.sjsu.wildfirestorage.Dataset;
 import com.sjsu.wildfirestorage.Metadata;
 import com.sjsu.wildfirestorage.WildfireAttribute;
+import com.sjsu.wildfirestorage.WildfireVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -15,7 +16,9 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -28,6 +31,8 @@ public class DatasetController {
     public final String METADATA_COLLECTION = "metadata";
     public final String DATASET_COLLECTION = "dataset";
 
+    private final Path datasetCreationLog = Paths.get("DatasetCreation.log");
+
     @PostMapping("/dataset")
     public int upsertDataset() throws MongoWriteException {
         AggregationOptions options = AggregationOptions.builder().allowDiskUse(true).build();
@@ -38,6 +43,13 @@ public class DatasetController {
 
         AtomicReference<String> currentFilePath = new AtomicReference<>("");
         final Dataset[] currentDataset = {new Dataset()};
+
+        try {
+            Files.createFile(datasetCreationLog);
+        } catch (FileAlreadyExistsException e) {
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
         mongoTemplate.aggregateStream(aggregation, METADATA_COLLECTION, Metadata.class).forEach(metadata -> {
 
@@ -178,6 +190,13 @@ public class DatasetController {
 
                 // If the dataset no longer has any paths, delete it
                 if (existingDoc.get(0).datasetPath.size() == 0) {
+                    try {
+                        Files.writeString(datasetCreationLog, "Removed file with Digest String, "  + existingDoc.get(0).digestString +
+                                ", and replaced with file digest string, " +dataset.digestString + "\n", StandardOpenOption.APPEND);
+                    } catch (IOException e) {
+                        System.out.println("Failed to write to DatasetCreation Log");
+                        throw new RuntimeException(e);
+                    }
                     mongoTemplate.remove(new Query(Criteria.where("digestString").is(existingDoc.get(0).digestString)), DATASET_COLLECTION);
                 } else {
                     update.set("datasetPath", existingDoc.get(0).datasetPath);
