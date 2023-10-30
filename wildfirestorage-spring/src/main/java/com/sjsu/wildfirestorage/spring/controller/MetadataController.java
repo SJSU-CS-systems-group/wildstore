@@ -37,6 +37,8 @@ public class MetadataController {
     public List<Metadata> search(@RequestBody MetadataRequest request) throws JSQLParserException {
         Query query = new Query();
         query.addCriteria(CriteriaBuilder.buildFromSQL(request.searchQuery));
+        query.limit(request.limit);
+        query.skip(request.offset);
         var res = mongoTemplate.find(query, Metadata.class);
         return res;
     }
