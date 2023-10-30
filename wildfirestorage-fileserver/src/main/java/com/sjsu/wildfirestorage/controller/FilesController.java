@@ -20,17 +20,22 @@ public class FilesController {
     @Value("${custom.metadataServer}")
     private String metadataServerUrl;
 
-    @GetMapping("/hello")
-    public String hello() {
-        return "Hello";
-    }
-
     @GetMapping("/file/{digestString}")
     public void downloadFile(@PathVariable String digestString, HttpServletRequest request, HttpServletResponse response) {
         final String uri = metadataServerUrl + "/api/metadata/" + digestString;
 
         RestTemplate restTemplate = new RestTemplate();
-        Metadata result = restTemplate.getForObject(uri, Metadata.class);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", request.getHeader("Authorization"));
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+        ResponseEntity<Metadata> result = restTemplate.exchange(uri, HttpMethod.GET, entity, Metadata.class);
+        if(result.getBody() == null) {
+            return;
+        }
+        downloadHelper(result.getBody(), request, response);
+    }
+
+    private void downloadHelper(Metadata result, HttpServletRequest request, HttpServletResponse response) {
         try {
             RandomAccessFile file = new RandomAccessFile((String)result.filePath.toArray()[0], "r");
             long fileLength = file.length();
@@ -94,15 +99,15 @@ public class FilesController {
         final String verifyUri = metadataServerUrl + "/api/share-link/verify";
 
         RestTemplate restTemplate = new RestTemplate();
-        Metadata result = restTemplate.postForObject(verifyUri, shareId, Metadata.class);
-        if(result == null) {
-            System.out.println("here3");
-            return;
-        }
-        downloadFile(result.digestString, request, response);
         HttpHeaders headers = new HttpHeaders();
         headers.add("Authorization", request.getHeader("Authorization"));
         HttpEntity<String> entity = new HttpEntity<>(shareId, headers);
+        Metadata result = restTemplate.postForObject(verifyUri, entity, Metadata.class);
+        if(result == null) {
+            return;
+        }
+        downloadHelper(result, request, response);
+
         restTemplate.postForObject(metadataServerUrl + "/api/share-link/downloadhistory", entity, Integer.class);
     }
 }

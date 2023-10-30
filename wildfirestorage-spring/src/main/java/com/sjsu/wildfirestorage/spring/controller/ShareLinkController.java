@@ -5,6 +5,8 @@ import com.sjsu.wildfirestorage.Download;
 import com.sjsu.wildfirestorage.ShareLink;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -15,7 +17,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,6 +30,12 @@ import java.util.UUID;
 @RequestMapping("/api/share-link")
 public class ShareLinkController {
 
+    Logger logger = LoggerFactory.getLogger(ShareLinkController.class);
+
+    public final String USER_DATA_COLLECTION = "userData";
+    public final String METADATA_COLLECTION = "metadata";
+    public final String SHARE_LINKS_COLLECTION = "share-links";
+
     @Value("${custom.fileServer}")
     private String fileServerUrl;
 
@@ -40,7 +47,6 @@ public class ShareLinkController {
         ShareLink shareLink = new ShareLink();
         shareLink.fileDigest = fileDigest;
         shareLink.createdBy = (String)((DefaultOidcUser)(auth.getPrincipal())).getAttribute("name");
-//        shareLink.createdBy = (String)auth.getPrincipal();
         shareLink.shareId = UUID.randomUUID().toString().replace("-", "");
         mongoTemplate.insert(shareLink, "share-links");
         return fileServerUrl + "/api/share/" + shareLink.shareId;
@@ -49,34 +55,33 @@ public class ShareLinkController {
     @PostMapping("/verify")
     public DBObject verify(@RequestBody String shareId) {
         Query query = new Query(Criteria.where("shareId").is(shareId));
-        List<ShareLink> res = mongoTemplate.find(query, ShareLink.class, "share-links");
+        List<ShareLink> res = mongoTemplate.find(query, ShareLink.class, SHARE_LINKS_COLLECTION);
         if(res.isEmpty()){
-            System.out.println("verify failed");
+            logger.info("Verification failed. Share ID not found");
             return null;
         }
+        logger.info("Verification success");
         Query query2 = new Query(Criteria.where("digestString").is(res.get(0).fileDigest));
-        List<DBObject> res2 = mongoTemplate.find(query2, DBObject.class, "metadata");
-        System.out.println("Verfied Success");
+        List<DBObject> res2 = mongoTemplate.find(query2, DBObject.class, METADATA_COLLECTION);
+        logger.info((res.isEmpty() || res2 == null)? "Digest string not found":"Success, returning metadata");
         return (res.isEmpty() || res2 == null)? null : res2.get(0);
     }
 
     @PostMapping("/downloadhistory")
     public Integer addDownloadHistory(@RequestBody String shareId, HttpServletRequest request, HttpServletResponse response) {
-        if(!request.getHeader(HttpHeaders.AUTHORIZATION).isEmpty()) {
             Query query = new Query(Criteria.where("shareId").is(shareId));
             Query authQuery = new Query(Criteria.where("token").is(request.getHeader(HttpHeaders.AUTHORIZATION).substring(7)));
-            List<DBObject> authList = mongoTemplate.find(authQuery, DBObject.class, "auth-tokens");
+            List<DBObject> authList = mongoTemplate.find(authQuery, DBObject.class, USER_DATA_COLLECTION);
             if (authList.isEmpty()) {
+                logger.warn("Token not found in userData collection");
                 return 1;
             }
             Download download = new Download();
             download.dateTime = LocalDateTime.now();
-            download.downloadedBy = (String) authList.get(0).get("username");
+            download.downloadedBy = (String) authList.get(0).get("name");
             Update update = new Update().push("downloads", download);
             mongoTemplate.updateFirst(query, update, "share-links");
+            logger.info("Add download history successful");
             return 0;
-        } else {
-            return 2;
-        }
     }
 }

@@ -3,8 +3,6 @@ package com.sjsu.wildfirestorage.spring.controller;
 import com.sjsu.wildfirestorage.spring.util.RequestMatchingAuthenticationManagerResolver;
 import com.sjsu.wildfirestorage.spring.util.UserInfo;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.security.oauth2.client.OAuth2ClientProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -27,13 +25,11 @@ import java.util.Map;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfiguration {
-    @Autowired
-    private OAuth2ClientProperties oAuth2ClientProperties;
     private String user;
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(CsrfConfigurer::disable).authorizeHttpRequests(ac -> ac.requestMatchers("/api/**", "/error")
+                .csrf(CsrfConfigurer::disable).authorizeHttpRequests(ac -> ac.requestMatchers("/error")
                         .permitAll().anyRequest().authenticated())
                 .oauth2Login(Customizer.withDefaults()).logout(Customizer.withDefaults());
         http.oauth2ResourceServer().authenticationManagerResolver(customAuthenticationManager());
@@ -56,8 +52,6 @@ public class SecurityConfiguration {
 
     public AuthenticationManager opaque() {
         OpaqueTokenIntrospector introspectionClient = b -> {
-            System.out.println(b);
-            System.out.println(UserInfo.tokenExist(b));
             if (UserInfo.tokenExist(b)) {
                 return new DefaultOAuth2AuthenticatedPrincipal("user", Map.of("sub", "user"), null);
             }

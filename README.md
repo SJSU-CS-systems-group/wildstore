@@ -75,9 +75,15 @@ Use `LOCATION` with the `IN` operator to query files within a polygon. Specify t
 java -jar wildfirestorage-cli/target/wildfirestorage-cli-1.0-SNAPSHOT.jar search "LOCATION IN ((0.0,0.0), (0.0,10.0), (20.0,20.0))" http://localhost:8080
 ```
 
-### Example 5
+### Example 5 - Query based on Wind
+Query the following VARIABLES: `NorthWind`, `EastWind`, `SouthWind`, `WestWind`, `NorthEastWind`, `SouthEastWind`, `SouthWestWind`, `NorthWestWind`
 ```
-java -jar wildfirestorage-cli/target/wildfirestorage-cli-1.0-SNAPSHOT.jar search "LOCATION IN ((0.0,0.0), (0.0,10.0), (20.0,20.0)) AND ATTR.ISURBAN.value IN (1,2,3) AND (VAR.FMOIST.minValue >= 10 OR VAR.RH_FIRE.maxValue < 20.0)" http://localhost:8080
+java -jar wildfirestorage-cli/target/wildfirestorage-cli-1.0-SNAPSHOT.jar search "VAR.NorthEastWind > 100.0" http://localhost:8080
+```
+
+### Example 6
+```
+java -jar wildfirestorage-cli/target/wildfirestorage-cli-1.0-SNAPSHOT.jar search "LOCATION IN ((0.0,0.0), (0.0,10.0), (20.0,20.0)) AND ATTR.ISURBAN.value IN (1,2,3) AND (VAR.FMOIST.minValue >= 10 OR VAR.RH_FIRE.maxValue < 20.0) AND VAR.SouthEastWind.average > 10.0" http://localhost:8080
 ```
 
 ### Supported Query Operators
@@ -98,27 +104,4 @@ java -jar wildfirestorage-cli/target/wildfirestorage-cli-1.0-SNAPSHOT.jar search
 To clean up metadata documents of files that were deleted,
 ```
 java -jar wildfirestorage-cli/target/wildfirestorage-cli-1.0-SNAPSHOT.jar clean <LIMIT: Number of records to delete at a time> <hostname>
-```
-
-## Gateway
-To start the gateway server,
-```
-java -jar wildfirestorage-gateway/target/wildfirestorage-gateway-1.0-SNAPSHOT.jar --server.port=<PORT>  --spring.config.location=<PATH_TO_application.yml>
-```
-
-### Sample application.yml for gateway
-```
-spring:
-  cloud:
-    gateway:
-      routes:
-        - id: route_metadata
-          uri: http://localhost:8080
-          predicates:
-            - Path=/api/metadata*
-        - id: route_files
-          uri: http://localhost:100
-          predicates:
-            - Path=/api/file/*
-
 ```
