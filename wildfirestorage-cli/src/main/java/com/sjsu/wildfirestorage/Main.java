@@ -28,11 +28,16 @@ public class Main {
 
         @CommandLine.Command
         public void search(@CommandLine.Parameters(paramLabel = "query") String query, @CommandLine.Parameters(paramLabel = "hostname") String hostname,
-                           @CommandLine.Parameters(paramLabel = "<option>", defaultValue = "all", description = "Which information to print - 'all' or 'basic'") String option) throws InterruptedException, ExecutionException {
+                           @CommandLine.Parameters(paramLabel = "<option>", defaultValue = "all", description = "Which information to print - 'all' or 'basic'") String option,
+                           @CommandLine.Option(names="--limit", defaultValue = "10") int limit,
+                           @CommandLine.Option(names = "--offset", defaultValue = "0") int offset) throws InterruptedException, ExecutionException {
 
             MetadataRequest metadataRequest = new MetadataRequest();
             metadataRequest.searchQuery = query;
-            WebClient webClient = Client.getWebClient(hostname + "/api/metadata/search");
+            metadataRequest.limit = limit;
+            metadataRequest.offset = offset;
+            metadataRequest.excludeFields = new String[] {"globalAttributes", "variables"};
+            WebClient webClient = Client.getWebClient(hostname + "/api/metadata/search?excludeFields=globalAttributes,variables");
             var res = (ArrayList<Metadata>)(Client.post(webClient, metadataRequest, new ParameterizedTypeReference<ArrayList<Metadata>>(){}));
             System.out.println("SEARCH returned: " + res.size() + " results");
             if (option.equals("all")) {

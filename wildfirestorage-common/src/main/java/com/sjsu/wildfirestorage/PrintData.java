@@ -22,26 +22,27 @@ public class PrintData {
             System.out.println("Corners: Null");
 
         //Print All Attributes
-        System.out.println("\nAttributes");
-        for (WildfireAttribute a : metadata.globalAttributes)
-        {
-            System.out.print(a.attributeName + "\t" + a.type + "\t");
-            System.out.print(a.value);
-            System.out.print("\n");
+        if(metadata.globalAttributes != null) {
+            System.out.println("\nAttributes");
+            for (WildfireAttribute a : metadata.globalAttributes) {
+                System.out.print(a.attributeName + "\t" + a.type + "\t");
+                System.out.print(a.value);
+                System.out.print("\n");
+            }
         }
 
         //Print All Variables
-        System.out.println("\nVariables");
-        for (WildfireVariable v : metadata.variables)
-        {
-            System.out.println(v.variableName + "\t" + v.type + "\t" + v.minValue +"\t" + v.maxValue + "\t" + v.average);
-            System.out.println("Unique Elements (HashMap): " + v.elementMap);
-            for (WildfireAttribute a : v.attributeList)
-            {
-                System.out.print(a.attributeName + "\t" + a.type + "\t");
-                System.out.print(a.value);
+        if(metadata.variables != null) {
+            System.out.println("\nVariables");
+            for (WildfireVariable v : metadata.variables) {
+                System.out.println(v.variableName + "\t" + v.type + "\t" + v.minValue +"\t" + v.maxValue + "\t" + v.average);
+                System.out.println("Unique Elements (HashMap): " + v.elementMap);
+                for (WildfireAttribute a : v.attributeList) {
+                    System.out.print(a.attributeName + "\t" + a.type + "\t");
+                    System.out.print(a.value);
+                }
+                System.out.print("\n\n");
             }
-            System.out.print("\n\n");
         }
     }
 
@@ -56,26 +57,27 @@ public class PrintData {
             System.out.println("Corners: Null");
 
         //Attributes
-        System.out.println("\nAttributes:");
-        for (WildfireAttribute a : metadata.globalAttributes)
-        {
-            System.out.print(a.attributeName + "\t");
-            System.out.print(a.value);
-            System.out.print("\n");
+        if(metadata.globalAttributes != null) {
+            System.out.println("\nAttributes:");
+            for (WildfireAttribute a : metadata.globalAttributes) {
+                System.out.print(a.attributeName + "\t");
+                System.out.print(a.value);
+                System.out.print("\n");
+            }
         }
 
         //Variables
-        System.out.println("\nVariables:");
-        for (WildfireVariable v : metadata.variables)
-        {
-            System.out.print(v.variableName + "\t" + v.average + "\t" + v.elementMap);
-            for (WildfireAttribute a : v.attributeList)
-            {
-                if (a.attributeName.equals("units")) {
-                    System.out.print(a.value);
+        if(metadata.variables != null) {
+            System.out.println("\nVariables:");
+            for (WildfireVariable v : metadata.variables) {
+                System.out.print(v.variableName + "\t" + v.average + "\t" + v.elementMap);
+                for (WildfireAttribute a : v.attributeList) {
+                    if (a.attributeName.equals("units")) {
+                        System.out.print(a.value);
+                    }
                 }
+                System.out.print("\n");
             }
-            System.out.print("\n");
         }
     }
 

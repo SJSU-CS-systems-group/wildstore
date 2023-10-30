@@ -39,6 +39,12 @@ public class MetadataController {
         query.addCriteria(CriteriaBuilder.buildFromSQL(request.searchQuery));
         query.limit(request.limit);
         query.skip(request.offset);
+        if(request.includeFields != null) {
+            query.fields().include(request.includeFields);
+        }
+        if(request.excludeFields != null) {
+            query.fields().exclude(request.excludeFields);
+        }
         var res = mongoTemplate.find(query, Metadata.class);
         return res;
     }
