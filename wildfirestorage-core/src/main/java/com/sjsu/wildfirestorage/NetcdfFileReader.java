@@ -13,6 +13,7 @@ import ucar.nc2.Variable;
 import ucar.nc2.util.CancelTask;
 import ucar.unidata.io.RandomAccessFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.text.ParseException;
@@ -52,6 +53,10 @@ public class NetcdfFileReader {
         String fileNameStr = netcdfFilepath.substring(netcdfFilepath.lastIndexOf('/') + 1);
         metadata.fileName = Set.of(fileNameStr);
         metadata.filePath = Set.of(netcdfFilepath.substring(0, netcdfFilepath.lastIndexOf('/') + 1));
+
+        //File Size
+        File file = new File(netcdfFilepath);
+        metadata.fileSize = file.length();
 
         metadata.globalAttributes = readGlobalAttributes();
 
