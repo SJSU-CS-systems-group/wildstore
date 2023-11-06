@@ -518,7 +518,8 @@ public class NetcdfFileReader {
             temp.attributeList = new ArrayList<>();
             temp.varDimensionList = new ArrayList<>();
 
-            windSpeeds.add(temp);
+            if(windSpeedMin[i]!=Integer.MAX_VALUE && windSpeedMax[i]!=0 && !Float.isNaN(temp.average))
+                windSpeeds.add(temp);
         }
         return windSpeeds;
     }
