@@ -1,6 +1,7 @@
 package com.sjsu.wildfirestorage;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpHeaders;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
@@ -8,6 +9,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class Client {
@@ -32,6 +34,19 @@ public class Client {
     public static Object post(WebClient webClient, Object body, ParameterizedTypeReference parameterizedTypeReference) throws ExecutionException, InterruptedException {
 
         var response = webClient.post()
+                .body(Mono.just(body), Object.class)
+                .retrieve()
+                .bodyToMono(parameterizedTypeReference)
+                .retry(1)
+                .toFuture()
+                .get();
+        return response;
+    }
+
+    public static Object post(WebClient webClient, Object body, ParameterizedTypeReference parameterizedTypeReference, Consumer<HttpHeaders> headers) throws ExecutionException, InterruptedException {
+
+        var response = webClient.post()
+                .headers(headers)
                 .body(Mono.just(body), Object.class)
                 .retrieve()
                 .bodyToMono(parameterizedTypeReference)
