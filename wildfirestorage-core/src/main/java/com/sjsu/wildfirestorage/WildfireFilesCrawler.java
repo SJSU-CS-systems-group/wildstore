@@ -5,6 +5,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import picocli.CommandLine;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
@@ -12,6 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Properties;
 import java.util.concurrent.*;
 import java.util.stream.Stream;
 
@@ -33,7 +35,16 @@ public class WildfireFilesCrawler implements Runnable {
     @CommandLine.Option(names = "--maxReadSize", description = "Number of data elements to read per read call")
     int maxReadSize = 1000000000;
 
+    @CommandLine.Option(names = "--configFile") String configFile;
+
     public void run() {
+        Properties appProps = new Properties();
+        try {
+            appProps.load(new FileInputStream(configFile));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        String token = appProps.getProperty("token");
         Instant start = Instant.now();
         ConcurrentHashMap<String, String> status = new ConcurrentHashMap<>();
         ExecutorService executorService = Executors.newFixedThreadPool(parallelism);
@@ -48,7 +59,7 @@ public class WildfireFilesCrawler implements Runnable {
                 }
                 executorService.submit(()->{
                     try {
-                        crawl(file, webClient, status);
+                        crawl(file, webClient, status, token);
                     } finally {
                         semaphore.release();
                     }
@@ -86,7 +97,9 @@ public class WildfireFilesCrawler implements Runnable {
             if (hostname == null) {
                 System.out.println("No hostname specified. Skipping dataset update.");
             } else {
-                var res = Client.post(datasetWebClient, "", new ParameterizedTypeReference<Integer>(){});
+                var res = Client.post(datasetWebClient, "", new ParameterizedTypeReference<Integer>(){}, httpHeaders -> {
+                    httpHeaders.setBearerAuth(token);
+                });
                 System.out.println("RESULT: " + res);
             }
         }
@@ -100,7 +113,7 @@ public class WildfireFilesCrawler implements Runnable {
         System.exit(new CommandLine(new WildfireFilesCrawler()).execute(args));
     }
 
-    private void crawl(String file, WebClient webClient, ConcurrentHashMap<String,String> status){
+    private void crawl(String file, WebClient webClient, ConcurrentHashMap<String,String> status, String token){
         try {
             NetcdfFileReader fileReader = new NetcdfFileReader(file);
             var metadata = fileReader.processFile(maxReadSize);
@@ -125,7 +138,9 @@ public class WildfireFilesCrawler implements Runnable {
             if (hostname == null) {
                 System.out.println("No hostname specified. Skipping metadata update.");
             } else {
-                var res = Client.post(webClient, metadata, new ParameterizedTypeReference<Integer>(){});
+                var res = Client.post(webClient, metadata, new ParameterizedTypeReference<Integer>(){}, httpHeaders -> {
+                    httpHeaders.setBearerAuth(token);
+                });
                 System.out.println("FILE: "+file+" DIGEST: " + metadata.digestString+" RESULT: " + res);
             }
         } catch (WebClientRequestException ex) {
