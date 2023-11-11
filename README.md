@@ -28,12 +28,60 @@ mvn package
 2. Run the generated jar \
    If using database authentication:
 ```
-   java -jar wildfirestorage-spring/target/wildfirestorage-spring.jar --spring.data.mongodb.uri=mongodb://username:password@localhost:27017/wildfire?authSource=admin --server.port=<port_number>
+   java -jar wildfirestorage-spring/target/wildfirestorage-spring.jar --spring.data.mongodb.uri=mongodb://username:password@localhost:27017/wildfire?authSource=admin --server.port=<port_number> --custom.frontendUrl=<frontend_url> --custom.allowedCorsOrigins=<comma_separated_urls>
 ```
 Without authentication:
 ```
-   java -jar wildfirestorage-spring/target/wildfirestorage-spring.jar --spring.data.mongodb.uri=mongodb://localhost:27017/wildfire --server.port=<port_number>
+   java -jar wildfirestorage-spring/target/wildfirestorage-spring.jar --spring.data.mongodb.uri=mongodb://localhost:27017/wildfire --server.port=<port_number> --custom.frontendUrl=<frontend_url> --custom.allowedCorsOrigins=<comma_separated_urls>
 ```
+
+## To start the React dev server
+1. Make sure to pass the `--custom.frontendUrl` argument as the react dev server url when starting the spring server or specify it in the properties.yml.
+2. Make sure to pass the `--custom.allowedCorsOrigins` argument as a comma-separated list of origin URLs (`--custom.allowedCorsOrigins=http://localhost:3000`) to the spring server or specify it in the properties.yml.
+3. Create a .env file under `wildfirestorage-spring/app` with the following contents and the Google Maps API key.
+
+4. Run the following commands
+```
+cd ./wildfirestorage-spring/app
+npm install
+npm start
+```
+
+
+Sample .env file
+```
+REACT_APP_GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY'
+```
+
+Sample properties.yml:
+```
+spring:
+  data:
+    mongodb:
+      uri: <MONGODB_URI>
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            clientId: <CLIENT_ID>
+            clientSecret: <CLIENT_SECRET>
+          google:
+            clientId: <CLIENT_ID>
+            clientSecret: <CLIENT_SECRET>
+custom:
+  fileServer: http://localhost:1000
+  frontendUrl: http://localhost:3000
+  allowedCorsOrigins: http://localhost:3000,http://localhost:3001
+logging:
+  level:
+    org:
+      springframework:
+        security: TRACE
+```
+
+## To load the frontend and backend together
+To load the frontend and backend together on the same port, run `mvn package` and start the server. 
 
 ## Running the crawler
 ```
