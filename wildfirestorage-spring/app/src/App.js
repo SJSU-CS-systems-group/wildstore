@@ -6,33 +6,6 @@ import Workspace from './components/workspace/workspace';
 import { useEffect, useState } from 'react';
 
 function App() {
-  
-
-  const [records, setRecords] = useState([]);
-
-    const getData = async () => {
-        const response = await fetch("http://localhost:8080/api/metadata/search", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Accept": "text/html, application/json",
-            },
-            body: JSON.stringify({"searchQuery":"VAR.NorthWind.minValue > 0.0", "excludeFields": ["variables", "globalAttributes"]}),
-            credentials: "include",
-            redirect: "follow",
-        });
-        if(response.redirected) {
-          document.location = response.url;
-      }
-      console.log(response);
-      let d = await response.json();
-      console.log("data", d)
-      setRecords(d)
-    }
-
-    useEffect(() => {
-      getData();
-  }, [])
 
   return (
     <div className='flex flex-col h-screen absolute'>
@@ -45,7 +18,7 @@ function App() {
           <Workspace />
         </div>
         <div id="map" className='col-span-8'>
-          <MapContainer metadataRecords={records}/>
+          <MapContainer style={{"height": `calc(100vh - 4rem)`}}/>
         </div>
       </div>
     </div>

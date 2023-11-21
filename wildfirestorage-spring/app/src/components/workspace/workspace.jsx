@@ -2,10 +2,18 @@ import { GoSearch, GoFilter, GoCodescanCheckmark, GoX } from 'react-icons/go';
 import Filter from '../filter/filter';
 import SearchResult from '../search-result/searchResult';
 import { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { setMetadata } from '../../redux/metadataSlice';
+import { setOpaqueToken } from '../../redux/userSlice';
+import Modal from '../modal/modal';
 
 const Workspace = () => {
 
-    const [records, setRecords] = useState([]);
+    // const [records, setRecords] = useState([]);
+    const dispatch = useDispatch();
+    const metadataRecords = useSelector(state => state.metadataReducer.metadataRecords)
+    
+    const [showModal, setShowModal] = useState(false);
 
     const getData = async () => {
         const response = await fetch("http://localhost:8080/api/metadata/search", {
@@ -21,15 +29,34 @@ const Workspace = () => {
         if(response.redirected) {
             document.location = response.url;
         }
-        console.log(response);
         let d = await response.json();
+        dispatch(setMetadata(d));
         console.log("data", d)
-        setRecords(d)
+        // setRecords(d)
     }
 
     useEffect(() => {
         getData();
+        getToken();
     }, [])
+
+    const getToken = async () => {
+        const response = await fetch("http://localhost:8080/token", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "text/html, application/json",
+            },
+            credentials: "include",
+            redirect: "follow",
+        });
+        if(response.redirected) {
+            document.location = response.url;
+        }
+        let d = await response.text();
+        dispatch(setOpaqueToken(d.substring(6)));
+        console.log("tokennnn", d)
+    }
 
     return (
         <div className="divide-y divide-slate-200 h-full">
@@ -90,7 +117,7 @@ const Workspace = () => {
                 <div className="collapse-content">
                     <div className='flex flex-col gap-3'>
         <div className="flex flex-col gap-2">
-                        {records.map((metadatRecord, i) => <SearchResult metadataRecord={metadatRecord}/>)}
+                        {metadataRecords.map((metadataRecord, i) => <SearchResult key={metadataRecord.digestString} metadataRecord={metadataRecord} setShowModal={setShowModal}/>)}
                         
         </div>
                         <div className="self-center join">
@@ -103,6 +130,7 @@ const Workspace = () => {
                     </div>
                 </div>
             </div>
+            <Modal showModal={showModal} setShowModal={setShowModal}/>
             <div></div>
         </div>
     );
