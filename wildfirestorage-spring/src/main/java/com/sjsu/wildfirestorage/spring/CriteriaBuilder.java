@@ -141,7 +141,7 @@ public class CriteriaBuilder {
                         for(var coordinate : ((RowConstructor)item).getExprList().getExpressions()) {
                             pt.add((Double)getPrimitiveValue(coordinate));
                         }
-                        polygonPoints.add(new Point(pt.get(0), pt.get(1)));
+                        polygonPoints.add(new Point(pt.get(1), pt.get(0)));
                     }
                     polygonPoints.add(polygonPoints.get(0));
                     GeoJsonPolygon polygon = new GeoJsonPolygon(polygonPoints);
