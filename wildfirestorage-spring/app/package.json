@@ -17,14 +17,7 @@
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4"
   },
-  "proxy": {
-    "/api/file/.*": {
-      "target": "http://localhost:100"
-    },
-    "/.*": {
-      "target": "http://localhost:8080"
-    }
-  },
+  "proxy": "http://localhost:8080",
   "scripts": {
     "start": "react-scripts start",
     "build": "CI=false && react-scripts build",
