@@ -36,7 +36,10 @@ public class MetadataController {
     @PostMapping("/metadata/search")
     public List<Metadata> search(@RequestBody MetadataRequest request) throws JSQLParserException {
         Query query = new Query();
-        query.addCriteria(CriteriaBuilder.buildFromSQL(request.searchQuery));
+        Criteria criteria = CriteriaBuilder.buildFromSQL(request.searchQuery);
+        if(criteria != null) {
+            query.addCriteria(criteria);
+        }
         query.limit(request.limit);
         query.skip(request.offset);
         if(request.includeFields != null) {

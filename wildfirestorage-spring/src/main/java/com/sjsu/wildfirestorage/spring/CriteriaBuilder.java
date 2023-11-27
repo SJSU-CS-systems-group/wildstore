@@ -38,6 +38,9 @@ public class CriteriaBuilder {
      * @throws JSQLParserException
      */
     public static Criteria buildFromSQL(String query) throws JSQLParserException {
+        if(query.isEmpty()) {
+            return null;
+        }
         // Set SELECT clause for parsing
         query = SQL_PREFIX + query;
         PlainSelect select = (PlainSelect) ((Select) CCJSqlParserUtil.parse(query)).getSelectBody();
