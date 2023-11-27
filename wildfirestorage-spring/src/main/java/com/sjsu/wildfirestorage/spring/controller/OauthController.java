@@ -7,6 +7,12 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.oauth2.core.OAuth2AuthenticatedPrincipal;
+import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -44,13 +50,13 @@ public class OauthController {
     }
 
     @GetMapping("/token")
-    public ResponseEntity<String> token(Principal user) {
+    public ResponseEntity<String> token(OAuth2AuthenticationToken user) {
         String opaqueToken = getOpaqueToken(user);
         return new ResponseEntity<>("token=" + opaqueToken, HttpStatus.OK);
     }
 
-    public String getOpaqueToken(Principal user) {
-        String name = user.getName();
+    public String getOpaqueToken(OAuth2AuthenticationToken user) {
+        String name = user.getPrincipal().getAttribute("name");
         Query query = new Query(Criteria.where("name").is(name));
         var opaqueTokenMap = mongoTemplate.find(query, Map.class, USER_COLLECTION);
         String opaqueToken = null;
