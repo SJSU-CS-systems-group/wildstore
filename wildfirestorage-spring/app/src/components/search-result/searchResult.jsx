@@ -1,11 +1,11 @@
 import { GoPaperAirplane, GoDownload, GoLocation } from 'react-icons/go';
-import Modal from '../modal/modal';
 import { useDispatch } from 'react-redux';
 import { setSelectedRecord } from '../../redux/mapSlice';
-import { setModalMetadata } from '../../redux/metadataSlice';
+import { setModalData } from '../../redux/modalSlice';
 import { useSelector } from 'react-redux';
+import { setShowModal } from '../../redux/modalSlice';
 
-const SearchResult = ({ metadataRecord, setShowModal }) => {
+const SearchResult = ({ metadataRecord }) => {
 
     const dispatch = useDispatch();
 
@@ -28,14 +28,11 @@ const SearchResult = ({ metadataRecord, setShowModal }) => {
             document.location = response.url;
         }
         let d = await response.json();
-        console.log("^^^^^^^^^^^", d[0], metadataRecord.digestString)
-        dispatch(setModalMetadata(d[0]));
-        console.log("data", d)
-        // setRecords(d)
+        dispatch(setModalData({"data": JSON.stringify(d[0]), "header": d[0].filePath[0]}));
     }
 
     const fetchDetails = () => {
-        setShowModal(true);
+        dispatch(setShowModal(true));
         getData();
     }
 
@@ -59,11 +56,25 @@ const SearchResult = ({ metadataRecord, setShowModal }) => {
             a.click();    
             a.remove();  //afterwards we remove the element again  
         });
-        // const blob = await response.blob();
-        // console.log("blob", blob);
-        // var file = window.URL.createObjectURL(blob);
-        // window.location.assign(file);
-        // let d = await response.json();
+    }
+
+    const generateShareLink = async () => {
+        const response = await fetch("http://localhost:8080/api/share-link/create", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "text/html, application/json",
+            },
+            body: metadataRecord.digestString,
+            credentials: "include",
+            redirect: "follow",
+        });
+        if(response.redirected) {
+            document.location = response.url;
+        }
+        let d = await response.text();
+        dispatch(setModalData({"data": d, "header": "Share"}));
+        dispatch(setShowModal(true));
     }
 
     return (
@@ -80,7 +91,7 @@ const SearchResult = ({ metadataRecord, setShowModal }) => {
                         </button>
                     </div>
                     <div className='tooltip' data-tip="Send">
-                        <button className="btn btn-square bg-transparent border-none">
+                        <button className="btn btn-square bg-transparent border-none" onClick={generateShareLink}>
                             <GoPaperAirplane size={20} />
                         </button>
                     </div>
@@ -91,6 +102,7 @@ const SearchResult = ({ metadataRecord, setShowModal }) => {
                     </div>
                 </div>
             </div>
+            
         </div >
     );
 }

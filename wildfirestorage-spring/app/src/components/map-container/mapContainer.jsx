@@ -3,6 +3,7 @@ import { centroid, feature, featureCollection, bbox } from '@turf/turf';
 import { useSelector, useDispatch } from 'react-redux';
 import { setMetadata } from '../../redux/metadataSlice';
 import { setSelectedRecord } from '../../redux/mapSlice';
+import { setQuery } from '../../redux/filterSlice';
 
 const google = window.google;
 let map;
@@ -55,7 +56,6 @@ const MapContainer = () => {
   }
 
   const search = () => {
-    console.log(map.getBounds());
     let bounds = map.getBounds();
     let ne = bounds.getNorthEast();
     let sw = bounds.getSouthWest();
@@ -63,25 +63,7 @@ const MapContainer = () => {
     let query = `LOCATION IN ((${ne.lat()}, ${sw.lng()}), (${ne.lat()},${ne.lng()}), (${sw.lat()},${ne.lng()}), (${sw.lat()}, ${sw.lng()}))`;
     console.log("query", query)
 
-    const getData = async () => {
-      const response = await fetch("http://localhost:8080/api/metadata/search", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "text/html, application/json",
-        },
-        body: JSON.stringify({ "searchQuery": query, "excludeFields": ["variables", "globalAttributes"] }),
-        credentials: "include",
-        redirect: "follow",
-      });
-      if (response.redirected) {
-        document.location = response.url;
-      }
-      let d = await response.json();
-      dispatch(setMetadata(d));
-      console.log("location data", d)
-    }
-    getData();
+    dispatch(setQuery(query));
   }
 
   useEffect(() => {

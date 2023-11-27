@@ -52,6 +52,19 @@ public class MetadataController {
         return res;
     }
 
+    @PostMapping("/metadata/search/count")
+    public long searchCount(@RequestBody MetadataRequest request) throws JSQLParserException {
+        Query query = new Query();
+        Criteria criteria = CriteriaBuilder.buildFromSQL(request.searchQuery);
+        if(criteria != null) {
+            query.addCriteria(criteria);
+        }
+        if(request.excludeFields != null) {
+            query.fields().exclude(request.excludeFields);
+        }
+        return mongoTemplate.count(query, Metadata.class);
+    }
+
     @GetMapping("/metadata/{digestString}")
     public DBObject getMetadataByDigest(@PathVariable String digestString) {
         Query query = new Query(Criteria.where("digestString").is(digestString));
