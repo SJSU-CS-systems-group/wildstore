@@ -1,20 +1,26 @@
-import { useState } from "react";
+import { useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
+import { setShowModal } from "../../redux/modalSlice";
 
-const Modal = ({ metadataRecordId }) => {
+const Modal = () => {
 
-    const [showModal, setShowModal] = useState(false);
+    const data = useSelector(state => state.modalReducer.data);
+    const header = useSelector(state => state.modalReducer.header);
+    const showModal = useSelector(state => state.modalReducer.showModal);
+    const dispatch = useDispatch();
     
     return (
         <div>
-            <a class="link link-primary" onClick = {()=> document.getElementById('my_modal_3').showModal()}>Details</a>
-            <dialog id="my_modal_3" className={showModal? "modal" : "modal collapse"}>
-                <div className="modal-box">
+            <dialog id="my_modal_3" className={showModal? "modal modal-open": "modal"}>
+                <div className="modal-box w-11/12 max-w-5xl">
                     <form method="dialog">
                         {/* if there is a button in form, it will close the modal */}
-                        <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                        <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onClick={() => dispatch(setShowModal(false))}>✕</button>
                     </form>
-                    <h3 className="font-bold text-lg">Hello!</h3>
-                    <p className="py-4">Press ESC key or click on ✕ button to close</p>
+                    <h3 className="font-bold text-lg">{header}</h3>
+                    <p className="py-4">
+                        {data}
+                    </p>
                 </div>
             </dialog>
         </div>

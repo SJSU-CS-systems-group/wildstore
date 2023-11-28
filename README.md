@@ -73,6 +73,7 @@ custom:
   fileServer: http://localhost:1000
   frontendUrl: http://localhost:3000
   allowedCorsOrigins: http://localhost:3000,http://localhost:3001
+  expireAfterSeconds: 292000
 logging:
   level:
     org:

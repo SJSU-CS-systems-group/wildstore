@@ -36,7 +36,10 @@ public class MetadataController {
     @PostMapping("/metadata/search")
     public List<Metadata> search(@RequestBody MetadataRequest request) throws JSQLParserException {
         Query query = new Query();
-        query.addCriteria(CriteriaBuilder.buildFromSQL(request.searchQuery));
+        Criteria criteria = CriteriaBuilder.buildFromSQL(request.searchQuery);
+        if(criteria != null) {
+            query.addCriteria(criteria);
+        }
         query.limit(request.limit);
         query.skip(request.offset);
         if(request.includeFields != null) {
@@ -47,6 +50,19 @@ public class MetadataController {
         }
         var res = mongoTemplate.find(query, Metadata.class);
         return res;
+    }
+
+    @PostMapping("/metadata/search/count")
+    public long searchCount(@RequestBody MetadataRequest request) throws JSQLParserException {
+        Query query = new Query();
+        Criteria criteria = CriteriaBuilder.buildFromSQL(request.searchQuery);
+        if(criteria != null) {
+            query.addCriteria(criteria);
+        }
+        if(request.excludeFields != null) {
+            query.fields().exclude(request.excludeFields);
+        }
+        return mongoTemplate.count(query, Metadata.class);
     }
 
     @GetMapping("/metadata/{digestString}")

@@ -20,6 +20,7 @@ public class FilesController {
     @Value("${custom.metadataServer}")
     private String metadataServerUrl;
 
+    @CrossOrigin(origins = "http://localhost:3000")
     @GetMapping("/file/{digestString}")
     public void downloadFile(@PathVariable String digestString, HttpServletRequest request, HttpServletResponse response) {
         final String uri = metadataServerUrl + "/api/metadata/" + digestString;

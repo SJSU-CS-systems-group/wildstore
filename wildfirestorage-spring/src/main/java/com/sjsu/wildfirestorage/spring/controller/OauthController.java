@@ -1,17 +1,26 @@
 package com.sjsu.wildfirestorage.spring.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.oauth2.core.OAuth2AuthenticatedPrincipal;
+import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import java.security.Principal;
+import java.time.Instant;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
@@ -21,6 +30,9 @@ public class OauthController {
     @Autowired
     private MongoTemplate mongoTemplate;
     public final String USER_COLLECTION = "userData";
+
+    @Value("${custom.expireAfterSeconds:2592000/}")
+    private long expireAfterSeconds;
   
     @GetMapping("/")
     public String index () { return "index.html"; }
@@ -38,8 +50,13 @@ public class OauthController {
     }
 
     @GetMapping("/token")
-    public ResponseEntity<String> token(Principal user) {
-        String name = user.getName();
+    public ResponseEntity<String> token(OAuth2AuthenticationToken user) {
+        String opaqueToken = getOpaqueToken(user);
+        return new ResponseEntity<>("token=" + opaqueToken, HttpStatus.OK);
+    }
+
+    public String getOpaqueToken(OAuth2AuthenticationToken user) {
+        String name = user.getPrincipal().getAttribute("name");
         Query query = new Query(Criteria.where("name").is(name));
         var opaqueTokenMap = mongoTemplate.find(query, Map.class, USER_COLLECTION);
         String opaqueToken = null;
@@ -51,9 +68,13 @@ public class OauthController {
             byte[] randomBytes = new byte[32];
             random.nextBytes(randomBytes);
             opaqueToken = Base64.getUrlEncoder().encodeToString(randomBytes);
-            mongoTemplate.insert(Map.of("name", name, "token", opaqueToken), USER_COLLECTION);
+            Map<String, Object> map = new HashMap<>();
+            map.put("name", name);
+            map.put("token", opaqueToken);
+            map.put("expiry", Instant.now().plusSeconds(expireAfterSeconds));
+            mongoTemplate.insert(map, USER_COLLECTION);
         }
-        return new ResponseEntity<>("token=" + opaqueToken, HttpStatus.OK);
+        return opaqueToken;
     }
 }
 

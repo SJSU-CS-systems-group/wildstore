@@ -38,6 +38,9 @@ public class CriteriaBuilder {
      * @throws JSQLParserException
      */
     public static Criteria buildFromSQL(String query) throws JSQLParserException {
+        if(query.isEmpty()) {
+            return null;
+        }
         // Set SELECT clause for parsing
         query = SQL_PREFIX + query;
         PlainSelect select = (PlainSelect) ((Select) CCJSqlParserUtil.parse(query)).getSelectBody();
@@ -141,7 +144,7 @@ public class CriteriaBuilder {
                         for(var coordinate : ((RowConstructor)item).getExprList().getExpressions()) {
                             pt.add((Double)getPrimitiveValue(coordinate));
                         }
-                        polygonPoints.add(new Point(pt.get(0), pt.get(1)));
+                        polygonPoints.add(new Point(pt.get(1), pt.get(0)));
                     }
                     polygonPoints.add(polygonPoints.get(0));
                     GeoJsonPolygon polygon = new GeoJsonPolygon(polygonPoints);
