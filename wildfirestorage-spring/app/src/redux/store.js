@@ -4,6 +4,7 @@ import mapSlice from "./mapSlice";
 import userSlice from "./userSlice";
 import filterSlice from "./filterSlice";
 import modalSlice from "./modalSlice";
+import searchTermSlice from "./searchTermSlice";
 
 export const store = configureStore({
     reducer: {
@@ -12,5 +13,6 @@ export const store = configureStore({
         userReducer: userSlice,
         filterReducer: filterSlice,
         modalReducer: modalSlice,
+        searchTermReducer: searchTermSlice,
     },
 });
