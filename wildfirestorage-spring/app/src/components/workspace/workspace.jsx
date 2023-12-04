@@ -5,8 +5,9 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setMetadata } from '../../redux/metadataSlice';
 import { setOpaqueToken } from '../../redux/userSlice';
-import { setQueryCount } from '../../redux/filterSlice';
+import {addQuery, deleteQuery, setQueryCount} from '../../redux/filterSlice';
 import Modal from '../modal/modal';
+import {setSearchTerm} from "../../redux/searchTermSlice";
 
 const Workspace = () => {
 
@@ -15,17 +16,22 @@ const Workspace = () => {
     const query = useSelector(state => state.filterReducer.query)
     const limit = useSelector(state => state.filterReducer.limit)
     const offset = useSelector(state => state.filterReducer.offset)
+    const search = useSelector(state => state.searchTermReducer.searchTerm)
 
+    const [openSearchResults, setOpenSearchResults] = useState(true)
     const [showModal, setShowModal] = useState(false);
 
     const getData = async () => {
+
+        const builtQuery = (query.length !== 0) ? query.join(" AND ") : "VAR.NORTHWIND = -1.0";
+
         const response = await fetch("http://localhost:8080/api/metadata/search", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "text/html, application/json",
             },
-            body: JSON.stringify({ "searchQuery": query, "excludeFields": ["variables", "globalAttributes"] , "limit": limit, "offset": offset}),
+            body: JSON.stringify({ "searchQuery": builtQuery, "excludeFields": ["variables", "globalAttributes"] , "limit": limit, "offset": offset}),
             credentials: "include",
             redirect: "follow",
         });
@@ -37,13 +43,16 @@ const Workspace = () => {
     }
 
     const getQueryCount = async () => {
+
+        const builtQuery = (query.length !== 0) ? query.join(" AND ") : "VAR.NORTHWIND = -1.0";
+
         const response = await fetch("http://localhost:8080/api/metadata/search/count", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "text/html, application/json",
             },
-            body: JSON.stringify({ "searchQuery": query, "excludeFields": ["variables", "globalAttributes"] }),
+            body: JSON.stringify({ "searchQuery": builtQuery, "excludeFields": ["variables", "globalAttributes"] }),
             credentials: "include",
             redirect: "follow",
         });
@@ -87,40 +96,45 @@ const Workspace = () => {
         console.log("tokennnn", d)
     }
 
+    const handleDeleteFilter = (event) => {
+        const deleteID = event.target.parentNode.id
+        dispatch(deleteQuery(deleteID))
+    }
+    const handleSearch = (event) => {
+        const searchTerm = event.target.value;
+        if (event.key === 'Enter' && searchTerm !== "") {
+            dispatch(setSearchTerm(searchTerm)) //Set global state for search term
+            const searchQuery = `(fileName = '${searchTerm}' OR digestString = '${searchTerm}')`
+            dispatch(addQuery(searchQuery)) //Add to the filters
+
+            const searchBar = event.target; //Reset the search bar to empty
+            searchBar.value = ""
+        }
+    }
+    const handleOpenSearchResult = () => {
+        setOpenSearchResults(!openSearchResults)
+    }
+
     return (
         <div className="divide-y divide-slate-200 h-full">
             <div className='p-6'>
                 <div className='flex justify-center pb-4'>
-                    <div className='flex items-center text-gray-400 w-9/12 relative'>
+                    <div className='flex items-center text-gray-400 w-full relative'>
                         <GoSearch size={20} className='absolute ml-3 pointer-events-none' />
-                        <input type="text" placeholder="Search by file name" defaultValue={query} className="pr-3 pl-10 py-2 input input-bordered rounded-3xl w-full border-gray-100 shadow focus:outline-none text-black" />
+                        <input type="text" placeholder="Search by file name or digest"
+                               onKeyDown={handleSearch}
+                               className="text-black pr-3 pl-10 py-2 input input-bordered rounded-3xl w-full border-gray-100 shadow focus:outline-none"
+                        />
                     </div>
                 </div>
                 <div className='py-3 flex flex-wrap gap-1'>
-                    <div className="badge gap-2 cursor-pointer">
-                        <GoX size={14} />
-                        info
-                    </div>
-                    <div className="badge gap-2 cursor-pointer">
-                        <GoX size={14} />
-                        {"FMOIST > 10"}
-                    </div>
-                    <div className="badge gap-2 cursor-pointer">
-                        <GoX size={14} />
-                        {"NorthWestWind <= 60"}
-                    </div>
-                    <div className="badge gap-2 cursor-pointer">
-                        <GoX size={14} />
-                        info
-                    </div>
-                    <div className="badge gap-2 cursor-pointer">
-                        <GoX size={14} />
-                        info
-                    </div>
-                    <div className="badge gap-2 cursor-pointer">
-                        <GoX size={14} />
-                        info
-                    </div>
+                    {query &&
+                        query.map( (item, i) =>
+                            <div id={i} key={i} className="w-full h-full badge gap-2 cursor-pointer">
+                                <GoX size={14} className="w-3.5" onClick={handleDeleteFilter}/>
+                                <p className="w-full">{item}</p>
+                            </div>
+                        )}
                 </div>
             </div>
             <div className="collapse collapse-arrow rounded-none">
@@ -136,7 +150,7 @@ const Workspace = () => {
                 </div>
             </div>
             <div className="collapse collapse-arrow rounded-none">
-                <input type="checkbox" />
+                <input checked={openSearchResults} onChange={handleOpenSearchResult} type="checkbox" />
                 <div className="collapse-title text-xl font-medium">
                     <div className='flex gap-4 items-center'>
                         <GoCodescanCheckmark size={20} />

@@ -3,12 +3,11 @@ import SideBar from './components/sidebar/sidebar';
 import MapContainer from './components/map-container/mapContainer';
 import Navbar from './components/navbar/navbar';
 import Workspace from './components/workspace/workspace';
-import { useEffect, useState } from 'react';
 
 function App() {
 
   return (
-    <div className='flex flex-col h-screen absolute'>
+    <div className='flex flex-col w-screen h-screen absolute'>
       <Navbar />
       <div className='flex-1 grid grid-cols-[100px_repeat(12,_minmax(0,_1fr))]'>
         <div id="sidebar" className='basis-20 text-white bg-primary shadow-lg shadow-primary'>

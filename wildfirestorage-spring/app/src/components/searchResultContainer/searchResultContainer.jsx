@@ -25,7 +25,7 @@ const SearchResultContainer = ({ metadataRecords, setShowModal }) => {
             <div className="flex flex-wrap self-center join">
                 {
                     [...Array(pageCount)].map((x, i) => 
-                    <button className={currentPage === (i+1)? "join-item btn btn-active": "join-item btn"} onClick={handlePageClick} value={i+1}>{i+1}</button> )
+                    <button key={i} className={currentPage === (i+1)? "join-item btn btn-active": "join-item btn"} onClick={handlePageClick} value={i+1}>{i+1}</button> )
                 }
             </div>
         </div>

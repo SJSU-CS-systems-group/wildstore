@@ -3,7 +3,7 @@ import { centroid, feature, featureCollection, bbox } from '@turf/turf';
 import { useSelector, useDispatch } from 'react-redux';
 import { setMetadata } from '../../redux/metadataSlice';
 import { setSelectedRecord } from '../../redux/mapSlice';
-import { setQuery } from '../../redux/filterSlice';
+import { addQuery } from '../../redux/filterSlice';
 
 const google = window.google;
 let map;
@@ -63,7 +63,7 @@ const MapContainer = () => {
     let query = `LOCATION IN ((${ne.lat()}, ${sw.lng()}), (${ne.lat()},${ne.lng()}), (${sw.lat()},${ne.lng()}), (${sw.lat()}, ${sw.lng()}))`;
     console.log("query", query)
 
-    dispatch(setQuery(query));
+    dispatch(addQuery(query));
   }
 
   useEffect(() => {

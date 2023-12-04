@@ -1,7 +1,7 @@
-import { createSlice } from "@reduxjs/toolkit";
+import {createSlice} from "@reduxjs/toolkit";
 
 const initialState = {
-    query: "",
+    query: [],
     queryCount: 1,
     currentPage: 1,
     limit: 10,
@@ -12,8 +12,13 @@ export const filterSlice = createSlice({
     name: "filterSlice",
     initialState,
     reducers: {
-        setQuery: (state, action) => {
-            state.query = action.payload;
+        addQuery: (state, action) => {
+            let newQuery = [...state.query]
+            newQuery.push(action.payload)
+            state.query = newQuery;
+        },
+        deleteQuery: (state, action) => {
+            state.query.splice(action.payload, 1);
         },
         setQueryCount: (state, action) => {
             state.queryCount = action.payload;
@@ -31,5 +36,5 @@ export const filterSlice = createSlice({
     }
 });
 
-export const { setQuery, setQueryCount, setCurrentPage, setLimit, setOffset } = filterSlice.actions;
+export const { addQuery, deleteQuery, setQueryCount, setCurrentPage, setLimit, setOffset } = filterSlice.actions;
 export default filterSlice.reducer;
