@@ -5,7 +5,6 @@ import { setModalData } from '../../redux/modalSlice';
 import { useSelector } from 'react-redux';
 import { setShowModal } from '../../redux/modalSlice';
 import { useState } from 'react';
-import Autocomplete from '../autocomplete/autocomplete';
 
 const SearchResult = ({ metadataRecord }) => {
 
@@ -83,9 +82,6 @@ const SearchResult = ({ metadataRecord }) => {
         setShowShareModal(true);
     }
 
-    const [value, setValue] = useState("");
-  const emails = ["apoorva.mohite@sjsu.edu", "apps.mohite@gmail.com", "abc@xyz", "wildstore@wirc.sjsu.edu"];
-
     return (
         <div className="card bg-base-100 shadow-xl w-0 min-w-full hover:shadow-2xl">
             <div className="card-body">
@@ -120,7 +116,6 @@ const SearchResult = ({ metadataRecord }) => {
                         </form>
                         <h3 className="font-bold text-lg">Header</h3>
                         <p className="py-4">
-                        <Autocomplete value={value} onChange={setValue} items={emails} />
                             {shareModalData}
                         </p>
                     </div>
