@@ -14,7 +14,7 @@ const SearchResultContainer = ({ metadataRecords, setShowModal }) => {
     const pageCount = metadataRecords.length !== 0? Math.ceil(queryCount/ pageSize) : 1;
 
     const handlePageClick = (event) => {
-        dispatch(setCurrentPage(event.target.value));
+        dispatch(setCurrentPage(event.currentTarget.value));
     }
 
     const pageButtons = [];
@@ -25,19 +25,19 @@ const SearchResultContainer = ({ metadataRecords, setShowModal }) => {
             pageButtons.push(<button className={currentPage === i? "join-item btn btn-active": "join-item btn"} onClick={handlePageClick} value={i}>{i}</button> );
         }
         if(pageCount > 5) {
-            pageButtons.push(<button className="join-item btn" onClick={handlePageClick} value="6"><GoTriangleRight size={20}/></button> );
+            pageButtons.push(<button className="join-item btn" onClick={handlePageClick} value={6}><GoTriangleRight size={20}/></button> );
         }
     } else if (sectionNum === lastSection) {
-        pageButtons.push(<button className="join-item btn" onClick={handlePageClick} value="0"><GoTriangleLeft size={20}/></button> );
+        pageButtons.push(<button className="join-item btn" onClick={handlePageClick} value={0}><GoTriangleLeft size={20}/></button> );
         for(let i=(sectionNum*5 + 1); i<pageCount; i++) {
             pageButtons.push(<button className={currentPage === i? "join-item btn btn-active": "join-item btn"} onClick={handlePageClick} value={i}>{i}</button> );
         }
     } else {
-        pageButtons.push(<button className="join-item btn" onClick={handlePageClick} value="0"><GoTriangleLeft size={20}/></button> );
+        pageButtons.push(<button className="join-item btn" onClick={handlePageClick} value={0}><GoTriangleLeft size={20}/></button> );
         for(let i=(sectionNum*5 + 1); i<(sectionNum*5 + 6); i++) {
             pageButtons.push(<button className={currentPage === i? "join-item btn btn-active": "join-item btn"} onClick={handlePageClick} value={i}>{i}</button> );
         }
-        pageButtons.push(<button className="join-item btn" onClick={handlePageClick} value="6"><GoTriangleRight size={20}/></button> );
+        pageButtons.push(<button className="join-item btn" onClick={handlePageClick} value={6}><GoTriangleRight size={20}/></button> );
     }
     
 
