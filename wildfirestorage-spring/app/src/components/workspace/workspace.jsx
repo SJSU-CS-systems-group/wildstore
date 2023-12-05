@@ -22,10 +22,9 @@ const Workspace = () => {
     const [showModal, setShowModal] = useState(false);
 
     const getData = async () => {
+        const builtQuery = (query.length !== 0) ? query.join(" AND ") : "";
 
-        const builtQuery = (query.length !== 0) ? query.join(" AND ") : "VAR.NORTHWIND = -1.0";
-
-        const response = await fetch("http://localhost:8080/api/metadata/search", {
+        const response = await fetch("/api/metadata/search", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -43,10 +42,9 @@ const Workspace = () => {
     }
 
     const getQueryCount = async () => {
+        const builtQuery = (query.length !== 0) ? query.join(" AND ") : "";
 
-        const builtQuery = (query.length !== 0) ? query.join(" AND ") : "VAR.NORTHWIND = -1.0";
-
-        const response = await fetch("http://localhost:8080/api/metadata/search/count", {
+        const response = await fetch("/api/metadata/search/count", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -79,7 +77,7 @@ const Workspace = () => {
     }, [limit, offset])
 
     const getToken = async () => {
-        const response = await fetch("http://localhost:8080/token", {
+        const response = await fetch("/token", {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",

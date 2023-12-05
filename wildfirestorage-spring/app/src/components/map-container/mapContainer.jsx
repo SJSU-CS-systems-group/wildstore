@@ -1,9 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { centroid, feature, featureCollection, bbox } from '@turf/turf';
 import { useSelector, useDispatch } from 'react-redux';
-import { setMetadata } from '../../redux/metadataSlice';
-import { setSelectedRecord } from '../../redux/mapSlice';
 import { addQuery } from '../../redux/filterSlice';
+import { setCurrentPage } from '../../redux/filterSlice';
 
 const google = window.google;
 let map;
@@ -64,6 +63,7 @@ const MapContainer = () => {
     console.log("query", query)
 
     dispatch(addQuery(query));
+    dispatch(setCurrentPage(1));
   }
 
   useEffect(() => {
