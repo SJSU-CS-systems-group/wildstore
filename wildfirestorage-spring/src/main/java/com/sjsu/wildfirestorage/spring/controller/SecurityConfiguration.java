@@ -78,9 +78,10 @@ public class SecurityConfiguration {
     }
 
     public AuthenticationManager opaque() {
-        OpaqueTokenIntrospector introspectionClient = b -> {
-            if (UserInfo.tokenExist(b)) {
-                return new DefaultOAuth2AuthenticatedPrincipal("user", Map.of("sub", "user"), null);
+        OpaqueTokenIntrospector introspectionClient = token -> {
+            Map userInfo = UserInfo.getUser(token);
+            if (userInfo != null) {
+                return new DefaultOAuth2AuthenticatedPrincipal("user", Map.of("name", userInfo.get("name")), null);
             }
             else {
                 return null;

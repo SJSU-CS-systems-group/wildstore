@@ -24,7 +24,17 @@ export const filterSlice = createSlice({
             state.queryCount = action.payload;
         },
         setCurrentPage: (state, action) => {
-            state.currentPage = action.payload;
+            const newPage = parseInt(action.payload);
+            const currentPage = state.currentPage;
+            const currentSection = Math.floor(currentPage/5);
+
+            if(newPage === 0) {
+                state.currentPage = (currentSection - 1)*5 + 1;
+            } else if(newPage === 6) {
+                state.currentPage = (currentSection + 1)*5 + 1;
+            } else {
+                state.currentPage = newPage;
+            }
             state.offset = state.limit*(state.currentPage - 1)
         },
         setLimit: (state, action) => {

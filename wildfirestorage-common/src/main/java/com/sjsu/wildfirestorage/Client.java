@@ -34,7 +34,7 @@ public class Client {
     public static Object post(WebClient webClient, Object body, ParameterizedTypeReference parameterizedTypeReference) throws ExecutionException, InterruptedException {
 
         var response = webClient.post()
-                .body(Mono.just(body), Object.class)
+                .body(Mono.just(body), body.getClass())
                 .retrieve()
                 .bodyToMono(parameterizedTypeReference)
                 .retry(1)
@@ -47,7 +47,7 @@ public class Client {
 
         var response = webClient.post()
                 .headers(headers)
-                .body(Mono.just(body), Object.class)
+                .body(Mono.just(body), body.getClass())
                 .retrieve()
                 .bodyToMono(parameterizedTypeReference)
                 .retry(1)

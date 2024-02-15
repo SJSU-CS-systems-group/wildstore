@@ -4,8 +4,12 @@ import { setSelectedRecord } from '../../redux/mapSlice';
 import { setModalData } from '../../redux/modalSlice';
 import { useSelector } from 'react-redux';
 import { setShowModal } from '../../redux/modalSlice';
+import { useState } from 'react';
 
 const SearchResult = ({ metadataRecord }) => {
+
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [shareModalData, setShareModalData] = useState(null);
 
     const dispatch = useDispatch();
 
@@ -14,21 +18,21 @@ const SearchResult = ({ metadataRecord }) => {
     }
 
     const getData = async () => {
-        const response = await fetch("http://localhost:8080/api/metadata/search", {
+        const response = await fetch("/api/metadata/search", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "text/html, application/json",
             },
-            body: JSON.stringify({"searchQuery":`digestString = '${metadataRecord.digestString}'`}),
+            body: JSON.stringify({ "searchQuery": `digestString = '${metadataRecord.digestString}'` }),
             credentials: "include",
             redirect: "follow",
         });
-        if(response.redirected) {
+        if (response.redirected) {
             document.location = response.url;
         }
         let d = await response.json();
-        dispatch(setModalData({"data": JSON.stringify(d[0]), "header": d[0].filePath[0]}));
+        dispatch(setModalData({ "data": JSON.stringify(d[0]), "header": d[0].filePath[0] }));
     }
 
     const fetchDetails = () => {
@@ -39,27 +43,27 @@ const SearchResult = ({ metadataRecord }) => {
     const token = useSelector(state => state.userReducer.opaqueToken)
 
     const download = () => {
-        fetch("http://localhost:100/api/file/FqBypAUpvL6GlPcx", {
+        fetch("/api/file/FqBypAUpvL6GlPcx", {
             method: 'GET',
             headers: new Headers({
                 'Authorization': 'Bearer ' + token
             }),
         })
-        .then(function (response) { return response.blob();})
-        .then(function (blob) {
-            var url = window.URL.createObjectURL(blob);
-            console.log(url);
-            var a = document.createElement('a');
-            a.href = url;
-            a.download = metadataRecord.filePath[0];
-            document.body.appendChild(a); // we need to append the element to the dom -> otherwise it will not work in firefox
-            a.click();    
-            a.remove();  //afterwards we remove the element again  
-        });
+            .then(function (response) { return response.blob(); })
+            .then(function (blob) {
+                var url = window.URL.createObjectURL(blob);
+                console.log(url);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = metadataRecord.filePath[0];
+                document.body.appendChild(a); // we need to append the element to the dom -> otherwise it will not work in firefox
+                a.click();
+                a.remove();  //afterwards we remove the element again  
+            });
     }
 
     const generateShareLink = async () => {
-        const response = await fetch("http://localhost:8080/api/share-link/create", {
+        const response = await fetch("/api/share-link/create", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -69,12 +73,13 @@ const SearchResult = ({ metadataRecord }) => {
             credentials: "include",
             redirect: "follow",
         });
-        if(response.redirected) {
+        if (response.redirected) {
             document.location = response.url;
         }
         let d = await response.text();
-        dispatch(setModalData({"data": d, "header": "Share"}));
-        dispatch(setShowModal(true));
+        // dispatch(setModalData({ "data": d, "header": "Share" }));
+        setShareModalData(d);
+        setShowShareModal(true);
     }
 
     return (
@@ -83,7 +88,7 @@ const SearchResult = ({ metadataRecord }) => {
                 <h3 className="card-title text-lg hover:cursor-pointer">{metadataRecord.fileName[0]}</h3>
                 <p className="break-words">{metadataRecord.filePath[0]}</p>
                 <div className="card-actions justify-end items-center">
-                    <div><a className="link link-primary" onClick = {fetchDetails}>Details</a></div>
+                    <div><a className="link link-primary" onClick={fetchDetails}>Details</a></div>
                     <div className='grow'></div>
                     <div className='tooltip' data-tip="Locate on Map">
                         <button className="btn btn-square bg-transparent border-none" onClick={locateOnMap}>
@@ -102,7 +107,20 @@ const SearchResult = ({ metadataRecord }) => {
                     </div>
                 </div>
             </div>
-            
+            <div>
+                <dialog id="my_modal_3" className={showShareModal ? "modal modal-open" : "modal"}>
+                    <div className="modal-box w-11/12 max-w-5xl">
+                        <form method="dialog">
+                            {/* if there is a button in form, it will close the modal */}
+                            <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onClick={() => setShowShareModal(false)}>✕</button>
+                        </form>
+                        <h3 className="font-bold text-lg">Header</h3>
+                        <p className="py-4">
+                            {shareModalData}
+                        </p>
+                    </div>
+                </dialog>
+            </div>
         </div >
     );
 }
