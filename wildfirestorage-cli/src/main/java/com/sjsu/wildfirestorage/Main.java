@@ -27,6 +27,17 @@ public class Main {
         }
 
         @CommandLine.Command
+        public void share(@CommandLine.Option(description = "Absolute file name", names = "--file", required = true) String fileName,
+                          @CommandLine.Parameters(paramLabel = "hostname") String hostname,
+                          @CommandLine.Option(names = "--token") String token) throws InterruptedException, ExecutionException {
+            System.out.println("POST returned: " + Client.post(Client.getWebClient(hostname + "/api/share-link/create"),
+                    fileName.replace("\"", ""),
+                    new ParameterizedTypeReference<String>(){}, httpHeaders -> {
+                        httpHeaders.setBearerAuth(token);
+                    }));
+        }
+
+        @CommandLine.Command
         public void search(@CommandLine.Parameters(paramLabel = "query") String query, @CommandLine.Parameters(paramLabel = "hostname") String hostname,
                            @CommandLine.Parameters(paramLabel = "<option>", defaultValue = "all", description = "Which information to print - 'all' or 'basic'") String option,
                            @CommandLine.Option(names="--limit", defaultValue = "10") int limit,

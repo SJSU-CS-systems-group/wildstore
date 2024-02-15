@@ -2,6 +2,7 @@ package com.sjsu.wildfirestorage.spring.controller;
 
 import com.mongodb.DBObject;
 import com.sjsu.wildfirestorage.Download;
+import com.sjsu.wildfirestorage.Metadata;
 import com.sjsu.wildfirestorage.ShareLink;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -16,6 +17,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.core.DefaultOAuth2AuthenticatedPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,7 +25,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -42,12 +46,27 @@ public class ShareLinkController {
     @Autowired
     private MongoTemplate mongoTemplate;
     @PostMapping("/create")
-    public String create(@RequestBody String fileDigest) {
+    public String create(@RequestBody String filePathOrDigest) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Query query = new Query();
+        Criteria fp = Criteria.where("filePath").is(filePathOrDigest);
+        Criteria ds = Criteria.where("digestString").is(filePathOrDigest);
+        query.addCriteria(new Criteria().orOperator(fp, ds));
+        query.fields().exclude("variables", "globalAttributes");
+        List<Metadata> res = mongoTemplate.find(query, Metadata.class, METADATA_COLLECTION);
         ShareLink shareLink = new ShareLink();
-        shareLink.fileDigest = fileDigest;
-        shareLink.createdBy = (String)((DefaultOidcUser)(auth.getPrincipal())).getAttribute("name");
+        if(!res.isEmpty()) {
+            shareLink.fileDigest = res.get(0).digestString;
+        } else {
+            return "FILE_NOT_FOUND";
+        }
+        if(auth.getPrincipal() instanceof DefaultOAuth2AuthenticatedPrincipal) {
+            shareLink.createdBy = (String) ((DefaultOAuth2AuthenticatedPrincipal) (auth.getPrincipal())).getAttribute("name");
+        } else {
+            shareLink.createdBy = (String) ((DefaultOidcUser) (auth.getPrincipal())).getAttribute("name");
+        }
         shareLink.shareId = UUID.randomUUID().toString().replace("-", "");
+        shareLink.createdAt = LocalDateTime.now();
         mongoTemplate.insert(shareLink, "share-links");
         return fileServerUrl + "/api/share/" + shareLink.shareId;
     }

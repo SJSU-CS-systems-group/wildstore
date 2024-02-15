@@ -149,6 +149,11 @@ java -jar wildfirestorage-cli/target/wildfirestorage-cli-1.0-SNAPSHOT.jar search
  IN
 ```
 
+## Generate Share Link via CLI
+```
+java -jar wildfirestorage-cli/target/wildfirestorage-cli-1.0-SNAPSHOT.jar share --file="<absolute file name>" --token="<token> <hostname>"
+```
+
 ## Clean
 To clean up metadata documents of files that were deleted,
 ```

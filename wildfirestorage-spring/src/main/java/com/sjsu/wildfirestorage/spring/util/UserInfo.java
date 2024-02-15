@@ -27,4 +27,13 @@ public class UserInfo {
         }
         return false;
     }
+
+    public static Map getUser (String token) {
+        Query query = new Query(Criteria.where("token").is(token));
+        var opaqueTokenMap = mongoTemplate.find(query, Map.class, USER_COLLECTION);
+        if (!opaqueTokenMap.isEmpty()) {
+            return opaqueTokenMap.get(0);
+        }
+        return null;
+    }
 }
