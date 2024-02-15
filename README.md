@@ -138,7 +138,7 @@ java -jar wildfirestorage-cli/target/wildfirestorage-cli-1.0-SNAPSHOT.jar search
 ### Example 7
 Regex based matching with LIKE
 ```
-search "filePath LIKE '<regex string>'" <hostname> --offset=0 --limit=100 --token="<token>"
+search "<attr/var> LIKE '<regex string>'" <hostname> --offset=0 --limit=100 --token="<token>"
 ```
 
 ### Supported Query Operators
