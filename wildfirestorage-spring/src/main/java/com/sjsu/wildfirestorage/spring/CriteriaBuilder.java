@@ -79,6 +79,17 @@ public class CriteriaBuilder {
                     return Criteria.where(column.toString()).is(getPrimitiveValue(eq.getRightExpression()));
                 }
             }
+            case "LikeExpression" : {
+                LikeExpression like = (LikeExpression) ex;
+                Column column = (Column) like.getLeftExpression();
+                Criteria arrayCriteria = getArrayMatchCriteria(column);
+                if(arrayCriteria != null) {
+                    arrayCriteria.and(column.getColumnName()).regex((String)getPrimitiveValue(like.getRightExpression()));
+                    return getElemMatchCriteria(column, arrayCriteria);
+                } else {
+                    return Criteria.where(column.toString()).regex((String)getPrimitiveValue(like.getRightExpression()));
+                }
+            }
             case "NotEqualsTo" : {
                 NotEqualsTo neq = (NotEqualsTo) ex;
                 Column column = (Column) neq.getLeftExpression();

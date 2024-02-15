@@ -135,6 +135,12 @@ java -jar wildfirestorage-cli/target/wildfirestorage-cli-1.0-SNAPSHOT.jar search
 java -jar wildfirestorage-cli/target/wildfirestorage-cli-1.0-SNAPSHOT.jar search "LOCATION IN ((0.0,0.0), (0.0,10.0), (20.0,20.0)) AND ATTR.ISURBAN.value IN (1,2,3) AND (VAR.FMOIST.minValue >= 10 OR VAR.RH_FIRE.maxValue < 20.0) AND VAR.SouthEastWind.average > 10.0" http://localhost:8080
 ```
 
+### Example 7
+Regex based matching with LIKE
+```
+search "filePath LIKE '<regex string>'" <hostname> --offset=0 --limit=100 --token="<token>"
+```
+
 ### Supported Query Operators
 ```
  AND
@@ -151,7 +157,7 @@ java -jar wildfirestorage-cli/target/wildfirestorage-cli-1.0-SNAPSHOT.jar search
 
 ## Generate Share Link via CLI
 ```
-java -jar wildfirestorage-cli/target/wildfirestorage-cli-1.0-SNAPSHOT.jar share --file="<absolute file name>" --token="<token> <hostname>"
+java -jar wildfirestorage-cli/target/wildfirestorage-cli-1.0-SNAPSHOT.jar share --file="<absolute file name>" --token="<token>" <hostname>
 ```
 
 ## Clean
