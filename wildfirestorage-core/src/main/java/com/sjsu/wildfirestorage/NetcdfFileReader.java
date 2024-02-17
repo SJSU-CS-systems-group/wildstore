@@ -51,7 +51,7 @@ public class NetcdfFileReader {
         this.maxReadSize = maxReadSize;
         Metadata metadata = new Metadata();
         String fileNameStr = netcdfFilepath.substring(netcdfFilepath.lastIndexOf('/') + 1);
-        metadata.fileName = Set.of(fileNameStr);
+        metadata.fileName = Set.of(netcdfFilepath);
         metadata.filePath = Set.of(netcdfFilepath.substring(0, netcdfFilepath.lastIndexOf('/') + 1));
 
         //File Size
