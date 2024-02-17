@@ -1,14 +1,13 @@
 package com.sjsu.wildfirestorage.controller;
 
 import com.sjsu.wildfirestorage.Metadata;
-import com.sjsu.wildfirestorage.MetadataRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.*;
 import java.util.Map;
@@ -38,7 +37,7 @@ public class FilesController {
 
     private void downloadHelper(Metadata result, HttpServletRequest request, HttpServletResponse response) {
         try {
-            RandomAccessFile file = new RandomAccessFile((String)result.filePath.toArray()[0], "r");
+            RandomAccessFile file = new RandomAccessFile((String)result.fileName.toArray()[0], "r");
             long fileLength = file.length();
 
             String rangeHeader = request.getHeader("Range");
@@ -97,18 +96,22 @@ public class FilesController {
 
     @GetMapping("/share/{shareId}")
     public void downloadSharedFile(@PathVariable String shareId, HttpServletRequest request, HttpServletResponse response) {
-        final String verifyUri = metadataServerUrl + "/api/share-link/verify";
+        try {
+            final String verifyUri = metadataServerUrl + "/api/share-link/verify";
 
-        RestTemplate restTemplate = new RestTemplate();
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Authorization", request.getHeader("Authorization"));
-        HttpEntity<String> entity = new HttpEntity<>(shareId, headers);
-        Metadata result = restTemplate.postForObject(verifyUri, entity, Metadata.class);
-        if(result == null) {
-            return;
+            RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Authorization", request.getHeader("Authorization"));
+            HttpEntity<String> entity = new HttpEntity<>(shareId, headers);
+            Metadata result = restTemplate.postForObject(verifyUri, entity, Metadata.class);
+            if (result == null) {
+                return;
+            }
+            downloadHelper(result, request, response);
+
+            restTemplate.postForObject(metadataServerUrl + "/api/share-link/downloadhistory", entity, Integer.class);
+        } catch (HttpStatusCodeException ex) {
+            response.setStatus(ex.getStatusCode().value());
         }
-        downloadHelper(result, request, response);
-
-        restTemplate.postForObject(metadataServerUrl + "/api/share-link/downloadhistory", entity, Integer.class);
     }
 }
