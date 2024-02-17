@@ -49,26 +49,28 @@ public class ShareLinkController {
     public String create(@RequestBody String filePathOrDigest) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Query query = new Query();
-        Criteria fp = Criteria.where("filePath").is(filePathOrDigest);
+        Criteria fp = Criteria.where("fileName").is(filePathOrDigest);
         Criteria ds = Criteria.where("digestString").is(filePathOrDigest);
         query.addCriteria(new Criteria().orOperator(fp, ds));
         query.fields().exclude("variables", "globalAttributes");
         List<Metadata> res = mongoTemplate.find(query, Metadata.class, METADATA_COLLECTION);
-        ShareLink shareLink = new ShareLink();
         if(!res.isEmpty()) {
+            Query linkQuery = new Query(Criteria.where("fileDigest").is(res.get(0).digestString));
+            linkQuery.addCriteria(Criteria.where("createdBy").is(getCurrentUserName()));
+            List<ShareLink> existing = mongoTemplate.find(linkQuery, ShareLink.class, SHARE_LINKS_COLLECTION);
+            if(!existing.isEmpty()) {
+                return fileServerUrl + "/api/share/" + existing.get(0).shareId;
+            }
+            ShareLink shareLink = new ShareLink();
             shareLink.fileDigest = res.get(0).digestString;
+            shareLink.createdBy = getCurrentUserName();
+            shareLink.shareId = UUID.randomUUID().toString().replace("-", "");
+            shareLink.createdAt = LocalDateTime.now();
+            mongoTemplate.insert(shareLink, "share-links");
+            return fileServerUrl + "/api/share/" + shareLink.shareId;
         } else {
             return "FILE_NOT_FOUND";
         }
-        if(auth.getPrincipal() instanceof DefaultOAuth2AuthenticatedPrincipal) {
-            shareLink.createdBy = (String) ((DefaultOAuth2AuthenticatedPrincipal) (auth.getPrincipal())).getAttribute("name");
-        } else {
-            shareLink.createdBy = (String) ((DefaultOidcUser) (auth.getPrincipal())).getAttribute("name");
-        }
-        shareLink.shareId = UUID.randomUUID().toString().replace("-", "");
-        shareLink.createdAt = LocalDateTime.now();
-        mongoTemplate.insert(shareLink, "share-links");
-        return fileServerUrl + "/api/share/" + shareLink.shareId;
     }
 
     @PostMapping("/verify")
@@ -81,6 +83,7 @@ public class ShareLinkController {
         }
         logger.info("Verification success");
         Query query2 = new Query(Criteria.where("digestString").is(res.get(0).fileDigest));
+        query2.fields().exclude("variables", "globalAttributes");
         List<DBObject> res2 = mongoTemplate.find(query2, DBObject.class, METADATA_COLLECTION);
         logger.info((res.isEmpty() || res2 == null)? "Digest string not found":"Success, returning metadata");
         return (res.isEmpty() || res2 == null)? null : res2.get(0);
@@ -102,5 +105,14 @@ public class ShareLinkController {
             mongoTemplate.updateFirst(query, update, "share-links");
             logger.info("Add download history successful");
             return 0;
+    }
+
+    private String getCurrentUserName() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if(auth.getPrincipal() instanceof DefaultOAuth2AuthenticatedPrincipal) {
+            return (String) ((DefaultOAuth2AuthenticatedPrincipal) (auth.getPrincipal())).getAttribute("name");
+        } else {
+            return (String) ((DefaultOidcUser) (auth.getPrincipal())).getAttribute("name");
+        }
     }
 }
