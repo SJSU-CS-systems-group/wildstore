@@ -15,6 +15,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.oauth2.core.DefaultOAuth2AuthenticatedPrincipal;
 import org.springframework.security.oauth2.server.resource.authentication.OpaqueTokenAuthenticationProvider;
+import org.springframework.security.oauth2.server.resource.introspection.BadOpaqueTokenException;
 import org.springframework.security.oauth2.server.resource.introspection.OpaqueTokenIntrospector;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.RequestMatcher;
@@ -84,7 +85,7 @@ public class SecurityConfiguration {
                 return new DefaultOAuth2AuthenticatedPrincipal("user", Map.of("name", userInfo.get("name")), null);
             }
             else {
-                return null;
+                throw new BadOpaqueTokenException("Invalid token " + token);
             }
         };
         return new OpaqueTokenAuthenticationProvider(introspectionClient)::authenticate;
