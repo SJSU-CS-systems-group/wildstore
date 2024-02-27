@@ -8,6 +8,8 @@ import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -27,6 +29,7 @@ public class StatisticsController {
     public final String METADATA_COLLECTION = "metadata";
     public final String DATASET_COLLECTION = "dataset";
 
+    @PreAuthorize("hasRole('USER')")
     @GetMapping("/stats/metadataBasic")
     public HashMap<String, Object> metadataBasic (@RequestParam("collectionName") String collectionName) {
         HashMap <String, Object> res = new HashMap<>();
