@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+<script src="https://cdn.tailwindcss.com"></script>
+<body>
+<div class="flex place-content-center">
+    <div class="h-screen flex flex-col place-content-center w-9/12">
+        <h1 class="h-40 flex flex-col justify-center text-center text-5xl font-bold">Hello! What would you like to do?</h1>
+        <div class="h-40 flex justify-center">
+            <div class="flex items-center w-4/6">
+                <div class="grid h-20 w-40 flex-grow btn btn-outline rounded-box place-items-center"><a class="font-normal text-lg" href="/token">Generate Token</a></div>
+                <div class="divider divider-horizontal"></div>
+                <div class="grid h-20 w-40 flex-grow btn btn-outline rounded-box place-items-center"><a class="font-normal text-lg" href="http://localhost:3000">Search</a></div>
+            </div>
+        </div>
+        <div class="h-40 p-8 flex flex-col justify-center">
+            <button class="btn flex-none self-center"><a href="/logout">Logout</a></button>
+        </div>
+    </div>
+</div>
+</body>
+</html>
