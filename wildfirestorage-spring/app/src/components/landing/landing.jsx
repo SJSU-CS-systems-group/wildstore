@@ -1,11 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useDispatch } from 'react-redux';
-import { setOpaqueToken } from '../../redux/userSlice';
-import { useEffect } from 'react';
 
 const Landing = () => {
     const navigate = useNavigate();
-    const dispatch = useDispatch();
 
     const goToSearch = async () => {
         const response = await fetch("/api/oauth/checkAccess", {
@@ -25,28 +21,6 @@ const Landing = () => {
             navigate("/home");
         }
     }
-    
-    const getToken = async () => {
-        const response = await fetch("/api/oauth/token", {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "text/plain, application/json",
-            },
-            credentials: "include",
-            redirect: "follow",
-        });
-        if (response.redirected) {
-            document.location = response.url;
-        }
-        let d = await response.text();
-        dispatch(setOpaqueToken(d));
-        console.log("tokennnn", d)
-    }
-
-    useEffect(() => {
-        getToken();
-    }, [])
     
     return (
         <div className="flex place-content-center">
