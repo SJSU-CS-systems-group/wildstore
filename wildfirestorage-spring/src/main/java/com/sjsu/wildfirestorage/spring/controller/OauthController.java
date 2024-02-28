@@ -52,7 +52,13 @@ public class OauthController {
     @GetMapping("/token")
     public ResponseEntity<String> token(OAuth2AuthenticationToken user) {
         String opaqueToken = getOpaqueToken(user);
-        return new ResponseEntity<>("Your token is: " + opaqueToken, HttpStatus.OK);
+        return new ResponseEntity<>(opaqueToken, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('USER')")
+    @GetMapping("/checkAccess")
+    public ResponseEntity<Boolean> checkAccess() {
+        return new ResponseEntity<>(true, HttpStatus.OK);
     }
 
     public String getOpaqueToken(OAuth2AuthenticationToken user) {
