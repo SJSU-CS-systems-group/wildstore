@@ -1,10 +1,14 @@
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useDispatch } from 'react-redux';
+import { setOpaqueToken } from '../../redux/userSlice';
+import { useEffect } from 'react';
 
 const Landing = () => {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
 
     const goToSearch = async () => {
-        const response = await fetch("/checkAccess", {
+        const response = await fetch("/api/oauth/checkAccess", {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
@@ -22,13 +26,35 @@ const Landing = () => {
         }
     }
     
+    const getToken = async () => {
+        const response = await fetch("/api/oauth/token", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "text/plain, application/json",
+            },
+            credentials: "include",
+            redirect: "follow",
+        });
+        if (response.redirected) {
+            document.location = response.url;
+        }
+        let d = await response.text();
+        dispatch(setOpaqueToken(d));
+        console.log("tokennnn", d)
+    }
+
+    useEffect(() => {
+        getToken();
+    }, [])
+    
     return (
         <div className="flex place-content-center">
             <div className="h-screen flex flex-col place-content-center w-9/12">
                 <h1 className="h-40 flex flex-col justify-center text-center text-5xl font-bold">Hello! What would you like to do?</h1>
                 <div className="h-40 flex justify-center">
                     <div className="flex items-center w-4/6">
-                        <div className="grid h-20 w-40 flex-grow btn btn-outline rounded-box place-items-center"><a className="font-normal text-lg" href="/token">Generate Token</a></div>
+                        <div className="grid h-20 w-40 flex-grow btn btn-outline rounded-box place-items-center"><span className="font-normal text-lg"><Link to="/token">Generate Token</Link></span></div>
                         <div className="divider divider-horizontal"></div>
                         <div className="grid h-20 w-40 flex-grow btn btn-outline rounded-box place-items-center"><a className="font-normal text-lg" onClick={goToSearch}>Search</a></div>
                     </div>

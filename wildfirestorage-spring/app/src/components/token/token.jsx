@@ -1,35 +1,10 @@
-import { useDispatch, useSelector } from 'react-redux';
-import { setOpaqueToken } from '../../redux/userSlice';
-import { useEffect, useState } from 'react';
 import { GoCopy } from 'react-icons/go';
+import { useSelector } from 'react-redux';
 
 const Token = () => {
 
-    const dispatch = useDispatch();
-    const [token, setToken] = useState();
+    const token = useSelector(state => state.userReducer.opaqueToken)
 
-    const getToken = async () => {
-        const response = await fetch("/token", {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "text/plain, application/json",
-            },
-            credentials: "include",
-            redirect: "follow",
-        });
-        if (response.redirected) {
-            document.location = response.url;
-        }
-        let d = await response.text();
-        dispatch(setOpaqueToken(d));
-        setToken(d);
-        console.log("tokennnn", d)
-    }
-
-    useEffect(() => {
-        getToken();
-    }, [])
 
     const copyToClipboard = (event) => {
         navigator.clipboard.writeText(token);

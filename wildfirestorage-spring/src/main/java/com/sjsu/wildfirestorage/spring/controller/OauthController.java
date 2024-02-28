@@ -33,30 +33,30 @@ public class OauthController {
 
     @PreAuthorize("hasRole('GUEST')")
     @GetMapping("/")
-    public String index () { return "home.html"; }
+    public String index () { return "index.html"; }
 
     @PreAuthorize("hasRole('GUEST')")
-    @GetMapping("/user")
+    @GetMapping("/api/oauth/user")
     public ResponseEntity<String> user(OAuth2User user) {
         Map details = user.getAttributes();
         var name = details.get("login");
         return new ResponseEntity<>(name.toString(), HttpStatus.OK);
     }
 
-    @GetMapping("/userInfo")
+    @GetMapping("/api/oauth/userInfo")
     public ResponseEntity<String> info(Principal user) {
         return new ResponseEntity<>(user.toString(), HttpStatus.OK);
     }
 
     @PreAuthorize("hasRole('GUEST')")
-    @GetMapping("/token")
+    @GetMapping("/api/oauth/token")
     public ResponseEntity<String> token(OAuth2AuthenticationToken user) {
         String opaqueToken = getOpaqueToken(user);
         return new ResponseEntity<>(opaqueToken, HttpStatus.OK);
     }
 
     @PreAuthorize("hasRole('USER')")
-    @GetMapping("/checkAccess")
+    @GetMapping("/api/oauth/checkAccess")
     public ResponseEntity<Boolean> checkAccess() {
         return new ResponseEntity<>(true, HttpStatus.OK);
     }

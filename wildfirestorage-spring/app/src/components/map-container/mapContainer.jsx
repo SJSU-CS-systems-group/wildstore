@@ -77,10 +77,12 @@ const MapContainer = () => {
       map.data.remove(feature);
     })
     for (let record of metadataRecords) {
-      let geoJsonFeature = feature(record.location);
-      geoJsonFeature.properties = { "id": record.digestString }
-      map.data.addGeoJson(geoJsonFeature);
-      map.data.addGeoJson(centroid(record.location));
+      if(record.location) {
+        let geoJsonFeature = feature(record.location);
+        geoJsonFeature.properties = { "id": record.digestString }
+        map.data.addGeoJson(geoJsonFeature);
+        map.data.addGeoJson(centroid(record.location));
+      }
     }
   }
 
