@@ -1,26 +1,46 @@
 import './App.css';
-import SideBar from './components/sidebar/sidebar';
-import MapContainer from './components/map-container/mapContainer';
-import Navbar from './components/navbar/navbar';
-import Workspace from './components/workspace/workspace';
+import Home from './components/home/home';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Landing from './components/landing/landing';
+import Token from './components/token/token';
+import Forbidden from './components/forbidden/forbidden';
+import { useDispatch } from 'react-redux';
+import { setOpaqueToken } from './redux/userSlice';
+import { useEffect } from 'react';
 
 function App() {
+  const dispatch = useDispatch();
+  
+  const getToken = async () => {
+    const response = await fetch("/api/oauth/token", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "text/plain, application/json",
+      },
+      credentials: "include",
+      redirect: "follow",
+    });
+    if (response.redirected) {
+      document.location = response.url;
+    }
+    let d = await response.text();
+    dispatch(setOpaqueToken(d));
+    console.log("tokennnn", d)
+  }
+  useEffect(() => {
+    getToken();
+  }, [])
 
   return (
-    <div className='flex flex-col w-screen h-screen absolute'>
-      <Navbar />
-      <div className='flex-1 grid grid-cols-[100px_repeat(12,_minmax(0,_1fr))]'>
-        <div id="sidebar" className='basis-20 text-white bg-primary shadow-lg shadow-primary'>
-          <SideBar />
-        </div>
-        <div id="workspace" className='col-span-4 shadow-lg' style={{"height": `calc(100vh - 4rem)`, "overflowY": "scroll"}}>
-          <Workspace />
-        </div>
-        <div id="map" className='col-span-8'>
-          <MapContainer style={{"height": `calc(100vh - 4rem)`}}/>
-        </div>
-      </div>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/token" element={<Token />} />
+        <Route path="/forbidden" element={<Forbidden />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

@@ -4,7 +4,6 @@ import SearchResultContainer from '../searchResultContainer/searchResultContaine
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setMetadata } from '../../redux/metadataSlice';
-import { setOpaqueToken } from '../../redux/userSlice';
 import {addQuery, deleteQuery, setQueryCount} from '../../redux/filterSlice';
 import Modal from '../modal/modal';
 import {setSearchTerm} from "../../redux/searchTermSlice";
@@ -63,7 +62,6 @@ const Workspace = () => {
 
     useEffect(() => {
         getData();
-        getToken();
         getQueryCount();
     }, [])
 
@@ -76,23 +74,7 @@ const Workspace = () => {
         getData();
     }, [limit, offset])
 
-    const getToken = async () => {
-        const response = await fetch("/token", {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "text/html, application/json",
-            },
-            credentials: "include",
-            redirect: "follow",
-        });
-        if (response.redirected) {
-            document.location = response.url;
-        }
-        let d = await response.text();
-        dispatch(setOpaqueToken(d.substring(6)));
-        console.log("tokennnn", d)
-    }
+    
 
     const handleDeleteFilter = (event) => {
         const deleteID = event.target.parentNode.id

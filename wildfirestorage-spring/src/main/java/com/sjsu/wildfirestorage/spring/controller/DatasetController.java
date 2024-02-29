@@ -14,6 +14,8 @@ import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -33,6 +35,7 @@ public class DatasetController {
 
     private final Path datasetCreationLog = Paths.get("DatasetCreation.log");
 
+    @PreAuthorize("hasRole('USER')")
     @PostMapping("/dataset")
     public int upsertDataset() throws MongoWriteException {
         AggregationOptions options = AggregationOptions.builder().allowDiskUse(true).build();

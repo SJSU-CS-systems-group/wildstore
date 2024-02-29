@@ -12,6 +12,8 @@ import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
@@ -33,6 +35,7 @@ public class MetadataController {
      * @return a list of matching Metadata documents
      * @throws JSQLParserException
      */
+    @PreAuthorize("hasRole('USER')")
     @PostMapping("/metadata/search")
     public List<Metadata> search(@RequestBody MetadataRequest request) throws JSQLParserException {
         Query query = new Query();
@@ -52,8 +55,11 @@ public class MetadataController {
         return res;
     }
 
+    @PreAuthorize("hasRole('USER')")
     @PostMapping("/metadata/search/count")
     public long searchCount(@RequestBody MetadataRequest request) throws JSQLParserException {
+        SecurityContextHolder.getContext().getAuthentication().getAuthorities().forEach(ga -> System.out.println("^^^^^^^^^^^"+ga));
+        System.out.println();
         Query query = new Query();
         Criteria criteria = CriteriaBuilder.buildFromSQL(request.searchQuery);
         if(criteria != null) {
@@ -65,6 +71,7 @@ public class MetadataController {
         return mongoTemplate.count(query, Metadata.class);
     }
 
+    @PreAuthorize("hasRole('GUEST')")
     @GetMapping("/metadata/{digestString}")
     public DBObject getMetadataByDigest(@PathVariable String digestString) {
         Query query = new Query(Criteria.where("digestString").is(digestString));
@@ -77,6 +84,7 @@ public class MetadataController {
      * @param fileName the file whose metadata is to be retrieved
      * @return Metadata related to the filename
      */
+    @PreAuthorize("hasRole('USER')")
     @GetMapping("/metadata")
     public List<DBObject> getFileMetadata(@RequestParam("filename") String fileName) {
         Query query = new Query(Criteria.where("fileName").regex(".*"+fileName+".*"));
@@ -90,6 +98,7 @@ public class MetadataController {
      * @return 0 on success
      * @throws MongoWriteException
      */
+    @PreAuthorize("hasRole('USER')")
     @PostMapping("/metadata")
     public int upsertMetadata(@RequestBody Metadata metadata) throws MongoWriteException {
         // Convert string date to date type to allow querying on dates
@@ -123,6 +132,7 @@ public class MetadataController {
         return 0;
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/metadata/filepath")
     public List<String> getFilePaths(@RequestParam("limit") int limit, @RequestParam("offset") int offset) {
         Aggregation aggregation = Aggregation.newAggregation(
@@ -140,6 +150,7 @@ public class MetadataController {
         return files;
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/metadata/filepath")
     public int deleteMetadata(@RequestBody List<String> filePaths) {
         Query query = new Query(Criteria.where("filePath").in(filePaths));

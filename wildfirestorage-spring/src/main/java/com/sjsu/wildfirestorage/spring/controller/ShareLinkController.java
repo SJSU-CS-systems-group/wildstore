@@ -15,6 +15,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.DefaultOAuth2AuthenticatedPrincipal;
@@ -25,9 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -45,6 +44,8 @@ public class ShareLinkController {
 
     @Autowired
     private MongoTemplate mongoTemplate;
+
+    @PreAuthorize("hasRole('USER')")
     @PostMapping("/create")
     public String create(@RequestBody String filePathOrDigest) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -73,6 +74,7 @@ public class ShareLinkController {
         }
     }
 
+    @PreAuthorize("hasRole('GUEST')")
     @PostMapping("/verify")
     public DBObject verify(@RequestBody String shareId) {
         Query query = new Query(Criteria.where("shareId").is(shareId));
@@ -89,6 +91,7 @@ public class ShareLinkController {
         return (res.isEmpty() || res2 == null)? null : res2.get(0);
     }
 
+    @PreAuthorize("hasRole('GUEST')")
     @PostMapping("/downloadhistory")
     public Integer addDownloadHistory(@RequestBody String shareId, HttpServletRequest request, HttpServletResponse response) {
             Query query = new Query(Criteria.where("shareId").is(shareId));

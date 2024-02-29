@@ -7,12 +7,9 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.security.oauth2.core.OAuth2AccessToken;
-import org.springframework.security.oauth2.core.OAuth2AuthenticatedPrincipal;
-import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,31 +30,44 @@ public class OauthController {
 
     @Value("${custom.expireAfterSeconds:2592000/}")
     private long expireAfterSeconds;
-  
+
+    @PreAuthorize("hasRole('GUEST')")
     @GetMapping("/")
     public String index () { return "index.html"; }
 
-    @GetMapping("/user")
+    @PreAuthorize("hasRole('GUEST')")
+    @GetMapping("/api/oauth/user")
     public ResponseEntity<String> user(OAuth2User user) {
         Map details = user.getAttributes();
         var name = details.get("login");
         return new ResponseEntity<>(name.toString(), HttpStatus.OK);
     }
 
-    @GetMapping("/userInfo")
+    @GetMapping("/api/oauth/userInfo")
     public ResponseEntity<String> info(Principal user) {
         return new ResponseEntity<>(user.toString(), HttpStatus.OK);
     }
 
-    @GetMapping("/token")
+    @PreAuthorize("hasRole('GUEST')")
+    @GetMapping("/api/oauth/token")
     public ResponseEntity<String> token(OAuth2AuthenticationToken user) {
         String opaqueToken = getOpaqueToken(user);
-        return new ResponseEntity<>("token=" + opaqueToken, HttpStatus.OK);
+        return new ResponseEntity<>(opaqueToken, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('USER')")
+    @GetMapping("/api/oauth/checkAccess")
+    public ResponseEntity<Boolean> checkAccess() {
+        return new ResponseEntity<>(true, HttpStatus.OK);
     }
 
     public String getOpaqueToken(OAuth2AuthenticationToken user) {
         String name = user.getPrincipal().getAttribute("name");
-        Query query = new Query(Criteria.where("name").is(name));
+        String email = user.getPrincipal().getAttribute("email");
+        if(email == null) {
+            email = user.getPrincipal().getAttribute("login") + "@github";
+        }
+        Query query = new Query(Criteria.where("email").is(email));
         var opaqueTokenMap = mongoTemplate.find(query, Map.class, USER_COLLECTION);
         String opaqueToken = null;
         if(!opaqueTokenMap.isEmpty()) {
@@ -70,8 +80,10 @@ public class OauthController {
             opaqueToken = Base64.getUrlEncoder().encodeToString(randomBytes);
             Map<String, Object> map = new HashMap<>();
             map.put("name", name);
+            map.put("email", email);
             map.put("token", opaqueToken);
             map.put("expiry", Instant.now().plusSeconds(expireAfterSeconds));
+            map.put("role", "ROLE_GUEST");
             mongoTemplate.insert(map, USER_COLLECTION);
         }
         return opaqueToken;
