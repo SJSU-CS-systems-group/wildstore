@@ -13,6 +13,7 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.security.Principal;
 import java.time.Instant;
@@ -32,7 +33,8 @@ public class OauthController {
     private long expireAfterSeconds;
 
     @PreAuthorize("hasRole('GUEST')")
-    @GetMapping("/")
+    @RequestMapping(value = { "/", "/token", "/forbidden", "/home" })
+
     public String index () { return "index.html"; }
 
     @PreAuthorize("hasRole('GUEST')")

@@ -117,8 +117,9 @@ const Workspace = () => {
                         )}
                 </div>
             </div>
+            <div className="h-72"> 
             <div className="collapse collapse-arrow rounded-none">
-                <input type="checkbox" />
+                <input type="checkbox" defaultChecked />
                 <div className="collapse-title text-xl font-medium">
                     <div className='flex gap-4 items-center'>
                         <GoFilter size={20} />
@@ -128,6 +129,7 @@ const Workspace = () => {
                 <div className="collapse-content">
                     <Filter />
                 </div>
+            </div>
             </div>
             <div className="collapse collapse-arrow rounded-none">
                 <input checked={openSearchResults} onChange={handleOpenSearchResult} type="checkbox" />

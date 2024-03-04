@@ -11,10 +11,10 @@ const Home = () => {
                 <div id="sidebar" className='basis-20 text-white bg-primary shadow-lg shadow-primary'>
                     <SideBar />
                 </div>
-                <div id="workspace" className='col-span-4 shadow-lg' style={{ "height": `calc(100vh - 4rem)`, "overflowY": "scroll" }}>
+                <div id="workspace" className='col-span-5 shadow-lg' style={{ "height": `calc(100vh - 4rem)`, "overflowY": "scroll" }}>
                     <Workspace />
                 </div>
-                <div id="map" className='col-span-8'>
+                <div id="map" className='col-span-7'>
                     <MapContainer style={{ "height": `calc(100vh - 4rem)` }} />
                 </div>
             </div>
