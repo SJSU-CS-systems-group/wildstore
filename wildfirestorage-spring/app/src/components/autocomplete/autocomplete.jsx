@@ -24,7 +24,8 @@ const Autocomplete = ({ items, value, onChange }) => {
           tabIndex={0}
           style={{"width": "inherit"}}
         />
-        <div className="dropdown-content border border-base-200 top-14 overflow-scroll overflow-y-scroll h-40 flex-col rounded-md" style={{"position": "static"}}>
+        <div className="dropdown-content border border-base-200 top-14 overflow-scroll overflow-y-scroll h-40 flex-col rounded-md" 
+        style={{"position": "absolute", "z-index":"100000", "backgroundColor": "white", "margin-top":"-8px"}}>
           <ul
             className="menu menu-compact  last:border-b-0"
             // use ref to calculate the width of parent

@@ -5,6 +5,13 @@ import { useState, useEffect } from "react";
 
 const Predicate = ({items, toggle, addHandler, index}) => {
     const [value, setValue] = useState("");
+    const [fieldName, setFieldName] = useState("Field");
+    const [varName, setVarName] = useState("Name");
+    const [statsValue, setStatsValue] = useState("Stats")
+    const [operator, setOperator] = useState("Operator")
+    const [fieldValue, setFieldValue] = useState("");
+    const [warning, setWarning] = useState("");
+    const [nameList, setNameList] = useState([{ "value": "Select a Field First", "label": "Select a Field First" }]);
     const [filteredItems, setFilteredItems] = useState([]);
 
     useEffect(() => {

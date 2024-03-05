@@ -21,13 +21,6 @@ const Filter = () => {
         'yet_another_attribute'];
 
     const dispatch = useDispatch();
-    const [fieldName, setFieldName] = useState("Field");
-    const [varName, setVarName] = useState("Name");
-    const [statsValue, setStatsValue] = useState("Stats")
-    const [operator, setOperator] = useState("Operator")
-    const [fieldValue, setFieldValue] = useState("");
-    const [warning, setWarning] = useState("");
-    const [nameList, setNameList] = useState([{ "value": "Select a Field First", "label": "Select a Field First" }]);
     const [items, setItems] = useState(variableList);
 
     const [predicates, setPredicates] = useState([{}]);
@@ -43,12 +36,15 @@ const Filter = () => {
         }
     }
 
-    const addHandler = () => {
-
+    const addHandler = (predicateIndex) => {
+        console.log("just do something")
+        setPredicates([...predicates, {}])
     }
 
     return (
-        predicates.map((p, index) => <Predicate items={items} toggle={toggleType} addHandler={addHandler} key={index} index={index}/>)
+        <div className='flex flex-col gap-4'>
+            {predicates.map((p, index) => <Predicate items={items} toggle={toggleType} addHandler={addHandler} key={index} index={index}/>)}
+        </div>
     );
 
     // const handleFieldChange = (event) => {

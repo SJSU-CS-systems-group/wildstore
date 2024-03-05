@@ -126,7 +126,7 @@ const Workspace = () => {
                         Filters
                     </div>
                 </div>
-                <div className="collapse-content">
+                <div className="collapse-content h-72">
                     <Filter />
                 </div>
             </div>
