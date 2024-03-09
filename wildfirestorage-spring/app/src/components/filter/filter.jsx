@@ -7,6 +7,8 @@ import Predicate from '../predicate/predicate';
 
 const Filter = () => {
 
+    const dispatch = useDispatch();
+
     const variableList = ['AACD', 'ACGRDFLX', 'ACHFX', 'ACLHF', 'ACLWDNB', 'ACLWDNBC', 'ACLWDNT', 'ACLWDNTC', 'ACLWUPB', 'ACLWUPBC', 'ACLWUPT', 'ACLWUPTC', 'ACRUNOFF', 'ACSNOM', 'ACSNOW', 'ACSWDNB', 'ACSWDNBC', 'ACSWDNT', 'ACSWDNTC', 'ACSWUPB', 'ACSWUPBC', 'ACSWUPT', 'ACSWUPTC', 'AL', 'ALB', 'ALBBCK', 'ALBEDO', 'ALBEDO12M', 'ALBOLD', 'ALD2', 'ALDX', 'ALPHA_VPRM', 'ALT', 'AOD2D_OUT', 'AOD_OUT', 'APAR', 'AREA2D', 'ATOP2D_OUT', 'AVG_FUEL_FRAC', 'Ap', 'BATHYMETRY_FLAG', 'BBB', 'BC1', 'BC2', 'BENZENE', 'BGAP', 'BIOMT_PAR', 'Bp', 'C1F', 'C1H', 'C2F', 'C2H', 'C3F', 'C3H', 'C4F', 'C4H', 'CANFRA', 'CANHFX', 'CANICE', 'CANLIQ', 'CANQFX', 'CANWAT', 'CAN_TOP', 'CF1', 'CF2', 'CF3', 'CFN', 'CFN1', 'CH', 'CH4', 'CHB', 'CHB2', 'CHLEAF', 'CHSTAR', 'CHUC', 'CHV', 'CHV2', 'CLAT', 'CLAYFRAC', 'CLDFRA', 'CLDFRA2', 'CLONG', 'CM', 'CN2O5', 'CO', 'CON', 'COSALPHA', 'COSALPHA_U', 'COSALPHA_V', 'COSZEN', 'CPLMASK', 'CRES', 'CROPCAT', 'CTOPO', 'CTOPO2', 'CUF', 'CVF', 'DD', 'DMS_0', 'DN', 'DNW', 'DRYDEPVEL', 'DRY_DEP_LEN', 'DTAUX3D', 'DTAUY3D', 'DTS', 'DTSEPS', 'DUSFCG', 'DUST_1', 'DUST_2', 'DUST_3', 'DUST_4', 'DUST_5', 'DVSFCG', 'DX2D', 'DZDXF', 'DZDYF', 'DZS', 'E', 'EAH', 'EBIO_API', 'EBIO_ISO', 'ECAN', 'EDIR', 'EDMF_A', 'EDMF_ENT', 'EDMF_QC', 'EDMF_QT', 'EDMF_THL', 'EDMF_W', 'EDT_OUT', 'EL_MYJ', 'EL_MYNN', 'EL_PBL', 'EMISS', 'EMIT_PAR', 'EQUILd_FM', 'EQUILw_FM', 'EROD', 'ETAC', 'ETAE', 'ETH', 'ETHA', 'ETOH', 'ETRAN', 'EVAPPROD', 'EVB', 'EVC', 'EVG', 'EastWind', 'F', 'FACD', 'FASTCP', 'FCANHFX', 'FCANQFX', 'FCX', 'FGIP', 'FGRNHFX', 'FGRNQFX', 'FIRA', 'FIRE_AREA', 'FIRE_HFX', 'FLINEINT', 'FLINEINT2', 'FMCG2D', 'FMCGLH2D', 'FMC_COV', 'FMC_EQUI', 'FMC_G', 'FMC_GC', 'FMC_GC_B', 'FMC_TEND', 'FMEP', 'FMOIST_LASTTIME', 'FMOIST_NEXTTIME', 'FNDALBSI', 'FNDICEDEPTH', 'FNDSNOWH', 'FNDSNOWSI', 'FNDSOILW', 'FNDWI', 'FNM', 'FNP', 'FORM', 'FRC_URB2D', 'FSA', 'FUEL_FRAC', 'FUEL_FRAC_BURNT', 'FUEL_TIME', 'FVEG', 'FWET', 'FWH', 'FXLAT', 'FXLONG', 'FZ0', 'F_INT', 'F_LINEINT', 'F_LINEINT2', 'F_ROS', 'F_ROS0',
         'F_ROS11', 'F_ROS12', 'F_ROS13', 'F_ROS21', 'F_ROS23', 'F_ROS31', 'F_ROS32', 'F_ROS33', 'F_ROSX', 'F_ROSY', 'GAMN2O5', 'GCX', 'GDD', 'GHB', 'GHT', 'GHV', 'GLW', 'GOT_VAR_SSO', 'GPP', 'GRAIN', 'GRAUPELNC', 'GRDFLX', 'GREENFRAC', 'GRNHFX', 'GRNQFX', 'GSW', 'H2O', 'HAILNC', 'HFX', 'HFX_FDDA', 'HFX_FORCE', 'HFX_FORCE_TEND', 'HGT', 'HGT_M', 'HGT_SHAD', 'HGT_U', 'HGT_V', 'HH', 'HNO3', 'HONO', 'H_DIABATIC', 'ICN_DIAG', 'IJ-AVG-S__ACET', 'IJ-AVG-S__ALD2', 'IJ-AVG-S__ALK4', 'IJ-AVG-S__ASOA1', 'IJ-AVG-S__ASOA2', 'IJ-AVG-S__ASOA3', 'IJ-AVG-S__ASOAN', 'IJ-AVG-S__ASOG1', 'IJ-AVG-S__ASOG2', 'IJ-AVG-S__ASOG3', 'IJ-AVG-S__BCPI', 'IJ-AVG-S__BCPO', 'IJ-AVG-S__BENZ', 'IJ-AVG-S__Br', 'IJ-AVG-S__Br2', 'IJ-AVG-S__BrNO2', 'IJ-AVG-S__BrNO3', 'IJ-AVG-S__BrO', 'IJ-AVG-S__C2H6', 'IJ-AVG-S__C3H8', 'IJ-AVG-S__CH2Br2', 'IJ-AVG-S__CH2O', 'IJ-AVG-S__CH3Br', 'IJ-AVG-S__CHBr3', 'IJ-AVG-S__CO', 'IJ-AVG-S__DMS', 'IJ-AVG-S__DST1', 'IJ-AVG-S__DST2', 'IJ-AVG-S__DST3', 'IJ-AVG-S__DST4', 'IJ-AVG-S__GLYC', 'IJ-AVG-S__H2O2', 'IJ-AVG-S__HAC', 'IJ-AVG-S__HBr', 'IJ-AVG-S__HNO2', 'IJ-AVG-S__HNO3', 'IJ-AVG-S__HNO4', 'IJ-AVG-S__HOBr', 'IJ-AVG-S__IEPOX', 'IJ-AVG-S__ISOA1', 'IJ-AVG-S__ISOA2', 'IJ-AVG-S__ISOA3', 'IJ-AVG-S__ISOG1', 'IJ-AVG-S__ISOG2', 'IJ-AVG-S__ISOG3', 'IJ-AVG-S__ISOP', 'IJ-AVG-S__ISOPN', 'IJ-AVG-S__LIMO', 'IJ-AVG-S__MACR', 'IJ-AVG-S__MAP', 'IJ-AVG-S__MEK', 'IJ-AVG-S__MMN', 'IJ-AVG-S__MOBA', 'IJ-AVG-S__MP', 'IJ-AVG-S__MPN', 'IJ-AVG-S__MSA', 'IJ-AVG-S__MTPA', 'IJ-AVG-S__MTPO', 'IJ-AVG-S__MVK', 'IJ-AVG-S__N2O5', 'IJ-AVG-S__NAP', 'IJ-AVG-S__NH3', 'IJ-AVG-S__NH4', 'IJ-AVG-S__NIT', 'IJ-AVG-S__NITs', 'IJ-AVG-S__NO', 'IJ-AVG-S__NO2', 'IJ-AVG-S__NO3', 'IJ-AVG-S__O3', 'IJ-AVG-S__OPOA1', 'IJ-AVG-S__OPOA2', 'IJ-AVG-S__OPOG1', 'IJ-AVG-S__OPOG2', 'IJ-AVG-S__PAN', 'IJ-AVG-S__PMN', 'IJ-AVG-S__POA1', 'IJ-AVG-S__POA2', 'IJ-AVG-S__POG1', 'IJ-AVG-S__POG2', 'IJ-AVG-S__PPN', 'IJ-AVG-S__PROPNN', 'IJ-AVG-S__PRPE', 'IJ-AVG-S__R4N2', 'IJ-AVG-S__RCHO', 'IJ-AVG-S__RIP', 'IJ-AVG-S__SALA', 'IJ-AVG-S__SALC', 'IJ-AVG-S__SO2', 'IJ-AVG-S__SO4', 'IJ-AVG-S__SO4s', 'IJ-AVG-S__TOLU', 'IJ-AVG-S__TSOA0', 'IJ-AVG-S__TSOA1', 'IJ-AVG-S__TSOA2', 'IJ-AVG-S__TSOA3', 'IJ-AVG-S__TSOG0', 'IJ-AVG-S__TSOG1', 'IJ-AVG-S__TSOG2', 'IJ-AVG-S__TSOG3', 'IJ-AVG-S__XYLE', 'IMPERV', 'IOLE', 'IRB', 'IRC', 'IRG', 'ISCHAP', 'ISEEDARRAY_SPP_CONV', 'ISEEDARRAY_SPP_LSM', 'ISEEDARRAY_SPP_PBL', 'ISEEDARR_RAND_PERTURB', 'ISEEDARR_SKEBS', 'ISEEDARR_SPPT', 'ISLTYP', 'ISNOW', 'ISOP', 'ISPD', 'ITIMESTEP', 'IVGTYP', 'I_ACLWDNB', 'I_ACLWDNBC', 'I_ACLWDNT', 'I_ACLWDNTC', 'I_ACLWUPB', 'I_ACLWUPBC', 'I_ACLWUPT', 'I_ACLWUPTC', 'I_ACSWDNB', 'I_ACSWDNBC', 'I_ACSWDNT', 'I_ACSWDNTC', 'I_ACSWUPB', 'I_ACSWUPBC', 'I_ACSWUPT', 'I_ACSWUPTC', 'I_RAINC', 'I_RAINNC', 'KN2O5', 'KTOP_PLUME', 'LAI', 'LAI12M', 'LAI_VEGMASK', 'LAKEFLAG', 'LAKEMASK', 'LAKE_DEPTH', 'LAKE_DEPTH_FLAG', 'LAMBDA_VPRM', 'LANDMASK', 'LANDSEA', 'LANDUSEF', 'LAP_HGT', 'LAT', 'LAT_LL_D', 'LAT_LL_T', 'LAT_LL_U', 'LAT_LL_V',
         'LAT_LR_D', 'LAT_LR_T', 'LAT_LR_U', 'LAT_LR_V', 'LAT_UL_D', 'LAT_UL_T', 'LAT_UL_U', 'LAT_UL_V', 'LAT_UR_D', 'LAT_UR_T', 'LAT_UR_U', 'LAT_UR_V', 'LFMASS', 'LFM_Chamise_New', 'LFM_Chamise_Old', 'LFM_Manzanita_New', 'LFN', 'LH', 'LH_FORCE', 'LH_FORCE_TEND', 'LON', 'LON_LL_D', 'LON_LL_T', 'LON_LL_U', 'LON_LL_V', 'LON_LR_D', 'LON_LR_T', 'LON_LR_U', 'LON_LR_V', 'LON_UL_D', 'LON_UL_T', 'LON_UL_U', 'LON_UL_V', 'LON_UR_D', 'LON_UR_T', 'LON_UR_U', 'LON_UR_V', 'LU_INDEX', 'LWDNB', 'LWDNBC', 'LWDNT', 'LWDNTC', 'LWUPB', 'LWUPBC', 'LWUPT', 'LWUPTC', 'MAPFAC_M', 'MAPFAC_MX', 'MAPFAC_MY', 'MAPFAC_U', 'MAPFAC_UX', 'MAPFAC_UY', 'MAPFAC_V', 'MAPFAC_VX', 'MAPFAC_VY', 'MAXMF', 'MAX_MSFTX', 'MAX_MSFTY', 'MAX_MSTFX', 'MAX_MSTFY', 'MEOH', 'MF_VX_INV', 'MGLY', 'MM', 'MU', 'MUB', 'N2O', 'N2O5', 'NC_DIAG', 'NDVI', 'NDWI', 'NEE', 'NEST_POS', 'NFUEL_CAT', 'NH3', 'NH4', 'NO', 'NO2', 'NOAHRES', 'NOX', 'NPP', 'NR', 'NUPDRAFT', 'NVOL', 'NorthEastWind', 'NorthWestWind', 'NorthWind', 'O2_column_density', 'O3', 'O3_column_DU', 'O3_column_density', 'OA1', 'OA2', 'OA3', 'OA4', 'OC1', 'OC2', 'OL1', 'OL2', 'OL3', 'OL4', 'OLE', 'OLR', 'OPEN', 'P', 'P00', 'P10', 'P25', 'PAR', 'PB', 'PBLDEPTH__PBL-M', 'PBLH', 'PC', 'PCB', 'PEC', 'PGS', 'PH', 'PHB', 'PHISC', 'PHIWC', 'PHOTR201', 'PHOTR202', 'PHOTR203', 'PHOTR204', 'PM10', 'PM2_5_DRY', 'PMC', 'PMFINE', 'PMSL', 'PNO3', 'POC', 'POTEVP', 'PRATEC', 'PRECIP', 'PRECIPA', 'PREC_ACC_C', 'PREC_ACC_NC', 'PRES', 'PSFC', 'PSFC_OLD', 'PSN', 'PSO4', 'PV', 'P_HYD', 'P_STRAT', 'P_TOP', 'Q2', 'Q2B', 'Q2V', 'Q2_OLD', 'QCLOUD', 'QFX', 'QGRAUP', 'QICE', 'QIN', 'QKE', 'QNICE', 'QNRAIN', 'QRAIN', 'QRFS', 'QSLAT', 'QSNOW', 'QSNOWXY', 'QSPRINGS', 'QVAPOR', 'QV_BASE', 'QV_UPSTREAM_X', 'QV_UPSTREAM_X_TEND', 'QV_UPSTREAM_Y', 'QV_UPSTREAM_Y_TEND', 'RAD_VPRM', 'RAIN', 'RAINC', 'RAINCV', 'RAINCV_B', 'RAINNC', 'RAINNCV', 'RAINPROD', 'RAINSH', 'RAIN_OLD', 'RDN', 'RDNW', 'RDX', 'RDY', 'RECH', 'RESM', 'RESP_VPRM', 'RH', 'RHOSN', 'RHOSNF', 'RH_FIRE', 'ROS', 'ROUGH_COR', 'RQVFRTEN', 'RSSHA', 'RSSUN', 'RTHFRTEN', 'RTMASS', 'RUNSB', 'RUNSF', 'R_0', 'SAC', 'SAG',
@@ -20,126 +22,64 @@ const Filter = () => {
         'SF_SURFACE_MOSAIC', 'SF_SURFACE_PHYSICS', 'SF_URBAN_PHYSICS', 'SGFDDA_END_H', 'SGFDDA_INTERVAL_M', 'SHCU_PHYSICS', 'SIMULATION_INITIALIZATION_TYPE', 'SIMULATION_START_DATE', 'SKEBS_ON', 'SMOOTH_OPTION', 'SOUTH-NORTH_GRID_DIMENSION', 'SOUTH-NORTH_PATCH_END_STAG', 'SOUTH-NORTH_PATCH_END_UNSTAG', 'SOUTH-NORTH_PATCH_START_STAG', 'SOUTH-NORTH_PATCH_START_UNSTAG', 'SPEC_BDY_FINAL_MU', 'SST_UPDATE', 'STAND_LON', 'START_DATE', 'STIME', 'SURFACE_INPUT_SOURCE', 'SWINT_OPT', 'SWRAD_SCAT', 'StartDate', 'Start_Date', 'Start_Time', 'TITLE', 'TKE_ADV_OPT', 'TRACER_PBLMIX', 'TRUELAT1', 'TRUELAT2', 'TSTEP', 'Title', 'UPNAM', 'USE_MAXW_LEVEL', 'USE_Q_DIABATIC', 'USE_THETA_M', 'USE_TROP_LEVEL', 'VAR-LIST', 'VGLVLS', 'VGTOP', 'VGTYP', 'Version', 'WDATE', 'WEST-EAST_GRID_DIMENSION', 'WEST-EAST_PATCH_END_STAG', 'WEST-EAST_PATCH_END_UNSTAG', 'WEST-EAST_PATCH_START_STAG', 'WEST-EAST_PATCH_START_UNSTAG', 'WTIME', 'W_DAMPING', 'XCELL', 'XCENT', 'XORIG', 'YCELL', 'YCENT', 'YORIG', 'YSU_TOPDOWN_PBLMIX', '_NCProperties', 'att', 'att0', 'att1', 'att2', 'att3', 'att4', 'att5', 'attx', 'author', 'case', 'corner_lats', 'corner_lons', 'dx', 'dy', 'grid_id', 'gt', 'history', 'history_of_appended_files', 'host', 'i_parent_end', 'i_parent_start', 'initial_file', 'j_parent_end', 'j_parent_start', 'logname', 'longer_name', 'nco_openmp_thread_number', 'parent_grid_ratio', 'parent_id', 'plugh', 'proj4', 'revision_Id', 'source', 'sr_x', 'sr_y', 'time', 'title', 'topography_file', 'wkt', 'x0', 'y0',
         'yet_another_attribute'];
 
-    const dispatch = useDispatch();
+
+    let temp = { fieldName: 'VAR', varName: '', statsValue: 'stat', operator: 'op', fieldValue: '' }
+    const [components, setComponents] = useState([{ ...temp }]);
     const [items, setItems] = useState(variableList);
 
-    const [predicates, setPredicates] = useState([{}]);
+    const handleAddComponent = (index) => {
+        const newComponents = [...components];
+        newComponents.splice(index + 1, 0, { ...temp, input1: '' }); // Adding an object with multiple input fields
+        setComponents(newComponents);
+    };
 
-    const toggleType = (event) => {
-        console.log(event)
-        if (event.target.innerHTML === "VAR") {
-            event.target.innerHTML = "ATTR";
-            setItems(attributeList);
+    const handleChange = (index, field, value) => {
+        const updatedComponents = [...components];
+        updatedComponents[index] = { ...components[index], [field]: value };
+        setComponents(updatedComponents);
+    };
+
+    const handleToggle = (index, toggleVal) => {
+        handleChange(index, "fieldName", toggleVal === "VAR" ? "ATTR" : "VAR")
+        if (toggleVal === "VAR") {
+            setItems(attributeList)
         } else {
-            event.target.innerHTML = "VAR"
-            setItems(variableList);
+            setItems(variableList)
         }
     }
 
-    const addHandler = (predicateIndex) => {
-        console.log("just do something")
-        setPredicates([...predicates, {}])
+    const handleDeleteComponent = (index) => {
+        const updatedComponents = components.filter((_, i) => i !== index);
+        setComponents(updatedComponents);
+    };
+
+    const handleSearch = async () => {
+        console.log(components.map((item, index) => {
+            return `${item.fieldName}.${item.varName}.${item.statsValue} ${item.operator} ${item.fieldValue}`
+        }).join(" AND "));
+        let searchQuery = components.map((item, index) => {
+            return `${item.fieldName}.${item.varName}.${item.statsValue} ${item.operator} ${item.fieldValue}`
+        }).join(" AND ");
+        dispatch(addQuery(searchQuery))
     }
 
     return (
-        <div className='flex flex-col gap-4'>
-            {predicates.map((p, index) => <Predicate items={items} toggle={toggleType} addHandler={addHandler} key={index} index={index}/>)}
+        <div className="flex flex-col content-between flex-wrap">
+            <div className='flex flex-col gap-4'>
+                {components.map((component, index) => (
+                    <Predicate
+                        key={index}
+                        component={component}
+                        onChange={(field, value) => handleChange(index, field, value)}
+                        onAdd={() => handleAddComponent(index)}
+                        onDelete={() => handleDeleteComponent(index)}
+                        onToggle={(toggleVal) => handleToggle(index, toggleVal)}
+                        items={items}
+                    />
+                ))}
+            </div>
+            <button className="btn mt-4" onClick={handleSearch}>Search</button>
         </div>
     );
-
-    // const handleFieldChange = (event) => {
-    //     const selectField = event.target.value;
-    //     setFieldName(selectField);
-    //     setVarName("Name");
-    //     setStatsValue("Stats")
-    //     setOperator("Operator");
-    //     setFieldValue("");
-
-    //     if(selectField === "Variable")
-    //         setNameList(variableList)
-    //     else if(selectField === "Attribute")
-    //         setNameList(attributeList)
-    // };
-
-    // const handleAddField  = () => {
-
-    //     if (fieldName === "Field") {
-    //         setWarning('Please select a field (Variable or Attribute)')
-    //     }
-    //     else if (varName === "Name") {
-    //         setWarning('Please select a field or variable/attribute name')
-    //     }
-    //     else if (fieldName === "Variable" && statsValue ==="Stats")
-    //     {
-    //         setWarning('Please select a stat for the variable')
-    //     }
-    //     else if (operator === "Operator") {
-    //         setWarning('Please select an operator')
-    //     }
-    //     else if (!/^\d+.?\d*$/.test(fieldValue)) {
-    //         setWarning('Please enter only numbers for the field value.');
-    //     }
-    //     else {
-    //         setWarning('')
-    //         //Build Filter String
-    //         let filterString = ""
-    //         if(fieldName === "Variable") {
-    //             filterString = "VAR."+ varName.value + "." + statsValue +" " + operator + " " + fieldValue;
-    //         } else if (fieldName === "Attribute") {
-    //             filterString = "ATTR."+ varName.value + ".value " + operator + " " + fieldValue;
-    //         }
-    //         dispatch(addQuery(filterString))
-    //     }
-    // };
-
-    // return (
-    //     <div className='flex flex-col gap-4 items-center'>
-    //         <select onChange={handleFieldChange} className="select select-bordered select-sm w-full max-w-xs border-gray-100 shadow-md" value={fieldName}>
-    //             <option disabled>Field</option>
-    //             <option>Variable</option>
-    //             <option>Attribute</option>
-    //         </select>
-    //         <Select
-    //             placeholder={"Name"}
-    //             onChange={ (selectedValue) => {setVarName(selectedValue)}}
-    //             className="w-full max-w-xs border-gray-100 shadow-md"
-    //             options={nameList}
-    //             value={varName}
-    //         />
-
-    //         {fieldName === "Variable" &&
-    //             <select onChange={ (event) => {setStatsValue(event.target.value)}} className="select select-bordered select-sm w-full max-w-xs border-gray-100 shadow-md" value={statsValue}>
-    //                 <option disabled>Stats</option>
-    //                 <option>minValue</option>
-    //                 <option>maxValue</option>
-    //                 <option>average</option>
-    //             </select>
-    //         }
-
-    //         <select onChange={ (event) => {setOperator(event.target.value)}} className="select select-bordered select-sm w-full max-w-xs border-gray-100 shadow-md" value={operator}>
-    //             <option disabled>Operator</option>
-    //             <option>{"="}</option>
-    //             <option>{"<"}</option>
-    //             <option>{"<="}</option>
-    //             <option>{">"}</option>
-    //             <option>{">="}</option>
-    //         </select>
-
-    //         <input type="text" placeholder="Value" pattern="\d*.?\d*" value={fieldValue}
-    //                onChange={ (event) => {setFieldValue(event.target.value)}}
-    //                className="input input-bordered input-sm w-full max-w-xs border-gray-100 shadow-md"/>
-
-    //         {warning && <p className="text-center" style={{ color: 'red' }}>{warning}</p>}
-
-    //         <div className='self-center'>
-    //             <button className="btn btn-sm"
-    //                 onClick={handleAddField}>
-    //                 <GoPlus size={16} />
-    //                 Add Filter
-    //             </button>
-    //         </div>
-    //     </div>
-    // );
 }
-
 export default Filter;

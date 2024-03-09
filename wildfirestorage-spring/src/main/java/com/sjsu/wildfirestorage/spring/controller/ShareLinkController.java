@@ -4,6 +4,7 @@ import com.mongodb.DBObject;
 import com.sjsu.wildfirestorage.Download;
 import com.sjsu.wildfirestorage.Metadata;
 import com.sjsu.wildfirestorage.ShareLink;
+import com.sjsu.wildfirestorage.spring.util.UserInfo;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -18,12 +19,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.DefaultOAuth2AuthenticatedPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -74,6 +74,39 @@ public class ShareLinkController {
         }
     }
 
+    @PreAuthorize("hasRole('USER')")
+    @GetMapping("/")
+    public List<DBObject> getShareLinkList(OAuth2AuthenticationToken oAuth2AuthenticationToken,
+                                           @RequestParam(defaultValue = "100") int limit, @RequestParam(defaultValue = "0") int offset) {
+        String email = UserInfo.getUserId(oAuth2AuthenticationToken);
+        Query query = new Query(Criteria.where("createdBy").is(getCurrentUserName()));
+        query.limit(limit);
+        query.skip(offset);
+        List<DBObject> res = mongoTemplate.find(query, DBObject.class, "share-links");
+        return res;
+    }
+
+    @PreAuthorize("hasRole('USER')")
+    @GetMapping("/count")
+    public long getShareLinkCount(OAuth2AuthenticationToken oAuth2AuthenticationToken) {
+        String email = UserInfo.getUserId(oAuth2AuthenticationToken);
+        Query query = new Query(Criteria.where("createdBy").is(getCurrentUserName()));
+        return mongoTemplate.count(query,"share-links");
+    }
+
+    @PreAuthorize("hasRole('USER')")
+    @DeleteMapping("/{shareId}")
+    public boolean deleteShareLink(@PathVariable String shareId) {
+        try {
+            Query query = new Query(Criteria.where("shareId").is(shareId));
+            mongoTemplate.remove(query, DBObject.class, "share-links");
+            return true;
+        } catch(Exception ex) {
+            System.out.println(ex.getMessage());
+            return false;
+        }
+    }
+
     @PreAuthorize("hasRole('GUEST')")
     @PostMapping("/verify")
     public DBObject verify(@RequestBody String shareId) {
@@ -112,8 +145,8 @@ public class ShareLinkController {
 
     private String getCurrentUserName() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if(auth.getPrincipal() instanceof DefaultOAuth2AuthenticatedPrincipal) {
-            return (String) ((DefaultOAuth2AuthenticatedPrincipal) (auth.getPrincipal())).getAttribute("name");
+        if(auth.getPrincipal() instanceof DefaultOAuth2User) {
+            return (String) ((DefaultOAuth2User) (auth.getPrincipal())).getAttribute("name");
         } else {
             return (String) ((DefaultOidcUser) (auth.getPrincipal())).getAttribute("name");
         }

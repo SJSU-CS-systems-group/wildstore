@@ -1,10 +1,12 @@
 package com.sjsu.wildfirestorage.spring.controller;
 
+import com.sjsu.wildfirestorage.spring.util.UserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
@@ -57,6 +59,21 @@ public class OauthController {
         return new ResponseEntity<>(opaqueToken, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasRole('GUEST')")
+    @GetMapping("/api/oauth/token/regenerate")
+    public ResponseEntity<String> tokenRegenerate(OAuth2AuthenticationToken user) {
+        String email = user.getPrincipal().getAttribute("email");
+        if(email == null) {
+            email = user.getPrincipal().getAttribute("login") + "@github";
+        }
+        Query query = new Query(Criteria.where("email").is(email));
+        String opaqueToken = generateToken();
+        Update update = new Update().set("token", opaqueToken);
+        mongoTemplate.updateFirst(query, update, "userData");
+
+        return new ResponseEntity<>(opaqueToken, HttpStatus.OK);
+    }
+
     @PreAuthorize("hasRole('USER')")
     @GetMapping("/api/oauth/checkAccess")
     public ResponseEntity<Boolean> checkAccess() {
@@ -65,10 +82,7 @@ public class OauthController {
 
     public String getOpaqueToken(OAuth2AuthenticationToken user) {
         String name = user.getPrincipal().getAttribute("name");
-        String email = user.getPrincipal().getAttribute("email");
-        if(email == null) {
-            email = user.getPrincipal().getAttribute("login") + "@github";
-        }
+        String email = UserInfo.getUserId(user);
         Query query = new Query(Criteria.where("email").is(email));
         var opaqueTokenMap = mongoTemplate.find(query, Map.class, USER_COLLECTION);
         String opaqueToken = null;
@@ -76,10 +90,7 @@ public class OauthController {
             opaqueToken = (String) opaqueTokenMap.get(0).get("token");
         }
         else {
-            Random random = ThreadLocalRandom.current();
-            byte[] randomBytes = new byte[32];
-            random.nextBytes(randomBytes);
-            opaqueToken = Base64.getUrlEncoder().encodeToString(randomBytes);
+            opaqueToken = generateToken();
             Map<String, Object> map = new HashMap<>();
             map.put("name", name);
             map.put("email", email);
@@ -88,6 +99,14 @@ public class OauthController {
             map.put("role", "ROLE_GUEST");
             mongoTemplate.insert(map, USER_COLLECTION);
         }
+        return opaqueToken;
+    }
+
+    private String generateToken() {
+        Random random = ThreadLocalRandom.current();
+        byte[] randomBytes = new byte[32];
+        random.nextBytes(randomBytes);
+        String opaqueToken = Base64.getUrlEncoder().encodeToString(randomBytes);
         return opaqueToken;
     }
 }

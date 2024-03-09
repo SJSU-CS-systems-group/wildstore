@@ -15,10 +15,10 @@ const Landing = () => {
         });
         if (response.redirected) {
             document.location = response.url;
-        } else if (response.status === 403) {
-            navigate("/forbidden");
-        } else {
+        } else if (response.status === 200) {
             navigate("/home");
+        } else {
+            navigate("/forbidden");
         }
     }
     
