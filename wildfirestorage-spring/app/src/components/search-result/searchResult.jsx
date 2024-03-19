@@ -5,11 +5,13 @@ import { setModalData } from '../../redux/modalSlice';
 import { useSelector } from 'react-redux';
 import { setShowModal } from '../../redux/modalSlice';
 import { useState } from 'react';
+import ShareModal from '../shareModal/shareModal';
 
 const SearchResult = ({ metadataRecord }) => {
 
     const [showShareModal, setShowShareModal] = useState(false);
     const [shareModalData, setShareModalData] = useState(null);
+    const [generatedLink, setGeneratedLink] = useState("");
 
     const dispatch = useDispatch();
 
@@ -62,14 +64,17 @@ const SearchResult = ({ metadataRecord }) => {
             });
     }
 
-    const generateShareLink = async () => {
+    const generateShareLink = async (emailAddresses) => {
         const response = await fetch("/api/share-link/create", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "text/html, application/json",
             },
-            body: metadataRecord.digestString,
+            body: JSON.stringify({
+                "fileDigest": metadataRecord.digestString,
+                emailAddresses
+            }),
             credentials: "include",
             redirect: "follow",
         });
@@ -77,9 +82,7 @@ const SearchResult = ({ metadataRecord }) => {
             document.location = response.url;
         }
         let d = await response.text();
-        // dispatch(setModalData({ "data": d, "header": "Share" }));
-        setShareModalData(d);
-        setShowShareModal(true);
+        setGeneratedLink(d);
     }
 
     return (
@@ -96,7 +99,7 @@ const SearchResult = ({ metadataRecord }) => {
                         </button>
                     </div>
                     <div className='tooltip' data-tip="Send">
-                        <button className="btn btn-square bg-transparent border-none" onClick={generateShareLink}>
+                        <button className="btn btn-square bg-transparent border-none" onClick={() => {setGeneratedLink(""); setShowShareModal(true)}}>
                             <GoPaperAirplane size={20} />
                         </button>
                     </div>
@@ -108,18 +111,7 @@ const SearchResult = ({ metadataRecord }) => {
                 </div>
             </div>
             <div>
-                <dialog id="my_modal_3" className={showShareModal ? "modal modal-open" : "modal"}>
-                    <div className="modal-box w-11/12 max-w-5xl">
-                        <form method="dialog">
-                            {/* if there is a button in form, it will close the modal */}
-                            <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onClick={() => setShowShareModal(false)}>✕</button>
-                        </form>
-                        <h3 className="font-bold text-lg">Header</h3>
-                        <p className="py-4">
-                            {shareModalData}
-                        </p>
-                    </div>
-                </dialog>
+                <ShareModal digestString={""} showModal={showShareModal} closeModal={()=>{setShowShareModal(false)}} generateShareLink={generateShareLink} generatedLink={generatedLink}/>
             </div>
         </div >
     );

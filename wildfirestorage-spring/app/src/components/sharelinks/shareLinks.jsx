@@ -149,6 +149,7 @@ const ShareLinks = () => {
                             <th className="px-4 py-2">Share Id</th>
                             <th className="px-4 py-2">Created At</th>
                             <th className="px-4 py-2">File Digest</th>
+                            <th className="px-4 py-2">Expiry</th>
                             <th className="px-4 py-2">Downloads</th>
                             <th className="px-4 py-2">Actions</th>
                         </tr>
@@ -159,6 +160,7 @@ const ShareLinks = () => {
                                 <td className="border px-4 py-2">{link.shareId}</td>
                                 <td className="border px-4 py-2">{link.createdAt}</td>
                                 <td className="border px-4 py-2">{link.fileDigest}</td>
+                                <td className="border px-4 py-2">{link.expiry? (new Date(link.expiry)).toString() : ""}</td>
                                 <td className="border px-4 py-2">{link.downloads?.length}</td>
                                 <td className="border px-4 py-2">
                                     <button onClick={() => {

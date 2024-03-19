@@ -5,6 +5,7 @@ import com.sjsu.wildfirestorage.Download;
 import com.sjsu.wildfirestorage.Metadata;
 import com.sjsu.wildfirestorage.ShareLink;
 import com.sjsu.wildfirestorage.spring.util.UserInfo;
+import com.sjsu.wildfirestorage.spring.util.WildcardToRegex;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -26,8 +27,7 @@ import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/share-link")
@@ -47,32 +47,68 @@ public class ShareLinkController {
 
     @PreAuthorize("hasRole('USER')")
     @PostMapping("/create")
-    public String create(@RequestBody String filePathOrDigest) {
+    public String create(@RequestBody Map<String, Object> request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Query query = new Query();
-        Criteria fp = Criteria.where("fileName").is(filePathOrDigest);
-        Criteria ds = Criteria.where("digestString").is(filePathOrDigest);
+        Criteria fp = Criteria.where("fileName").is(request.get("fileDigest"));
+        Criteria ds = Criteria.where("digestString").is(request.get("fileDigest"));
         query.addCriteria(new Criteria().orOperator(fp, ds));
         query.fields().exclude("variables", "globalAttributes");
         List<Metadata> res = mongoTemplate.find(query, Metadata.class, METADATA_COLLECTION);
         if(!res.isEmpty()) {
             Query linkQuery = new Query(Criteria.where("fileDigest").is(res.get(0).digestString));
             linkQuery.addCriteria(Criteria.where("createdBy").is(getCurrentUserName()));
+            linkQuery.addCriteria(Criteria.where("emailAddresses").all(request.get("emailAddresses")));
+            linkQuery.addCriteria(Criteria.where("expiry").gt(LocalDateTime.now()));
             List<ShareLink> existing = mongoTemplate.find(linkQuery, ShareLink.class, SHARE_LINKS_COLLECTION);
             if(!existing.isEmpty()) {
                 return fileServerUrl + "/api/share/" + existing.get(0).shareId;
             }
             ShareLink shareLink = new ShareLink();
             shareLink.fileDigest = res.get(0).digestString;
+            shareLink.filePath = res.get(0).filePath;
             shareLink.createdBy = getCurrentUserName();
             shareLink.shareId = UUID.randomUUID().toString().replace("-", "");
             shareLink.createdAt = LocalDateTime.now();
+            shareLink.emailAddresses = new HashSet<String>((ArrayList<String>)request.get("emailAddresses"));
+            shareLink.expiry = LocalDateTime.now().plusMonths(6);
             mongoTemplate.insert(shareLink, "share-links");
             return fileServerUrl + "/api/share/" + shareLink.shareId;
         } else {
             return "FILE_NOT_FOUND";
         }
     }
+
+//    @PreAuthorize("hasRole('USER')")
+//    @PostMapping("/create")
+//    public String createFromWildcard(@RequestBody String filePath) {
+//        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+//        Query linkQuery = new Query(Criteria.where("filePath").is(filePath));
+//        List<ShareLink> existing = mongoTemplate.find(linkQuery, ShareLink.class, SHARE_LINKS_COLLECTION);
+//        if(!existing.isEmpty()) {
+//            return fileServerUrl + "/api/share/" + existing.get(0).shareId;
+//        }
+//
+//        String regex = WildcardToRegex.wildcardToRegex(filePath);
+//        List<Metadata> res = mongoTemplate.find(query, Metadata.class, METADATA_COLLECTION);
+//        if(!res.isEmpty()) {
+//            Query linkQuery = new Query(Criteria.where("fileDigest").is(res.get(0).digestString));
+//            linkQuery.addCriteria(Criteria.where("createdBy").is(getCurrentUserName()));
+//            List<ShareLink> existing = mongoTemplate.find(linkQuery, ShareLink.class, SHARE_LINKS_COLLECTION);
+//            if(!existing.isEmpty()) {
+//                return fileServerUrl + "/api/share/" + existing.get(0).shareId;
+//            }
+//            ShareLink shareLink = new ShareLink();
+//            shareLink.fileDigest = res.get(0).digestString;
+//            shareLink.createdBy = getCurrentUserName();
+//            shareLink.shareId = UUID.randomUUID().toString().replace("-", "");
+//            shareLink.createdAt = LocalDateTime.now();
+//            mongoTemplate.insert(shareLink, "share-links");
+//            return fileServerUrl + "/api/share/" + shareLink.shareId;
+//        } else {
+//            return "FILE_NOT_FOUND";
+//        }
+//    }
 
     @PreAuthorize("hasRole('USER')")
     @GetMapping("/")
@@ -110,7 +146,10 @@ public class ShareLinkController {
     @PreAuthorize("hasRole('GUEST')")
     @PostMapping("/verify")
     public DBObject verify(@RequestBody String shareId) {
+        System.out.println(getCurrentUserEmail());
         Query query = new Query(Criteria.where("shareId").is(shareId));
+        query.addCriteria(Criteria.where("emailAddresses").in(getCurrentUserEmail()));
+        query.addCriteria(Criteria.where("expiry").gt(LocalDateTime.now()));
         List<ShareLink> res = mongoTemplate.find(query, ShareLink.class, SHARE_LINKS_COLLECTION);
         if(res.isEmpty()){
             logger.info("Verification failed. Share ID not found");
@@ -149,6 +188,17 @@ public class ShareLinkController {
             return (String) ((DefaultOAuth2User) (auth.getPrincipal())).getAttribute("name");
         } else {
             return (String) ((DefaultOidcUser) (auth.getPrincipal())).getAttribute("name");
+        }
+    }
+
+    private String getCurrentUserEmail() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if(auth.getPrincipal() instanceof DefaultOAuth2AuthenticatedPrincipal) {
+            return ((DefaultOAuth2AuthenticatedPrincipal) (auth.getPrincipal())).getAttribute("email");
+        } else if(auth.getPrincipal() instanceof DefaultOAuth2User) {
+            return (String) ((DefaultOAuth2User) (auth.getPrincipal())).getAttribute("email");
+        } else {
+            return (String) ((DefaultOidcUser) (auth.getPrincipal())).getAttribute("email");
         }
     }
 }

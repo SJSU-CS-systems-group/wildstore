@@ -96,7 +96,7 @@ public class SecurityConfiguration {
         OpaqueTokenIntrospector introspectionClient = token -> {
             Map userInfo = UserInfo.getUser(token);
             if (userInfo != null) {
-                return new DefaultOAuth2AuthenticatedPrincipal("user", Map.of("name", userInfo.get("name")),
+                return new DefaultOAuth2AuthenticatedPrincipal("user", Map.of("name", userInfo.get("name"), "email", userInfo.get("email")),
                         List.of(new SimpleGrantedAuthority((String) userInfo.get("role"))));
             } else {
                 throw new BadOpaqueTokenException("Invalid token " + token);
