@@ -9,9 +9,9 @@ const Autocomplete = ({ items, value, onChange }) => {
     const filter = (e) => {
       let varName = e.target.value;
       const newItems = items
-            .filter((p) => p.toLowerCase().includes(varName.toLowerCase()))
-            .sort();
-            setFilteredItems(newItems);
+            .filter((p) => p.label.toLowerCase().includes(varName.toLowerCase()))
+            .sort((p1, p2) => (p1.label.localeCompare(p2.label)));
+      setFilteredItems(newItems);
     }
 
     return (
@@ -37,7 +37,7 @@ const Autocomplete = ({ items, value, onChange }) => {
           style={{"width": "inherit"}}
         />
         <div className="dropdown-content border border-base-200 top-14 overflow-scroll overflow-y-scroll h-40 flex-col rounded-md" 
-        style={{"position": "absolute", "zIndex":"100000", "backgroundColor": "white", "marginTop":"-8px"}}>
+        style={{"position": "absolute", "zIndex":"1", "backgroundColor": "white", "marginTop":"-8px", "width":"250%"}}>
           <ul
             className="menu menu-compact  last:border-b-0"
             // use ref to calculate the width of parent
@@ -55,8 +55,8 @@ const Autocomplete = ({ items, value, onChange }) => {
                   }}
                   className="border-b border-b-base-content/10 w-full"
                 >
-                  <button
-                  value={item}>{item}</button>
+                  <button className="before:z-5000 before:content-[attr(data-tip)] tooltip tooltip-right" data-tip={item.value}
+                  value={item.label}>{item.label}</button>
                 </li>
               );
             })}

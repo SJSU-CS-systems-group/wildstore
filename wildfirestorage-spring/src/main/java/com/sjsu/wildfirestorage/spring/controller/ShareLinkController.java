@@ -71,7 +71,21 @@ public class ShareLinkController {
             shareLink.shareId = UUID.randomUUID().toString().replace("-", "");
             shareLink.createdAt = LocalDateTime.now();
             shareLink.emailAddresses = new HashSet<String>((ArrayList<String>)request.get("emailAddresses"));
-            shareLink.expiry = LocalDateTime.now().plusMonths(6);
+            switch((String)request.get("validFor")) {
+                case "day":
+                    shareLink.expiry = LocalDateTime.now().plusDays(1);
+                    break;
+                case "week":
+                    shareLink.expiry = LocalDateTime.now().plusWeeks(1);
+                    break;
+                case "month":
+                    shareLink.expiry = LocalDateTime.now().plusMonths(1);
+                    break;
+                case "year":
+                    shareLink.expiry = LocalDateTime.now().plusYears(1);
+                    break;
+                default: break;
+            }
             mongoTemplate.insert(shareLink, "share-links");
             return fileServerUrl + "/api/share/" + shareLink.shareId;
         } else {

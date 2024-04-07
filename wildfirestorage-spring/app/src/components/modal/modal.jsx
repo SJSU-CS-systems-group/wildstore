@@ -10,6 +10,8 @@ const Modal = () => {
     const dispatch = useDispatch();
 
     const dataObject = data ? JSON.parse(data) : {};
+    const variables = dataObject.variables.map(v => `Variable: ${v.variableName} Value(min, avg, max): ${v.minValue} ${v.average} ${v.maxValue}`)
+    const attrs = dataObject.globalAttributes.map(v => `Global Attribute: ${v.attributeName} Value: ${v.value}`)
 
     return (
         <div>
@@ -23,8 +25,17 @@ const Modal = () => {
                     <p className="pt-3">{dataObject.digestString && `Digest String: ${dataObject.digestString}`}</p>
                     <p className="pt-3">{dataObject.domain != null&& `Domain: ${dataObject.domain}`}</p>
                     <p className="pt-3">{dataObject.filePath && `File Paths: ${dataObject.filePath.join(", ")}`}</p>
-                    <p className="pt-3">{dataObject.variables && `Variables: `}</p>
-                    <p className="pt-3">{dataObject.globalAttributes && `Global Attributes: `}</p>
+                    <p className="pt-3">{dataObject.variables && 
+                    <div>
+                        Variables: 
+                        {variables.map(v => <div>{v}</div>)}
+                    </div>}</p>
+                    <p className="pt-3">{dataObject.globalAttributes && 
+                    <div>
+                        Global Attributes:
+                        {attrs.map(a => <div>{a}</div>)}   
+                    </div>}
+                    </p>
                 </div>
             </dialog>
         </div>

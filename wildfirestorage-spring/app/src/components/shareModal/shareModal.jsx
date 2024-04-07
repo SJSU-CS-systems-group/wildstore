@@ -5,7 +5,9 @@ const ShareModal = ({ digestString, showModal, closeModal, generateShareLink, ge
 
     const [emailAddresses, setEmailAddresses] = useState([]);
     const [error, setError] = useState("");
+    const [validFor, setValidFor] = useState("");
     const inputRef = useRef();
+    const validForRef = useRef();
 
     const handleInputChange = (event) => {
         const inputEmail = event.target.value;
@@ -25,6 +27,11 @@ const ShareModal = ({ digestString, showModal, closeModal, generateShareLink, ge
         }
     }
 
+    const handleValidForChange = (event) => {
+        setValidFor(event.target.value);
+        validForRef.current.classList.remove("select-error");
+    }
+
     const handleDeleteEmail = (index) => {
         let emailAddrs = [...emailAddresses];
         emailAddrs.splice(index, 1);
@@ -33,13 +40,18 @@ const ShareModal = ({ digestString, showModal, closeModal, generateShareLink, ge
 
     const handleSubmit = (event) => {
         if (!emailAddresses || emailAddresses.length === 0) {
-            if(error !== "" || !inputRef.current.value) {
+            if (error !== "" || !inputRef.current.value) {
                 setError("input-error")
                 return;
+            } else if (!validFor) {
+                validForRef.current.classList.add("select-error");
+                return;
             }
-            generateShareLink([inputRef.current.value]);
+            generateShareLink([inputRef.current.value], validFor);
+        } else if (!validFor) {
+            validForRef.current.classList.add("select-error");
         } else {
-            generateShareLink(emailAddresses);
+            generateShareLink(emailAddresses, validFor);
         }
     }
 
@@ -64,6 +76,13 @@ const ShareModal = ({ digestString, showModal, closeModal, generateShareLink, ge
                                     );
                                 })}
                             </div>
+                            <select className="select select-bordered w-full max-w-xs" ref={validForRef} onChange={(e) => handleValidForChange(e)}>
+                                <option hidden>Valid for</option>
+                                <option value="day">1 day</option>
+                                <option value="week">1 week</option>
+                                <option value="month">1 month</option>
+                                <option value="year">1 year</option>
+                            </select>
                             <button className="btn bg-primary text-white hover:bg-gray-600 hover:bg-opacity-40" onClick={(event) => handleSubmit(event)}>Share</button>
                         </div>
                     }

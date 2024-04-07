@@ -44,27 +44,32 @@ const SearchResult = ({ metadataRecord }) => {
 
     const token = useSelector(state => state.userReducer.opaqueToken)
 
-    const download = () => {
-        fetch("/api/file/FqBypAUpvL6GlPcx", {
+    const download = async () => {
+        const response = await fetch("/api/file/" + metadataRecord.digestString, {
             method: 'GET',
             headers: new Headers({
                 'Authorization': 'Bearer ' + token
             }),
-        })
-            .then(function (response) { return response.blob(); })
-            .then(function (blob) {
-                var url = window.URL.createObjectURL(blob);
-                console.log(url);
-                var a = document.createElement('a');
-                a.href = url;
-                a.download = metadataRecord.filePath[0];
-                document.body.appendChild(a); // we need to append the element to the dom -> otherwise it will not work in firefox
-                a.click();
-                a.remove();  //afterwards we remove the element again  
+        });
+        if (response.redirected) {
+            const fileResponse = await fetch(response.url, {
+                method: 'GET',
+                headers: new Headers({
+                    'Authorization': 'Bearer ' + token
+                }),
             });
+            const blob = await fileResponse.blob();
+            var url = window.URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = metadataRecord.filePath[0].split("/").pop().split("\\").pop();
+            document.body.appendChild(a); // we need to append the element to the dom -> otherwise it will not work in firefox
+            a.click();
+            a.remove();  //afterwards we remove the element again  
+        }
     }
 
-    const generateShareLink = async (emailAddresses) => {
+    const generateShareLink = async (emailAddresses, validFor) => {
         const response = await fetch("/api/share-link/create", {
             method: "POST",
             headers: {
@@ -73,7 +78,8 @@ const SearchResult = ({ metadataRecord }) => {
             },
             body: JSON.stringify({
                 "fileDigest": metadataRecord.digestString,
-                emailAddresses
+                emailAddresses,
+                validFor
             }),
             credentials: "include",
             redirect: "follow",
@@ -99,7 +105,7 @@ const SearchResult = ({ metadataRecord }) => {
                         </button>
                     </div>
                     <div className='tooltip' data-tip="Send">
-                        <button className="btn btn-square bg-transparent border-none" onClick={() => {setGeneratedLink(""); setShowShareModal(true)}}>
+                        <button className="btn btn-square bg-transparent border-none" onClick={() => { setGeneratedLink(""); setShowShareModal(true) }}>
                             <GoPaperAirplane size={20} />
                         </button>
                     </div>
@@ -111,7 +117,7 @@ const SearchResult = ({ metadataRecord }) => {
                 </div>
             </div>
             <div>
-                <ShareModal digestString={""} showModal={showShareModal} closeModal={()=>{setShowShareModal(false)}} generateShareLink={generateShareLink} generatedLink={generatedLink}/>
+                <ShareModal digestString={""} showModal={showShareModal} closeModal={() => { setShowShareModal(false) }} generateShareLink={generateShareLink} generatedLink={generatedLink} />
             </div>
         </div >
     );

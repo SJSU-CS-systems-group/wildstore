@@ -29,7 +29,6 @@ function App() {
     }
     let d = await response.text();
     dispatch(setOpaqueToken(d));
-    console.log("tokennnn", d)
   }
   useEffect(() => {
     getToken();

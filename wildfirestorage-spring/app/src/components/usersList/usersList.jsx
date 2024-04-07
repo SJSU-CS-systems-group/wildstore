@@ -17,7 +17,6 @@ const UsersList = () => {
         if (response.redirected) {
             document.location = response.url;
         }
-        console.log(response);
         let d = await response.json();
         setUsers(d);
     }
@@ -38,7 +37,6 @@ const UsersList = () => {
             document.location = response.url;
         }
         let result = await response.json();
-        console.log(result);
         if(result === true) {
             let u = [...users]
             u[index].role = newRole;

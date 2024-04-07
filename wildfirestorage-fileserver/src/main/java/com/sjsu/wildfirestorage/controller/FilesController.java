@@ -19,21 +19,21 @@ public class FilesController {
     @Value("${custom.metadataServer}")
     private String metadataServerUrl;
 
-//    @CrossOrigin(origins = "http://localhost:3000")
-//    @GetMapping("/file/{digestString}")
-//    public void downloadFile(@PathVariable String digestString, HttpServletRequest request, HttpServletResponse response) {
-//        final String uri = metadataServerUrl + "/api/metadata/" + digestString;
-//
-//        RestTemplate restTemplate = new RestTemplate();
-//        HttpHeaders headers = new HttpHeaders();
-//        headers.add("Authorization", request.getHeader("Authorization"));
-//        HttpEntity<Void> entity = new HttpEntity<>(headers);
-//        ResponseEntity<Metadata> result = restTemplate.exchange(uri, HttpMethod.GET, entity, Metadata.class);
-//        if(result.getBody() == null) {
-//            return;
-//        }
-//        downloadHelper(result.getBody(), request, response);
-//    }
+    @CrossOrigin(origins = "http://localhost:3000")
+    @GetMapping("/file/{digestString}")
+    public void downloadFile(@PathVariable String digestString, HttpServletRequest request, HttpServletResponse response) {
+        final String uri = metadataServerUrl + "/api/metadata/" + digestString;
+
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", request.getHeader("Authorization"));
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+        ResponseEntity<Metadata> result = restTemplate.exchange(uri, HttpMethod.GET, entity, Metadata.class);
+        if(result.getBody() == null) {
+            return;
+        }
+        downloadHelper(result.getBody(), request, response);
+    }
 
     private void downloadHelper(Metadata result, HttpServletRequest request, HttpServletResponse response) {
         try {

@@ -3,11 +3,10 @@ import Filter from '../filter/filter';
 import SearchResultContainer from '../searchResultContainer/searchResultContainer';
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { setMetadata } from '../../redux/metadataSlice';
+import { setMetadata, setDescriptions } from '../../redux/metadataSlice';
 import { addQuery, deleteQuery, setQueryCount } from '../../redux/filterSlice';
 import Modal from '../modal/modal';
 import { setSearchTerm } from "../../redux/searchTermSlice";
-import DynamicComponent from '../test/test';
 
 const Workspace = () => {
 
@@ -61,9 +60,27 @@ const Workspace = () => {
         dispatch(setQueryCount(d));
     }
 
+    const getDescriptions = async () => {
+        const response = await fetch("/api/metadata/description", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "text/plain, application/json",
+            },
+            credentials: "include",
+            redirect: "follow",
+        });
+        if (response.redirected) {
+            document.location = response.url;
+        }
+        let d = await response.text();
+        dispatch(setDescriptions(JSON.parse(d)));
+    }
+
     useEffect(() => {
         getData();
         getQueryCount();
+        getDescriptions();
     }, [])
 
     useEffect(() => {
@@ -145,7 +162,7 @@ const Workspace = () => {
                     <SearchResultContainer metadataRecords={metadataRecords} setShowModal={setShowModal} />
                 </div>
             </div>
-            <Modal showModal={showModal} setShowModal={setShowModal} />
+            {showModal && <Modal showModal={showModal} setShowModal={setShowModal} />}
         </div>
     );
 }
