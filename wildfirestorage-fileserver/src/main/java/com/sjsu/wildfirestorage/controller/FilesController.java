@@ -94,8 +94,20 @@ public class FilesController {
         }
     }
 
+    private void digestStringHelper(Metadata result, HttpServletResponse response) {
+        try {
+                response.setStatus(HttpStatus.OK.value());
+                response.setHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+                response.getWriter().write(result.digestString);
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        }
+    }
+
     @GetMapping("/share/{shareId}")
-    public void downloadSharedFile(@PathVariable String shareId, HttpServletRequest request, HttpServletResponse response) {
+    public void downloadSharedFile(@RequestParam(name = "digest", required = false) Boolean digest,
+                                   @PathVariable String shareId, HttpServletRequest request, HttpServletResponse response) {
         try {
             final String verifyUri = metadataServerUrl + "/api/share-link/verify";
 
@@ -104,7 +116,13 @@ public class FilesController {
             headers.add("Authorization", request.getHeader("Authorization"));
             HttpEntity<String> entity = new HttpEntity<>(shareId, headers);
             Metadata result = restTemplate.postForObject(verifyUri, entity, Metadata.class);
+
             if (result == null) {
+                return;
+            }
+
+            if (digest!=null && digest) {
+                digestStringHelper(result, response);
                 return;
             }
             downloadHelper(result, request, response);
