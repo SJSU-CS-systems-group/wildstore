@@ -87,6 +87,11 @@ const SearchResult = ({ metadataRecord }) => {
             <div className="card-body">
                 <h3 className="card-title text-lg hover:cursor-pointer">{metadataRecord.fileName[0]}</h3>
                 <p className="break-words">{metadataRecord.filePath[0]}</p>
+                <p className="break-words">{metadataRecord.appliedFilterValues && metadataRecord.appliedFilterValues.length > 0
+                    ? metadataRecord.appliedFilterValues.join(', ')
+                    : ''
+                }
+                </p>
                 <div className="card-actions justify-end items-center">
                     <div><a className="link link-primary" onClick={fetchDetails}>Details</a></div>
                     <div className='grow'></div>

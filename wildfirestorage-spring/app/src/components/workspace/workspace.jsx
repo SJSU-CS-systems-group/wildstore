@@ -17,6 +17,8 @@ const Workspace = () => {
     const offset = useSelector(state => state.filterReducer.offset)
     const search = useSelector(state => state.searchTermReducer.searchTerm)
 
+    const filterQuery = useSelector(state => state.filterReducer.query)
+
     const [openSearchResults, setOpenSearchResults] = useState(true)
     const [showModal, setShowModal] = useState(false);
 
@@ -29,15 +31,16 @@ const Workspace = () => {
                 "Content-Type": "application/json",
                 "Accept": "text/html, application/json",
             },
-            body: JSON.stringify({ "searchQuery": builtQuery, "excludeFields": ["variables", "globalAttributes"] , "limit": limit, "offset": offset}),
+            body: JSON.stringify({ "searchQuery": builtQuery, "limit": limit, "offset": offset}),
             credentials: "include",
             redirect: "follow",
         });
         if (response.redirected) {
             document.location = response.url;
         }
-        let d = await response.json();
-        dispatch(setMetadata(d));
+        let metadataPayload = await response.json();
+        const payload = {metadataPayload, filterQuery};
+        dispatch(setMetadata(payload));
     }
 
     const getQueryCount = async () => {
