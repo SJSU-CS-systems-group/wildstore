@@ -32,11 +32,14 @@ public class Main {
         @CommandLine.Command
         public void share(@CommandLine.Option(names = "--meta-url", description = "URL of metadata server", defaultValue = "http://127.0.0.1:27777") String metaURL,
                           @CommandLine.Parameters(description = "Absolute file name", index = "0..*") String[] fileNames,
-                          @CommandLine.Option(names = "--token", required = true) String token) throws InterruptedException, ExecutionException {
-            for (var fileName : fileNames) {
+                          @CommandLine.Option(names = "--token", required = true) String token,
+                          @CommandLine.Option(names = "--email", description = "Email addresses to share with separated with comma") String[] emails,
+                          @CommandLine.Option(names = "--validFor", description = "Validity of share link, values are: day, week, month, year", defaultValue = "month") String validFor) throws InterruptedException, ExecutionException {
+//            for (var fileName : fileNames) {
+            System.out.println(fileNames);
                 try {
                     System.out.println(Client.post(Client.getWebClient(metaURL + "/api/share-link/create"),
-                            fileName,
+                            Map.of("fileDigest", fileNames, "emailAddresses", emails, "validFor", validFor),
                             new ParameterizedTypeReference<String>() {
                             }, httpHeaders -> {
                                 httpHeaders.setBearerAuth(token);
@@ -45,9 +48,9 @@ public class Main {
                     var message = e.getMessage();
                     // if this is a message about a connection problem, drop all the text before connection
                     if (message.contains("Connection")) message = message.substring(message.indexOf("Connection"));
-                    System.err.printf("%s: %s\n", message, fileName);
+                    System.err.printf("%s: %s\n", message, fileNames);
                 }
-            }
+            //}
         }
 
         @CommandLine.Command

@@ -77,7 +77,7 @@ const SearchResult = ({ metadataRecord }) => {
                 "Accept": "text/html, application/json",
             },
             body: JSON.stringify({
-                "fileDigest": metadataRecord.digestString,
+                "fileDigest": [metadataRecord.digestString],
                 emailAddresses,
                 validFor
             }),
