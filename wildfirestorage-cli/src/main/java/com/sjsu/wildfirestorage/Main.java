@@ -9,6 +9,7 @@ import picocli.CommandLine;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -33,10 +34,10 @@ public class Main {
         public void share(@CommandLine.Option(names = "--meta-url", description = "URL of metadata server", defaultValue = "http://127.0.0.1:27777") String metaURL,
                           @CommandLine.Parameters(description = "Absolute file name", index = "0..*") String[] fileNames,
                           @CommandLine.Option(names = "--token", required = true) String token,
-                          @CommandLine.Option(names = "--email", description = "Email addresses to share with separated with comma") String[] emails,
+                          @CommandLine.Option(names = "--email", split = ",", description = "Email addresses to share with separated with comma") String[] emails,
                           @CommandLine.Option(names = "--validFor", description = "Validity of share link, values are: day, week, month, year", defaultValue = "month") String validFor) throws InterruptedException, ExecutionException {
 //            for (var fileName : fileNames) {
-            System.out.println(fileNames);
+            System.out.println(Arrays.toString(emails));
                 try {
                     System.out.println(Client.post(Client.getWebClient(metaURL + "/api/share-link/create"),
                             Map.of("fileDigest", fileNames, "emailAddresses", emails, "validFor", validFor),
