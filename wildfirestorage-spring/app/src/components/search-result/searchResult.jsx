@@ -5,11 +5,13 @@ import { setModalData } from '../../redux/modalSlice';
 import { useSelector } from 'react-redux';
 import { setShowModal } from '../../redux/modalSlice';
 import { useState } from 'react';
+import ShareModal from '../shareModal/shareModal';
 
 const SearchResult = ({ metadataRecord }) => {
 
     const [showShareModal, setShowShareModal] = useState(false);
     const [shareModalData, setShareModalData] = useState(null);
+    const [generatedLink, setGeneratedLink] = useState("");
 
     const dispatch = useDispatch();
 
@@ -42,34 +44,43 @@ const SearchResult = ({ metadataRecord }) => {
 
     const token = useSelector(state => state.userReducer.opaqueToken)
 
-    const download = () => {
-        fetch("/api/file/FqBypAUpvL6GlPcx", {
+    const download = async () => {
+        const response = await fetch("/api/file/" + metadataRecord.digestString, {
             method: 'GET',
             headers: new Headers({
                 'Authorization': 'Bearer ' + token
             }),
-        })
-            .then(function (response) { return response.blob(); })
-            .then(function (blob) {
-                var url = window.URL.createObjectURL(blob);
-                console.log(url);
-                var a = document.createElement('a');
-                a.href = url;
-                a.download = metadataRecord.filePath[0];
-                document.body.appendChild(a); // we need to append the element to the dom -> otherwise it will not work in firefox
-                a.click();
-                a.remove();  //afterwards we remove the element again  
+        });
+        if (response.redirected) {
+            const fileResponse = await fetch(response.url, {
+                method: 'GET',
+                headers: new Headers({
+                    'Authorization': 'Bearer ' + token
+                }),
             });
+            const blob = await fileResponse.blob();
+            var url = window.URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = metadataRecord.filePath[0].split("/").pop().split("\\").pop();
+            document.body.appendChild(a); // we need to append the element to the dom -> otherwise it will not work in firefox
+            a.click();
+            a.remove();  //afterwards we remove the element again  
+        }
     }
 
-    const generateShareLink = async () => {
+    const generateShareLink = async (emailAddresses, validFor) => {
         const response = await fetch("/api/share-link/create", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "text/html, application/json",
             },
-            body: metadataRecord.digestString,
+            body: JSON.stringify({
+                "fileDigest": [metadataRecord.digestString],
+                emailAddresses,
+                validFor
+            }),
             credentials: "include",
             redirect: "follow",
         });
@@ -77,15 +88,13 @@ const SearchResult = ({ metadataRecord }) => {
             document.location = response.url;
         }
         let d = await response.text();
-        // dispatch(setModalData({ "data": d, "header": "Share" }));
-        setShareModalData(d);
-        setShowShareModal(true);
+        setGeneratedLink(d);
     }
 
     return (
         <div className="card bg-base-100 shadow-xl w-0 min-w-full hover:shadow-2xl">
             <div className="card-body">
-                <h3 className="card-title text-lg hover:cursor-pointer">{metadataRecord.fileName[0]}</h3>
+                <h3 className="card-title text-lg hover:cursor-pointer break-all">{metadataRecord.fileName[0]}</h3>
                 <p className="break-words">{metadataRecord.filePath[0]}</p>
                 <div className="card-actions justify-end items-center">
                     <div><a className="link link-primary" onClick={fetchDetails}>Details</a></div>
@@ -96,7 +105,7 @@ const SearchResult = ({ metadataRecord }) => {
                         </button>
                     </div>
                     <div className='tooltip' data-tip="Send">
-                        <button className="btn btn-square bg-transparent border-none" onClick={generateShareLink}>
+                        <button className="btn btn-square bg-transparent border-none" onClick={() => { setGeneratedLink(""); setShowShareModal(true) }}>
                             <GoPaperAirplane size={20} />
                         </button>
                     </div>
@@ -108,18 +117,7 @@ const SearchResult = ({ metadataRecord }) => {
                 </div>
             </div>
             <div>
-                <dialog id="my_modal_3" className={showShareModal ? "modal modal-open" : "modal"}>
-                    <div className="modal-box w-11/12 max-w-5xl">
-                        <form method="dialog">
-                            {/* if there is a button in form, it will close the modal */}
-                            <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onClick={() => setShowShareModal(false)}>✕</button>
-                        </form>
-                        <h3 className="font-bold text-lg">Header</h3>
-                        <p className="py-4">
-                            {shareModalData}
-                        </p>
-                    </div>
-                </dialog>
+                <ShareModal digestString={""} showModal={showShareModal} closeModal={() => { setShowShareModal(false) }} generateShareLink={generateShareLink} generatedLink={generatedLink} />
             </div>
         </div >
     );

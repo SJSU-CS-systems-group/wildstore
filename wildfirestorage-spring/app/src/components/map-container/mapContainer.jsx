@@ -14,10 +14,6 @@ const MapContainer = () => {
   const metadataRecords = useSelector(state => state.metadataReducer.metadataRecords)
   const selectedRecord = useSelector(state => state.mapReducer.selectedRecord)
 
-
-  console.log("********", metadataRecords)
-
-
   function createCenterControl(map) {
     const controlButton = document.createElement("button");
     controlButton.className = "mt-3 bg-slate-100 text-primary shadow-xl rounded-full px-3 py-2 content-center capitalize text-sm font-bold textShadow-lg btn-effect";
@@ -60,7 +56,6 @@ const MapContainer = () => {
     let sw = bounds.getSouthWest();
 
     let query = `LOCATION IN ((${ne.lat()}, ${sw.lng()}), (${ne.lat()},${ne.lng()}), (${sw.lat()},${ne.lng()}), (${sw.lat()}, ${sw.lng()}))`;
-    console.log("query", query)
 
     dispatch(addQuery(query));
     dispatch(setCurrentPage(1));

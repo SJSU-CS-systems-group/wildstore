@@ -3,6 +3,7 @@ import { createSlice } from "@reduxjs/toolkit";
 const initialState = {
     metadataRecords: [],
     modalMetadata: null,
+    descriptions: {"variables":[], "attributes": []},
 }
 
 export const metadataSlice = createSlice({
@@ -12,8 +13,11 @@ export const metadataSlice = createSlice({
         setMetadata: (state, action) => {
             state.metadataRecords = action.payload;
         },
+        setDescriptions: (state, action) => {
+            state.descriptions = action.payload;
+        },
     }
 });
 
-export const { setMetadata } = metadataSlice.actions;
+export const { setMetadata, setDescriptions } = metadataSlice.actions;
 export default metadataSlice.reducer;

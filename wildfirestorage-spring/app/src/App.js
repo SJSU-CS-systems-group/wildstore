@@ -7,6 +7,9 @@ import Forbidden from './components/forbidden/forbidden';
 import { useDispatch } from 'react-redux';
 import { setOpaqueToken } from './redux/userSlice';
 import { useEffect } from 'react';
+import UsersList from './components/usersList/usersList';
+import Layout from './components/layout/layout';
+import ShareLinks from './components/sharelinks/shareLinks';
 
 function App() {
   const dispatch = useDispatch();
@@ -26,7 +29,6 @@ function App() {
     }
     let d = await response.text();
     dispatch(setOpaqueToken(d));
-    console.log("tokennnn", d)
   }
   useEffect(() => {
     getToken();
@@ -36,9 +38,14 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/home" element={<Home />} />
+        <Route path="/home" element={<Layout />}>
+          <Route path="/home" element={<Home />}/>
+          <Route path="/home/users" element={<UsersList />}/>
+          <Route path="/home/share" element={<ShareLinks />}/>
+        </Route>
         <Route path="/token" element={<Token />} />
         <Route path="/forbidden" element={<Forbidden />} />
+        <Route path="/users" element={<UsersList />} />
       </Routes>
     </BrowserRouter>
   )

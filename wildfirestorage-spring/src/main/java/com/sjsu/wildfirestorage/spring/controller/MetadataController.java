@@ -7,6 +7,8 @@ import com.sjsu.wildfirestorage.MetadataRequest;
 import com.sjsu.wildfirestorage.spring.CriteriaBuilder;
 import net.sf.jsqlparser.JSQLParserException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -16,8 +18,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 
 @RestController
@@ -28,6 +33,12 @@ public class MetadataController {
     private MongoTemplate mongoTemplate;
 
     public final String METADATA_COLLECTION = "metadata";
+
+    @Value("classpath:static/variableDescriptions.json")
+    Resource variableResourceFile;
+
+    @Value("classpath:static/attributeDescriptions.json")
+    Resource attributeResourceFile;
 
     /**
      * Searches metadata documents corresponding to the query
@@ -156,6 +167,13 @@ public class MetadataController {
         Query query = new Query(Criteria.where("filePath").in(filePaths));
         mongoTemplate.remove(query, METADATA_COLLECTION);
         return 0;
+    }
+
+    @PreAuthorize("hasRole('USER')")
+    @GetMapping("/metadata/description")
+    public Map getDescriptions() throws IOException {
+        return Map.of("variables", Files.readString(variableResourceFile.getFile().toPath()),
+                "attributes", Files.readString(attributeResourceFile.getFile().toPath()));
     }
 }
 
