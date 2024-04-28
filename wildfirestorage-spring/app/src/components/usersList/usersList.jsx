@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 const UsersList = () => {
-    const [users, setUsers] = useState([{name:"sa", email:"sghb", role:"ashg"}]);
+    const [users, setUsers] = useState([]);
 
     const getUserData = async () => {
 
