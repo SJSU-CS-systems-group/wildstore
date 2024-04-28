@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 
 @RestController
@@ -34,7 +35,10 @@ public class MetadataController {
     public final String METADATA_COLLECTION = "metadata";
 
     @Value("classpath:static/variableDescriptions.json")
-    Resource resourceFile;
+    Resource variableResourceFile;
+
+    @Value("classpath:static/attributeDescriptions.json")
+    Resource attributeResourceFile;
 
     /**
      * Searches metadata documents corresponding to the query
@@ -167,8 +171,9 @@ public class MetadataController {
 
     @PreAuthorize("hasRole('USER')")
     @GetMapping("/metadata/description")
-    public String getDescriptions() throws IOException {
-        return Files.readString(resourceFile.getFile().toPath());
+    public Map getDescriptions() throws IOException {
+        return Map.of("variables", Files.readString(variableResourceFile.getFile().toPath()),
+                "attributes", Files.readString(attributeResourceFile.getFile().toPath()));
     }
 }
 

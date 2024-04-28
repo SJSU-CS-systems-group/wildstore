@@ -3,7 +3,7 @@ import { createSlice } from "@reduxjs/toolkit";
 const initialState = {
     metadataRecords: [],
     modalMetadata: null,
-    descriptions: [],
+    descriptions: {"variables":[], "attributes": []},
 }
 
 export const metadataSlice = createSlice({

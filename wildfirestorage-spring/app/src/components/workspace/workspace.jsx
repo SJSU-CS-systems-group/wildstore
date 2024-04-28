@@ -65,7 +65,7 @@ const Workspace = () => {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
-                "Accept": "text/plain, application/json",
+                "Accept": "application/json",
             },
             credentials: "include",
             redirect: "follow",
@@ -73,8 +73,8 @@ const Workspace = () => {
         if (response.redirected) {
             document.location = response.url;
         }
-        let d = await response.text();
-        dispatch(setDescriptions(JSON.parse(d)));
+        let d = await response.json();
+        dispatch(setDescriptions({"variables": JSON.parse(d["variables"]), "attributes": JSON.parse(d["attributes"])}));
     }
 
     useEffect(() => {
