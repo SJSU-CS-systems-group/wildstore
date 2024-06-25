@@ -37,6 +37,8 @@ public class WildfireFilesCrawler implements Runnable {
 
     @CommandLine.Option(names = "--configFile") String configFile;
 
+    @CommandLine.Option(names = "--dataset", description = "Whether to initiate dataset collection") boolean initiateDatasetCollection = true;
+
     public void run() {
         Properties appProps = new Properties();
         try {
@@ -91,22 +93,24 @@ public class WildfireFilesCrawler implements Runnable {
         Instant finish = Instant.now();
         System.out.println("Execution Completed in: "+ Duration.between(start, finish).toMillis() + "ms");
 
-        //Write API service to call dataset routing
-        WebClient datasetWebClient = Client.getWebClient(hostname + "/api/dataset");
-        try {
-            if (hostname == null) {
-                System.out.println("No hostname specified. Skipping dataset update.");
-            } else {
-                var res = Client.post(datasetWebClient, "", new ParameterizedTypeReference<Integer>(){}, httpHeaders -> {
-                    httpHeaders.setBearerAuth(token);
-                });
-                System.out.println("RESULT: " + res);
+        if(initiateDatasetCollection) {
+            //Write API service to call dataset routing
+            WebClient datasetWebClient = Client.getWebClient(hostname + "/api/dataset");
+            try {
+                if (hostname == null) {
+                    System.out.println("No hostname specified. Skipping dataset update.");
+                } else {
+                    var res = Client.post(datasetWebClient, "", new ParameterizedTypeReference<Integer>() {
+                    }, httpHeaders -> {
+                        httpHeaders.setBearerAuth(token);
+                    });
+                    System.out.println("RESULT: " + res);
+                }
+            } catch (WebClientRequestException ex) {
+                System.out.println("Dataset API call: " + ex.getMostSpecificCause() + ex.getMessage());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
-        }
-        catch (WebClientRequestException ex) {
-            System.out.println("Dataset API call: "+ ex.getMostSpecificCause() + ex.getMessage());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
     }
     public static void main(String[] args) {

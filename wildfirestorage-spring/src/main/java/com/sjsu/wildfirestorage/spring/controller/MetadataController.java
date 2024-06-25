@@ -19,6 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.Date;
 import java.util.List;
@@ -172,8 +173,8 @@ public class MetadataController {
     @PreAuthorize("hasRole('USER')")
     @GetMapping("/metadata/description")
     public Map getDescriptions() throws IOException {
-        return Map.of("variables", Files.readString(variableResourceFile.getFile().toPath()),
-                "attributes", Files.readString(attributeResourceFile.getFile().toPath()));
+        return Map.of("variables", variableResourceFile.getContentAsString(Charset.defaultCharset()),
+                "attributes", attributeResourceFile.getContentAsString(Charset.defaultCharset()));
     }
 }
 
