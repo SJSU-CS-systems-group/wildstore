@@ -25,10 +25,13 @@ import org.springframework.security.oauth2.core.DefaultOAuth2AuthenticatedPrinci
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @RestController
 @RequestMapping("/api/share-link")
@@ -177,20 +180,24 @@ public class ShareLinkController {
     @PreAuthorize("hasRole('GUEST')")
     @PostMapping("/verify")
     public DBObject verify(@RequestBody String shareId) {
-        System.out.println(getCurrentUserEmail());
+        String currentUserEmail = getCurrentUserEmail();
+        System.out.println(currentUserEmail);
         Query query = new Query(Criteria.where("shareId").is(shareId));
-        query.addCriteria(Criteria.where("emailAddresses").in(getCurrentUserEmail()));
-        query.addCriteria(Criteria.where("expiry").gt(LocalDateTime.now()));
+        //query.addCriteria(Criteria.where("emailAddresses").in(currentUserEmail));
+        //query.addCriteria(Criteria.where("expiry").gt(LocalDateTime.now()));
         List<ShareLink> res = mongoTemplate.find(query, ShareLink.class, SHARE_LINKS_COLLECTION);
         if(res.isEmpty()){
             logger.info("Verification failed. Share ID not found");
-            return null;
+            throw new ResponseStatusException(NOT_FOUND, String.format("Share ID %s not found for %s", shareId, currentUserEmail));
         }
         logger.info("Verification success");
         Query query2 = new Query(Criteria.where("digestString").is(res.get(0).fileDigest));
         query2.fields().exclude("variables", "globalAttributes");
         List<DBObject> res2 = mongoTemplate.find(query2, DBObject.class, METADATA_COLLECTION);
         logger.info((res.isEmpty() || res2 == null)? "Digest string not found":"Success, returning metadata");
+        if (res.isEmpty() || res2 == null) {
+            throw new ResponseStatusException(NOT_FOUND, "Problem finding file for " + shareId);
+        }
         return (res.isEmpty() || res2 == null)? null : res2.get(0);
     }
 
