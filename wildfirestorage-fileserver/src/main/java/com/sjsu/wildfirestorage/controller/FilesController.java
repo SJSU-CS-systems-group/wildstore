@@ -3,19 +3,23 @@ package com.sjsu.wildfirestorage.controller;
 import com.sjsu.wildfirestorage.Metadata;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.*;
-import java.util.Map;
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 
 @RestController
 @RequestMapping("/api")
 public class FilesController {
 
+    private static final Logger log = LoggerFactory.getLogger(FilesController.class);
     @Value("${custom.metadataServer}")
     private String metadataServerUrl;
 
@@ -29,15 +33,31 @@ public class FilesController {
         headers.add("Authorization", request.getHeader("Authorization"));
         HttpEntity<Void> entity = new HttpEntity<>(headers);
         ResponseEntity<Metadata> result = restTemplate.exchange(uri, HttpMethod.GET, entity, Metadata.class);
-        if(result.getBody() == null) {
+        if (result.getBody() == null) {
             return;
         }
         downloadHelper(result.getBody(), request, response);
     }
 
     private void downloadHelper(Metadata result, HttpServletRequest request, HttpServletResponse response) {
-        try {
-            RandomAccessFile file = new RandomAccessFile((String)result.fileName.toArray()[0], "r");
+        File fileToOpen = null;
+        for (var fileName : result.fileName) {
+            var file = new File(fileName);
+            if (file.canRead()) {
+                log.info("Found to download: " + file.getAbsolutePath());
+                fileToOpen = file;
+                break;
+            }
+        }
+        if (fileToOpen == null) {
+            response.setStatus(HttpStatus.NOT_FOUND.value());
+            response.setContentType(MediaType.TEXT_HTML_VALUE);
+            try {
+                response.getOutputStream().write("File is missing. Please contact the content owner.".getBytes());
+            } catch (IOException ignore) {}
+            return;
+        }
+        try (RandomAccessFile file = new RandomAccessFile(fileToOpen, "r")) {
             long fileLength = file.length();
 
             String rangeHeader = request.getHeader("Range");
@@ -76,7 +96,7 @@ public class FilesController {
             } else {
                 response.setStatus(HttpStatus.OK.value());
                 response.setHeader("Content-Length", String.valueOf(fileLength));
-                response.setHeader("Content-Disposition", "attachment; filename=" + (String)result.fileName.toArray()[0]);
+                response.setHeader("Content-Disposition", "attachment; filename=" + result.fileName.toArray()[0]);
                 response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
 
                 byte[] buffer = new byte[4096];
@@ -86,11 +106,13 @@ public class FilesController {
                     response.getOutputStream().write(buffer, 0, bytesRead);
                 }
             }
-
-            file.close();
         } catch (IOException e) {
             e.printStackTrace();
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setContentType(MediaType.TEXT_HTML_VALUE);
+            try {
+                response.getOutputStream().println("Error: " + e.getMessage());
+            } catch (IOException ignore) {}
         }
     }
 
