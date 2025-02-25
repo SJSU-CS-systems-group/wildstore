@@ -186,8 +186,8 @@ public class NetcdfFileReader {
 
             Array data = null;
             float[][] stats; //stats = [min, max, avg, totalCount], [keys], [values]
-            float fillValue = variable.findAttributeIgnoreCase("_fillvalue") != null ? (float) variable.findAttributeIgnoreCase("_fillValue").getNumericValue() : Float.MAX_VALUE;
-            float missingValue = variable.findAttributeIgnoreCase("missing_value") != null ? (float) variable.findAttributeIgnoreCase("missing_value").getNumericValue() : Float.MAX_VALUE;
+            float fillValue = variable.findAttributeIgnoreCase("_fillvalue") != null ? variable.findAttributeIgnoreCase("_fillValue").getNumericValue().floatValue() : Float.MAX_VALUE;
+            float missingValue = variable.findAttributeIgnoreCase("missing_value") != null ? variable.findAttributeIgnoreCase("missing_value").getNumericValue().floatValue() : Float.MAX_VALUE;
             HashMap<Float, Float> uniqueElements = new HashMap<>();
 
             // Read data from the variable
