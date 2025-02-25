@@ -37,7 +37,7 @@ public class WildfireFilesCrawler implements Runnable {
 
     @CommandLine.Option(names = "--configFile") String configFile;
 
-    @CommandLine.Option(names = "--dataset", description = "Whether to initiate dataset collection") boolean initiateDatasetCollection = true;
+    @CommandLine.Option(names = "--dataset", description = "Whether to initiate dataset collection") boolean initiateDatasetCollection = false;
 
     public void run() {
         Properties appProps = new Properties();
@@ -94,6 +94,7 @@ public class WildfireFilesCrawler implements Runnable {
         System.out.println("Execution Completed in: "+ Duration.between(start, finish).toMillis() + "ms");
 
         if(initiateDatasetCollection) {
+            System.out.println("Initiating dataset collection");
             //Write API service to call dataset routing
             WebClient datasetWebClient = Client.getWebClient(hostname + "/api/dataset");
             try {
