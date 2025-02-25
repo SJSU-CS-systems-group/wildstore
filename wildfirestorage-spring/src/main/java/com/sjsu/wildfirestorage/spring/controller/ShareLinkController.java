@@ -5,7 +5,6 @@ import com.sjsu.wildfirestorage.Download;
 import com.sjsu.wildfirestorage.Metadata;
 import com.sjsu.wildfirestorage.ShareLink;
 import com.sjsu.wildfirestorage.spring.util.UserInfo;
-import com.sjsu.wildfirestorage.spring.util.WildcardToRegex;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -54,10 +53,18 @@ public class ShareLinkController {
     public String create(@RequestBody Map<String, Object> request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Query query = new Query();
-        Criteria fp = Criteria.where("fileName").in((ArrayList<String>)request.get("fileDigest"));
-        Criteria ds = Criteria.where("digestString").in((ArrayList<String>)request.get("fileDigest"));
-        query.addCriteria(new Criteria().orOperator(fp, ds));
+        var listOfCriteria = new ArrayList<Criteria>();
+        var fileNames = (List<String>) request.get("fileNames");
+        var fileDigests = (List<String>) request.get("fileDigests");
+        if (fileNames != null) {
+            listOfCriteria.add(Criteria.where("fileName").in(fileNames));
+        }
+        if (fileDigests != null) {
+            listOfCriteria.add(Criteria.where("digestString").in((fileDigests)));
+        }
+        query.addCriteria(new Criteria().orOperator(listOfCriteria));
         query.fields().exclude("variables", "globalAttributes");
+        System.out.println(query.toString());
         List<Metadata> res = mongoTemplate.find(query, Metadata.class, METADATA_COLLECTION);
         if(!res.isEmpty()) {
             Map<String, Metadata> existingDigests = res.stream().collect(Collectors.toMap(m -> m.digestString, m->m));

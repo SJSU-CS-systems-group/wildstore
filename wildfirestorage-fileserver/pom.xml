@@ -21,7 +21,7 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
-            <version>3.0.6</version>
+            <version>3.4.3</version>
         </dependency>
         <dependency>
             <groupId>com.sjsu.wildfirestorage</groupId>
@@ -37,6 +37,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>3.4.3</version>
                 <configuration>
                     <executable>true</executable>
                     <mainClass>com.sjsu.wildfirestorage.Main</mainClass>

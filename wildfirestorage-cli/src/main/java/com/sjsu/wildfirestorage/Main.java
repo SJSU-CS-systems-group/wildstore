@@ -40,7 +40,7 @@ public class Main {
             System.out.println(Arrays.toString(emails));
                 try {
                     System.out.println(Client.post(Client.getWebClient(metaURL + "/api/share-link/create"),
-                            Map.of("fileDigest", fileNames, "emailAddresses", emails, "validFor", validFor),
+                            Map.of("fileNames", fileNames, "emailAddresses", emails, "validFor", validFor),
                             new ParameterizedTypeReference<String>() {
                             }, httpHeaders -> {
                                 httpHeaders.setBearerAuth(token);
@@ -49,7 +49,7 @@ public class Main {
                     var message = e.getMessage();
                     // if this is a message about a connection problem, drop all the text before connection
                     if (message.contains("Connection")) message = message.substring(message.indexOf("Connection"));
-                    System.err.printf("%s: %s\n", message, fileNames);
+                    System.err.printf("%s: %s\n", message, Arrays.toString(fileNames));
                 }
             //}
         }
