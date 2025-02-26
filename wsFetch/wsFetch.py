@@ -3,6 +3,7 @@ import os
 import pathlib
 import re
 import sys
+import time
 import urllib.request
 
 READ_CHUNK_SIZE = 1024*1024
@@ -23,14 +24,25 @@ def fetch(URL, token):
         content_downloaded = 0
         print(f"Fetching {URL} to {filename} 0/{content_length_hr}", end="", flush=True)
         spin_index = 0
+        last_rate_time = time.time()
+        last_rate_downloaded = 0
+        mbs = ""
         with open(filename, "wb") as fd:
             while True:
-                print(f"\rFetching {URL} to {filename} {human_readable_size(content_downloaded)}/{content_length_hr} {spinner[spin_index]}   ", end="", flush=True)
                 spin_index = (spin_index + 1) % len(spinner)
                 data = response.read(READ_CHUNK_SIZE)
                 if data:
                     fd.write(data)
                     content_downloaded += len(data)
+                    diff = (content_downloaded-last_rate_downloaded)/(1024*1024)
+                    # update every 20M change
+                    if diff > 20:
+                        now = time.time()
+                        mbs = f"{diff/(now-last_rate_time):.1f} MB/s"
+                        progress = f"{human_readable_size(content_downloaded)}/{content_length_hr}"
+                        print(f"\rFetching {URL} to {filename} {spinner[spin_index]} {progress} {mbs}     ", end="", flush=True)
+                        last_rate_time = now
+                        last_rate_downloaded = content_downloaded
                 else:
                     break
         print("\b\b\b.")
