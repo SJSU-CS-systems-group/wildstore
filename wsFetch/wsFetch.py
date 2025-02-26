@@ -10,8 +10,6 @@ spinner = ['-', '/', '|', '\\', '-', '/', '|', '\\']
 def fetch(URL, token):
     request = urllib.request.Request(URL)
     request.add_header("Authorization", "Bearer " + token)
-    print(request.full_url)
-    print(f"Fetching {URL} ", end="", flush=True)
     with (urllib.request.urlopen(request) as response):
         filename = None
         disposition = response.getheader('Content-Disposition')
@@ -21,20 +19,34 @@ def fetch(URL, token):
             filename = os.path.basename(filename)
         else:
             filename = "downloaded.nc"
-        print(f"to {filename} ", end="", flush=True)
+        content_length_hr = human_readable_size(int(response.getheader('Content-Length')))
+        content_downloaded = 0
+        print(f"Fetching {URL} to {filename} 0/{content_length_hr}", end="", flush=True)
         spin_index = 0
         with open(filename, "wb") as fd:
             while True:
-                print(f"\b{spinner[spin_index]}", end="", flush=True)
+                print(f"\rFetching {URL} to {filename} {human_readable_size(content_downloaded)}/{content_length_hr} {spinner[spin_index]}   ", end="", flush=True)
                 spin_index = (spin_index + 1) % len(spinner)
-
                 data = response.read(READ_CHUNK_SIZE)
                 if data:
                     fd.write(data)
+                    content_downloaded += len(data)
                 else:
                     break
-        print("\b.")
+        print("\b\b\b.")
 
+
+def human_readable_size(size):
+    if size is None:
+        return "unknown"
+    if size < 1024:
+        return f"{size}b"
+    elif size < 1024 * 1024:
+        return f"{size/1024:.1f}k"
+    elif size < 1024 * 1024 * 1024:
+        return f"{size/(1024*1024):.1f}m"
+    else:
+        return f"{size/(1024*1024*1024):.1f}g"
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
