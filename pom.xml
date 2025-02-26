@@ -21,6 +21,21 @@
     <maven.compiler.target>17</maven.compiler.target>
   </properties>
 
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>  <!-- Use the latest stable version -->
+        <configuration>
+          <compilerArgs>
+            <arg>-parameters</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
   <modules>
     <module>wildfirestorage-core</module>
     <module>wildfirestorage-common</module>
