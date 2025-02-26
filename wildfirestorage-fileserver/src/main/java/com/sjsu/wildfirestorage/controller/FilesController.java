@@ -1,6 +1,7 @@
 package com.sjsu.wildfirestorage.controller;
 
 import com.sjsu.wildfirestorage.Metadata;
+import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -49,18 +50,26 @@ public class FilesController {
                 break;
             }
         }
+        ServletOutputStream outputStream;
+        try {
+            outputStream = response.getOutputStream();
+        } catch (IOException e) {
+            log.info("Error getting output stream", e);
+            return;
+        }
         if (fileToOpen == null) {
             response.setStatus(HttpStatus.NOT_FOUND.value());
             response.setContentType(MediaType.TEXT_HTML_VALUE);
             try {
-                response.getOutputStream().write("File is missing. Please contact the content owner.".getBytes());
+                outputStream.write("File is missing. Please contact the content owner.".getBytes());
             } catch (IOException ignore) {}
             return;
         }
-        try (RandomAccessFile file = new RandomAccessFile(fileToOpen, "r")) {
+        try (var file = new RandomAccessFile(fileToOpen, "r")) {
             long fileLength = file.length();
 
             String rangeHeader = request.getHeader("Range");
+            log.info("Starting to transfer " + fileToOpen + " Range header: " + rangeHeader);
             if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
                 String[] ranges = rangeHeader.substring(6).split("-");
                 long start = Long.parseLong(ranges[0]);
@@ -79,7 +88,7 @@ public class FilesController {
                 response.setHeader("Accept-Ranges", "bytes");
                 response.setHeader("Content-Type", MediaType.APPLICATION_OCTET_STREAM_VALUE);
 
-                byte[] buffer = new byte[4096];
+                byte[] buffer = new byte[65536];
                 int bytesRead;
                 long bytesRemaining = contentLength;
 
@@ -87,7 +96,7 @@ public class FilesController {
                 while (bytesRemaining > 0) {
                     bytesRead = file.read(buffer, 0, (int) Math.min(buffer.length, bytesRemaining));
                     if (bytesRead >= 0) {
-                        response.getOutputStream().write(buffer, 0, bytesRead);
+                        outputStream.write(buffer, 0, bytesRead);
                         bytesRemaining -= bytesRead;
                     } else {
                         break;
@@ -96,22 +105,26 @@ public class FilesController {
             } else {
                 response.setStatus(HttpStatus.OK.value());
                 response.setHeader("Content-Length", String.valueOf(fileLength));
-                response.setHeader("Content-Disposition", "attachment; filename=" + result.fileName.toArray()[0]);
+                response.setHeader("Content-Disposition", "attachment; filename=" + fileToOpen);
                 response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
 
-                byte[] buffer = new byte[4096];
+                byte[] buffer = new byte[1024*1024];
                 int bytesRead;
+                long totalRead = 0;
 
                 while ((bytesRead = file.read(buffer)) != -1) {
-                    response.getOutputStream().write(buffer, 0, bytesRead);
+                    outputStream.write(buffer, 0, bytesRead);
+                    outputStream.flush();
+                    totalRead += bytesRead;
                 }
+                log.info("Finished writing file " + fileToOpen + " last " + bytesRead + " total bytes read: " + totalRead);
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            log.info("download error", e);
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             response.setContentType(MediaType.TEXT_HTML_VALUE);
             try {
-                response.getOutputStream().println("Error: " + e.getMessage());
+                outputStream.println("Error: " + e.getMessage());
             } catch (IOException ignore) {}
         }
     }
