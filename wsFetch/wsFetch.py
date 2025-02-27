@@ -8,7 +8,7 @@ import urllib.request
 
 READ_CHUNK_SIZE = 1024*1024
 spinner = ['-', '/', '|', '\\', '-', '/', '|', '\\']
-def fetch(URL, token):
+def fetch(URL, token, name_only = False):
     request = urllib.request.Request(URL)
     request.add_header("Authorization", "Bearer " + token)
     with (urllib.request.urlopen(request) as response):
@@ -27,6 +27,9 @@ def fetch(URL, token):
         last_rate_time = time.time()
         last_rate_downloaded = 0
         mbs = ""
+        if name_only:
+            print()
+            return
         with open(filename, "wb") as fd:
             while True:
                 spin_index = (spin_index + 1) % len(spinner)
@@ -70,6 +73,7 @@ if __name__ == '__main__':
     cf = str(pathlib.Path.home() / ".config" / "wildstore.ini")
     parser.add_argument("--token-file", default=cf,
                         help=f"location of ini file (default is {cf}) with access token. (token=XXXX)")
+    parser.add_argument('--name-only', action='store_true', help='Display filename to download, but do not download', default=False)
     args=parser.parse_args()
     token = None
     try:
@@ -91,8 +95,8 @@ if __name__ == '__main__':
             try:
                 with open(U, "r") as f:
                     for line in f.readlines():
-                        fetch(line.strip(), token)
+                        fetch(line.strip(), token, args.name_only)
             except Exception as e:
                 print(e, file=sys.stderr)
         else:
-            fetch(U, token)
+            fetch(U, token, args.name_only)
