@@ -152,6 +152,8 @@ public class FilesController {
             } else {
                 try {
                     var token = request.getHeader("Authorization");
+                    // we need to change to FORBIDDEN because UNAUTHORIZED will cause the
+                    // content to be ignored in wget. stupid wget!
                     response.setStatus(HttpStatus.FORBIDDEN.value());
                     var os = response.getOutputStream();
                     os.println("You do not have access to this resource.");
