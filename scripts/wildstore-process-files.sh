@@ -124,7 +124,7 @@ then
                 fi
             fi
             mkdir -p "$OUTDIR/$REG/$DATE"
-            OUTFILE="$OUTDIR/$REG/$DATE/$TYPE.html"
+            OUTFILE="$OUTDIR/$REG/$DATE/$TYPE.lst"
         fi
         if [ -n "$OUTFILE" ] && grep $filename "$OUTFILE" &> /dev/null
         then
@@ -132,19 +132,16 @@ then
             continue
         fi
         # the first line of output of the share is the email address we are sharing with, so we skip it
-        URL=$($JAVA -jar $BASE_DIR/wildfirestorage-cli.jar share \
+        URL="$($JAVA -jar $BASE_DIR/wildfirestorage-cli.jar share \
             --email=\* \
             --token=$TOKEN \
-            --validFor=year "$filename" | tail -n +2)
+            --validFor=year "$filename" | tail -n +2)?filename=$filename_only"
         if [ -n "$OUTFILE" ]
         then
-            cat <<EOF >> "$OUTFILE"
-<a href="$URL">
-$filename_only
-</a><br/>
-EOF
+            echo "Adding file $filename to '$OUTFILE'."
+            echo "$URL" >> "$OUTFILE"
         else
-            echo "$filename => $URL"
+            echo "$URL"
         fi
     done
 fi
