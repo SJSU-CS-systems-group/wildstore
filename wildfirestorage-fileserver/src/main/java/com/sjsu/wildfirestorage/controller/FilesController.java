@@ -45,7 +45,7 @@ public class FilesController {
         for (var fileName : result.fileName) {
             var file = new File(fileName);
             if (file.canRead()) {
-                log.info("Found to download: " + file.getAbsolutePath());
+                log.info("Found to download: {}", file.getAbsolutePath());
                 fileToOpen = file;
                 break;
             }
@@ -69,7 +69,7 @@ public class FilesController {
             long fileLength = file.length();
 
             String rangeHeader = request.getHeader("Range");
-            log.info("Starting to transfer " + fileToOpen + " Range header: " + rangeHeader);
+            log.info("Starting to transfer {} Range header: {}", fileToOpen, rangeHeader);
             if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
                 String[] ranges = rangeHeader.substring(6).split("-");
                 long start = Long.parseLong(ranges[0]);
@@ -117,7 +117,7 @@ public class FilesController {
                     outputStream.flush();
                     totalRead += bytesRead;
                 }
-                log.info("Finished writing file " + fileToOpen + " last " + bytesRead + " total bytes read: " + totalRead);
+                log.info("Finished writing file {} last {} total bytes read: {}", fileToOpen, bytesRead, totalRead);
             }
         } catch (Exception e) {
             log.info("download error", e);
@@ -137,6 +137,12 @@ public class FilesController {
             RestTemplate restTemplate = new RestTemplate();
             HttpHeaders headers = new HttpHeaders();
             headers.add("Authorization", request.getHeader("Authorization"));
+            // add all the cookies from the request to the headers
+            var reqHeaders = request.getHeaders("Cookies");
+            if (reqHeaders != null) {
+                reqHeaders.asIterator().forEachRemaining(value -> headers.add("Cookie", value));
+            }
+
             HttpEntity<String> entity = new HttpEntity<>(shareId, headers);
             Metadata result = restTemplate.postForObject(verifyUri, entity, Metadata.class);
             if (result == null) {
@@ -167,7 +173,7 @@ public class FilesController {
                         os.println("I see you used a token, but it is not valid for this resource.");
                     }
                 } catch (IOException e) {
-                    log.error("Error writing to output stream: " + e.getMessage());
+                    log.error("Error writing to output stream: {}", e.getMessage());
                 }
             }
         }
