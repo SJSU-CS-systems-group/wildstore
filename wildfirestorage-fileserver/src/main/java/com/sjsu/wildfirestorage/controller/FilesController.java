@@ -131,19 +131,29 @@ public class FilesController {
 
     @GetMapping("/share/{shareId}")
     public void downloadSharedFile(@PathVariable String shareId, HttpServletRequest request, HttpServletResponse response) {
+        String authorization = request.getHeader("Authorization");
         try {
             final String verifyUri = metadataServerUrl + "/api/share-link/verify";
 
             RestTemplate restTemplate = new RestTemplate();
             HttpHeaders headers = new HttpHeaders();
-            headers.add("Authorization", request.getHeader("Authorization"));
+            if (authorization != null) {
+                headers.add("Authorization", authorization);
+            }
             // add all the cookies from the request to the headers
-            var reqHeaders = request.getHeaders("Cookies");
-            if (reqHeaders != null) {
-                reqHeaders.asIterator().forEachRemaining(value -> headers.add("Cookie", value));
+            var reqCookies = request.getCookies();
+            if (reqCookies != null) {
+                for (var cookie : reqCookies) {
+                    headers.add("Cookie", cookie.getName() + "=" + cookie.getValue());
+                }
+            }
+            var host = request.getHeader("Host");
+            if (host != null) {
+                headers.add("Host", host);
             }
 
             HttpEntity<String> entity = new HttpEntity<>(shareId, headers);
+            log.info("headers {} request: {}", headers, restTemplate);
             Metadata result = restTemplate.postForObject(verifyUri, entity, Metadata.class);
             if (result == null) {
                 return;
@@ -157,10 +167,11 @@ public class FilesController {
                 response.setStatus(httpStatus.value());
             } else {
                 try {
-                    var token = request.getHeader("Authorization");
-                    // we need to change to FORBIDDEN because UNAUTHORIZED will cause the
-                    // content to be ignored in wget. stupid wget!
-                    response.setStatus(HttpStatus.FORBIDDEN.value());
+                    var token = authorization;
+                    // redirect to the /login page if the user is not authenticated
+                    response.setStatus(HttpStatus.TEMPORARY_REDIRECT.value());
+                    response.setHeader("Location", "/login?redirect_url=/share/" + shareId);
+                    response.setContentType(MediaType.TEXT_HTML_VALUE);
                     var os = response.getOutputStream();
                     os.println("You do not have access to this resource.");
                     if (token == null) {

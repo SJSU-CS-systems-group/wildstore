@@ -211,20 +211,32 @@ public class ShareLinkController {
     @PreAuthorize("hasRole('GUEST')")
     @PostMapping("/downloadhistory")
     public Integer addDownloadHistory(@RequestBody String shareId, HttpServletRequest request, HttpServletResponse response) {
-            Query query = new Query(Criteria.where("shareId").is(shareId));
-            Query authQuery = new Query(Criteria.where("token").is(request.getHeader(HttpHeaders.AUTHORIZATION).substring(7)));
+        Query query = new Query(Criteria.where("shareId").is(shareId));
+        String authorizationHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+        String userName;
+        if (authorizationHeader != null) {
+            Query authQuery = new Query(Criteria.where("token").is(authorizationHeader.substring(7)));
             List<DBObject> authList = mongoTemplate.find(authQuery, DBObject.class, USER_DATA_COLLECTION);
             if (authList.isEmpty()) {
                 logger.warn("Token not found in userData collection");
                 return 1;
             }
-            Download download = new Download();
-            download.dateTime = LocalDateTime.now();
-            download.downloadedBy = (String) authList.get(0).get("name");
-            Update update = new Update().push("downloads", download);
-            mongoTemplate.updateFirst(query, update, "share-links");
-            logger.info("Add download history successful");
-            return 0;
+            userName = (String) authList.get(0).get("name");
+        } else {
+            // if a token wasn't used, see if there is other authentication info
+            userName = getCurrentUserName();
+            if (userName == null) {
+                logger.warn("User not authenticated, cannot add download history");
+                return 1;
+            }
+        }
+        Download download = new Download();
+        download.dateTime = LocalDateTime.now();
+        download.downloadedBy = userName;
+        Update update = new Update().push("downloads", download);
+        mongoTemplate.updateFirst(query, update, "share-links");
+        logger.info("Add download history successful");
+        return 0;
     }
 
     private String getCurrentUserName() {
