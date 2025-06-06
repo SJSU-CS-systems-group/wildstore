@@ -146,7 +146,30 @@ public class FilesController {
 
             restTemplate.postForObject(metadataServerUrl + "/api/share-link/downloadhistory", entity, Integer.class);
         } catch (HttpStatusCodeException ex) {
-            response.setStatus(ex.getStatusCode().value());
+            var httpStatus = ex.getStatusCode();
+            if (httpStatus != HttpStatus.UNAUTHORIZED) {
+                response.setStatus(httpStatus.value());
+            } else {
+                try {
+                    var token = request.getHeader("Authorization");
+                    // we need to change to FORBIDDEN because UNAUTHORIZED will cause the
+                    // content to be ignored in wget. stupid wget!
+                    response.setStatus(HttpStatus.FORBIDDEN.value());
+                    var os = response.getOutputStream();
+                    os.println("You do not have access to this resource.");
+                    if (token == null) {
+                        os.println("Please use a token for this resource. Examples:");
+                        os.println("<pre>");
+                        os.println("    curl -H \"Authorization: Bearer TOKEN_FROM_WEB\" URL");
+                        os.println("    wget --header=\"Authorization: Bearer TOKEN_FROM_WEB\" URL");
+                        os.println("</pre>");
+                    } else {
+                        os.println("I see you used a token, but it is not valid for this resource.");
+                    }
+                } catch (IOException e) {
+                    log.error("Error writing to output stream: " + e.getMessage());
+                }
+            }
         }
     }
 }
