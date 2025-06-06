@@ -45,7 +45,7 @@ public class FilesController {
         for (var fileName : result.fileName) {
             var file = new File(fileName);
             if (file.canRead()) {
-                log.info("Found to download: " + file.getAbsolutePath());
+                log.info("Found to download: {}", file.getAbsolutePath());
                 fileToOpen = file;
                 break;
             }
@@ -69,7 +69,7 @@ public class FilesController {
             long fileLength = file.length();
 
             String rangeHeader = request.getHeader("Range");
-            log.info("Starting to transfer " + fileToOpen + " Range header: " + rangeHeader);
+            log.info("Starting to transfer {} Range header: {}", fileToOpen, rangeHeader);
             if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
                 String[] ranges = rangeHeader.substring(6).split("-");
                 long start = Long.parseLong(ranges[0]);
@@ -117,7 +117,7 @@ public class FilesController {
                     outputStream.flush();
                     totalRead += bytesRead;
                 }
-                log.info("Finished writing file " + fileToOpen + " last " + bytesRead + " total bytes read: " + totalRead);
+                log.info("Finished writing file {} last {} total bytes read: {}", fileToOpen, bytesRead, totalRead);
             }
         } catch (Exception e) {
             log.info("download error", e);
@@ -131,13 +131,29 @@ public class FilesController {
 
     @GetMapping("/share/{shareId}")
     public void downloadSharedFile(@PathVariable String shareId, HttpServletRequest request, HttpServletResponse response) {
+        String authorization = request.getHeader("Authorization");
         try {
             final String verifyUri = metadataServerUrl + "/api/share-link/verify";
 
             RestTemplate restTemplate = new RestTemplate();
             HttpHeaders headers = new HttpHeaders();
-            headers.add("Authorization", request.getHeader("Authorization"));
+            if (authorization != null) {
+                headers.add("Authorization", authorization);
+            }
+            // add all the cookies from the request to the headers
+            var reqCookies = request.getCookies();
+            if (reqCookies != null) {
+                for (var cookie : reqCookies) {
+                    headers.add("Cookie", cookie.getName() + "=" + cookie.getValue());
+                }
+            }
+            var host = request.getHeader("Host");
+            if (host != null) {
+                headers.add("Host", host);
+            }
+
             HttpEntity<String> entity = new HttpEntity<>(shareId, headers);
+            log.info("headers {} request: {}", headers, restTemplate);
             Metadata result = restTemplate.postForObject(verifyUri, entity, Metadata.class);
             if (result == null) {
                 return;
@@ -151,10 +167,11 @@ public class FilesController {
                 response.setStatus(httpStatus.value());
             } else {
                 try {
-                    var token = request.getHeader("Authorization");
-                    // we need to change to FORBIDDEN because UNAUTHORIZED will cause the
-                    // content to be ignored in wget. stupid wget!
-                    response.setStatus(HttpStatus.FORBIDDEN.value());
+                    var token = authorization;
+                    // redirect to the /login page if the user is not authenticated
+                    response.setStatus(HttpStatus.TEMPORARY_REDIRECT.value());
+                    response.setHeader("Location", "/login?redirect_url=/share/" + shareId);
+                    response.setContentType(MediaType.TEXT_HTML_VALUE);
                     var os = response.getOutputStream();
                     os.println("You do not have access to this resource.");
                     if (token == null) {
@@ -167,7 +184,7 @@ public class FilesController {
                         os.println("I see you used a token, but it is not valid for this resource.");
                     }
                 } catch (IOException e) {
-                    log.error("Error writing to output stream: " + e.getMessage());
+                    log.error("Error writing to output stream: {}", e.getMessage());
                 }
             }
         }
