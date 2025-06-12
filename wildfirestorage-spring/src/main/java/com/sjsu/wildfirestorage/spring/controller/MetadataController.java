@@ -25,7 +25,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-
 @RestController
 @RequestMapping("/api")
 public class MetadataController {
@@ -43,6 +42,7 @@ public class MetadataController {
 
     /**
      * Searches metadata documents corresponding to the query
+     *
      * @param request A request object that contains the search query
      * @return a list of matching Metadata documents
      * @throws JSQLParserException
@@ -52,15 +52,15 @@ public class MetadataController {
     public List<Metadata> search(@RequestBody MetadataRequest request) throws JSQLParserException {
         Query query = new Query();
         Criteria criteria = CriteriaBuilder.buildFromSQL(request.searchQuery);
-        if(criteria != null) {
+        if (criteria != null) {
             query.addCriteria(criteria);
         }
         query.limit(request.limit);
         query.skip(request.offset);
-        if(request.includeFields != null) {
+        if (request.includeFields != null) {
             query.fields().include(request.includeFields);
         }
-        if(request.excludeFields != null) {
+        if (request.excludeFields != null) {
             query.fields().exclude(request.excludeFields);
         }
         var res = mongoTemplate.find(query, Metadata.class);
@@ -70,14 +70,17 @@ public class MetadataController {
     @PreAuthorize("hasRole('USER')")
     @PostMapping("/metadata/search/count")
     public long searchCount(@RequestBody MetadataRequest request) throws JSQLParserException {
-        SecurityContextHolder.getContext().getAuthentication().getAuthorities().forEach(ga -> System.out.println("^^^^^^^^^^^"+ga));
+        SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getAuthorities()
+                .forEach(ga -> System.out.println("^^^^^^^^^^^" + ga));
         System.out.println();
         Query query = new Query();
         Criteria criteria = CriteriaBuilder.buildFromSQL(request.searchQuery);
-        if(criteria != null) {
+        if (criteria != null) {
             query.addCriteria(criteria);
         }
-        if(request.excludeFields != null) {
+        if (request.excludeFields != null) {
             query.fields().exclude(request.excludeFields);
         }
         return mongoTemplate.count(query, Metadata.class);
@@ -88,24 +91,24 @@ public class MetadataController {
     public DBObject getMetadataByDigest(@PathVariable String digestString) {
         Query query = new Query(Criteria.where("digestString").is(digestString));
         List<DBObject> res = mongoTemplate.find(query, DBObject.class, METADATA_COLLECTION);
-        return res.isEmpty()? null : res.get(0);
+        return res.isEmpty() ? null : res.get(0);
     }
 
     /**
      * Searches Metadata documents where filename matches
+     *
      * @param fileName the file whose metadata is to be retrieved
      * @return Metadata related to the filename
      */
     @PreAuthorize("hasRole('USER')")
     @GetMapping("/metadata")
     public List<DBObject> getFileMetadata(@RequestParam("filename") String fileName) {
-        Query query = new Query(Criteria.where("fileName").regex(".*"+fileName+".*"));
+        Query query = new Query(Criteria.where("fileName").regex(".*" + fileName + ".*"));
         List<DBObject> res = mongoTemplate.find(query, DBObject.class, METADATA_COLLECTION);
         return res;
     }
 
     /**
-     *
      * @param metadata The metadata document to be inserted
      * @return 0 on success
      * @throws MongoWriteException
@@ -115,9 +118,9 @@ public class MetadataController {
     public int upsertMetadata(@RequestBody Metadata metadata) throws MongoWriteException {
         // Convert string date to date type to allow querying on dates
         metadata.globalAttributes.forEach(attr -> {
-            if(attr.type.equals("Date")) {
+            if (attr.type.equals("Date")) {
                 try {
-                    attr.value = new Date((long)attr.value);
+                    attr.value = new Date((long) attr.value);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
@@ -126,15 +129,15 @@ public class MetadataController {
         Query query = new Query(Criteria.where("digestString").is(metadata.digestString));
         query.fields().exclude("variables", "globalAttributes");
         var existingDoc = mongoTemplate.find(query, Metadata.class);
-        if(!existingDoc.isEmpty()) {
+        if (!existingDoc.isEmpty()) {
             existingDoc.get(0).fileName.addAll(metadata.fileName);
             existingDoc.get(0).filePath.addAll(metadata.filePath);
             Update update = new Update().set("fileName", existingDoc.get(0).fileName)
-                .set("filePath", existingDoc.get(0).filePath);
-            if(existingDoc.get(0).fileType != null && metadata.fileType != null) {
+                    .set("filePath", existingDoc.get(0).filePath);
+            if (existingDoc.get(0).fileType != null && metadata.fileType != null) {
                 existingDoc.get(0).fileType.addAll(metadata.fileType);
                 update.set("fileType", existingDoc.get(0).fileType);
-            } else if ( metadata.fileType != null ){
+            } else if (metadata.fileType != null) {
                 update.set("fileType", metadata.fileType);
             }
             mongoTemplate.updateFirst(query, update, Metadata.class);
@@ -147,18 +150,17 @@ public class MetadataController {
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/metadata/filepath")
     public List<String> getFilePaths(@RequestParam("limit") int limit, @RequestParam("offset") int offset) {
-        Aggregation aggregation = Aggregation.newAggregation(
-                Aggregation.skip(offset),
-                Aggregation.limit(limit),
-                Aggregation.unwind("filePath"),
-                Aggregation.group().addToSet("filePath").as("files"),
-                Aggregation.project("files"));
+        Aggregation aggregation = Aggregation.newAggregation(Aggregation.skip(offset),
+                                                             Aggregation.limit(limit),
+                                                             Aggregation.unwind("filePath"),
+                                                             Aggregation.group().addToSet("filePath").as("files"),
+                                                             Aggregation.project("files"));
 
         List<DBObject> res = mongoTemplate.aggregate(aggregation, "metadata", DBObject.class).getMappedResults();
-        if(res.isEmpty()) {
+        if (res.isEmpty()) {
             return List.of();
         }
-        List<String> files = (List<String>)res.get(0).get("files");
+        List<String> files = (List<String>) res.get(0).get("files");
         return files;
     }
 
@@ -173,8 +175,10 @@ public class MetadataController {
     @PreAuthorize("hasRole('USER')")
     @GetMapping("/metadata/description")
     public Map getDescriptions() throws IOException {
-        return Map.of("variables", variableResourceFile.getContentAsString(Charset.defaultCharset()),
-                "attributes", attributeResourceFile.getContentAsString(Charset.defaultCharset()));
+        return Map.of("variables",
+                      variableResourceFile.getContentAsString(Charset.defaultCharset()),
+                      "attributes",
+                      attributeResourceFile.getContentAsString(Charset.defaultCharset()));
     }
 }
 

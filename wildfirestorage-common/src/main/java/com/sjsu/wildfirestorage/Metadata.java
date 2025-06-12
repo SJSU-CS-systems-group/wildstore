@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.springframework.data.mongodb.core.geo.GeoJsonPolygon;
 import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.util.List;
 import java.util.Set;
 
@@ -18,7 +19,7 @@ public class Metadata {
 
     public long fileSize;
     public String digestString;
-  
+
     @JsonDeserialize(using = GeoJsonPolygonDeserializer.class)
     @JsonSerialize(using = GeoJsonPolygonSerializer.class)
     public GeoJsonPolygon location;

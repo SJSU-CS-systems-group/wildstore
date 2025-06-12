@@ -8,8 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class PrintData {
-    public static void printAllData(Metadata metadata)
-    {
+    public static void printAllData(Metadata metadata) {
         //Print Name and filepath
         System.out.println("Filename: " + metadata.fileName);
         System.out.println("FilePath: " + metadata.filePath);
@@ -17,13 +16,12 @@ public class PrintData {
         System.out.println("FileSize: " + metadata.fileSize);
         System.out.println("Domain: " + metadata.domain);
         System.out.println("Digest String: " + metadata.digestString);
-        if(metadata.location != null)
-            System.out.println("Corners: " + metadata.location.toString());
-        else
+        if (metadata.location != null) {System.out.println("Corners: " + metadata.location.toString());} else {
             System.out.println("Corners: Null");
+        }
 
         //Print All Attributes
-        if(metadata.globalAttributes != null) {
+        if (metadata.globalAttributes != null) {
             System.out.println("\nAttributes");
             for (WildfireAttribute a : metadata.globalAttributes) {
                 System.out.print(a.attributeName + "\t" + a.type + "\t");
@@ -33,10 +31,11 @@ public class PrintData {
         }
 
         //Print All Variables
-        if(metadata.variables != null) {
+        if (metadata.variables != null) {
             System.out.println("\nVariables");
             for (WildfireVariable v : metadata.variables) {
-                System.out.println(v.variableName + "\t" + v.type + "\t" + v.minValue +"\t" + v.maxValue + "\t" + v.average);
+                System.out.println(
+                        v.variableName + "\t" + v.type + "\t" + v.minValue + "\t" + v.maxValue + "\t" + v.average);
                 System.out.println("Unique Elements (HashMap): " + v.elementMap);
                 for (WildfireAttribute a : v.attributeList) {
                     System.out.print(a.attributeName + "\t" + a.type + "\t");
@@ -53,13 +52,12 @@ public class PrintData {
         System.out.println("FileType: " + metadata.fileType);
         System.out.println("FileSize: " + metadata.fileSize);
         System.out.println("Domain: " + metadata.domain);
-        if(metadata.location != null)
-            System.out.println("Corners: " + metadata.location.toString());
-        else
+        if (metadata.location != null) {System.out.println("Corners: " + metadata.location.toString());} else {
             System.out.println("Corners: Null");
+        }
 
         //Attributes
-        if(metadata.globalAttributes != null) {
+        if (metadata.globalAttributes != null) {
             System.out.println("\nAttributes:");
             for (WildfireAttribute a : metadata.globalAttributes) {
                 System.out.print(a.attributeName + "\t");
@@ -69,7 +67,7 @@ public class PrintData {
         }
 
         //Variables
-        if(metadata.variables != null) {
+        if (metadata.variables != null) {
             System.out.println("\nVariables:");
             for (WildfireVariable v : metadata.variables) {
                 System.out.print(v.variableName + "\t" + v.average + "\t" + v.elementMap);
@@ -94,10 +92,9 @@ public class PrintData {
             throw new RuntimeException(e);
         }
         try {
-            for (WildfireVariable v : metadata.variables)
-            {
+            for (WildfireVariable v : metadata.variables) {
                 if (v.elementMap != null && v.elementMap.size() != 0 && !enumVars.contains(v.variableName)) {
-                    Files.writeString(enumFile, v.variableName+"\n", StandardOpenOption.APPEND);
+                    Files.writeString(enumFile, v.variableName + "\n", StandardOpenOption.APPEND);
                 }
             }
         } catch (IOException e) {

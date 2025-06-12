@@ -19,6 +19,7 @@ public class UserInfo {
     public void setMongoTemplate(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
     }
+
     public static final String USER_COLLECTION = "userData";
 
     public static boolean tokenExist(String input) {
@@ -30,7 +31,7 @@ public class UserInfo {
         return false;
     }
 
-    public static Map getUser (String token) {
+    public static Map getUser(String token) {
         Query query = new Query(Criteria.where("token").is(token));
         var opaqueTokenMap = mongoTemplate.find(query, Map.class, USER_COLLECTION);
         if (!opaqueTokenMap.isEmpty()) {
@@ -39,7 +40,7 @@ public class UserInfo {
         return null;
     }
 
-    public static Map getUserBy (String key, String value) {
+    public static Map getUserBy(String key, String value) {
         Query query = new Query(Criteria.where(key).is(value));
         var opaqueTokenMap = mongoTemplate.find(query, Map.class, USER_COLLECTION);
         if (!opaqueTokenMap.isEmpty()) {
@@ -51,7 +52,7 @@ public class UserInfo {
     public static String getUserId(OAuth2AuthenticationToken user) {
         System.out.println(user.getPrincipal().getClass());
         String email = user.getPrincipal().getAttribute("email");
-        if(email == null) {
+        if (email == null) {
             email = user.getPrincipal().getAttribute("login") + "@github";
         }
         return email;

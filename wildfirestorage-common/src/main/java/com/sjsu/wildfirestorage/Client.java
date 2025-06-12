@@ -13,7 +13,9 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class Client {
-    public static Object get(WebClient webClient, MultiValueMap<String, String> queryParams, ParameterizedTypeReference parameterizedTypeReference) {
+    public static Object get(WebClient webClient,
+                             MultiValueMap<String, String> queryParams,
+                             ParameterizedTypeReference parameterizedTypeReference) {
         Object response = webClient.get()
                 .uri(uriBuilder -> uriBuilder.queryParams(queryParams).build())
                 .retrieve()
@@ -23,15 +25,20 @@ public class Client {
     }
 
     public static WebClient getWebClient(String path) {
-        WebClient webClient = WebClient.builder().exchangeStrategies(ExchangeStrategies.builder()
-                .codecs(configurer -> configurer
-                        .defaultCodecs()
-                        .maxInMemorySize(16 * 1024 * 1024))
-                .build()).baseUrl(path).build();
+        WebClient webClient = WebClient.builder()
+                .exchangeStrategies(ExchangeStrategies.builder()
+                                            .codecs(configurer -> configurer.defaultCodecs()
+                                                    .maxInMemorySize(16 * 1024 * 1024))
+                                            .build())
+                .baseUrl(path)
+                .build();
         return webClient;
     }
 
-    public static Object post(WebClient webClient, Object body, ParameterizedTypeReference parameterizedTypeReference) throws ExecutionException, InterruptedException {
+    public static Object post(WebClient webClient,
+                              Object body,
+                              ParameterizedTypeReference parameterizedTypeReference) throws ExecutionException,
+            InterruptedException {
 
         var response = webClient.post()
                 .body(Mono.just(body), body.getClass())
@@ -43,7 +50,10 @@ public class Client {
         return response;
     }
 
-    public static Object post(WebClient webClient, Object body, ParameterizedTypeReference parameterizedTypeReference, Consumer<HttpHeaders> headers) throws ExecutionException, InterruptedException {
+    public static Object post(WebClient webClient,
+                              Object body,
+                              ParameterizedTypeReference parameterizedTypeReference,
+                              Consumer<HttpHeaders> headers) throws ExecutionException, InterruptedException {
 
         var response = webClient.post()
                 .headers(headers)

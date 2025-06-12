@@ -10,7 +10,6 @@ import org.springframework.util.Assert;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-
 public class RequestMatchingAuthenticationManagerResolver implements AuthenticationManagerResolver<HttpServletRequest> {
     private final LinkedHashMap<RequestMatcher, AuthenticationManager> authenticationManagers;
 
@@ -18,8 +17,7 @@ public class RequestMatchingAuthenticationManagerResolver implements Authenticat
         throw new AuthenticationServiceException("Cannot authenticate " + authentication);
     };
 
-    public RequestMatchingAuthenticationManagerResolver
-            (LinkedHashMap<RequestMatcher, AuthenticationManager> authenticationManagers) {
+    public RequestMatchingAuthenticationManagerResolver(LinkedHashMap<RequestMatcher, AuthenticationManager> authenticationManagers) {
         Assert.notEmpty(authenticationManagers, "authenticationManagers cannot be empty");
         this.authenticationManagers = authenticationManagers;
     }

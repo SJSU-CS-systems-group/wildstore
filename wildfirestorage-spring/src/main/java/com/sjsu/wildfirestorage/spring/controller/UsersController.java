@@ -31,7 +31,7 @@ public class UsersController {
     @PreAuthorize("hasRole('USER')")
     @PostMapping("/")
     public boolean updateUserRole(@RequestBody Map<String, String> request) {
-        if(request.get("newRole") != "ROLE_ADMIN") {
+        if (request.get("newRole") != "ROLE_ADMIN") {
             try {
                 Query query = new Query(Criteria.where("email").is(request.get("userEmail")));
                 Update update = new Update().set("role", request.get("newRole"));
