@@ -33,7 +33,8 @@ public class OauthPropertiesChecker implements CommandLineRunner {
         env.getPropertySources().stream().iterator().forEachRemaining(s -> {
             if (s instanceof EnumerablePropertySource<?> es) {
                 Arrays.stream(es.getPropertyNames())
-                        .filter(n -> n.startsWith("spring.security.oauth2.client.registration")).forEach(n -> {
+                        .filter(n -> n.startsWith("spring.security.oauth2.client.registration"))
+                        .forEach(n -> {
                             var parts = n.split("\\.");
                             var provider = parts[parts.length - 2];
                             var prop = parts[parts.length - 1];
@@ -55,7 +56,8 @@ public class OauthPropertiesChecker implements CommandLineRunner {
             var s = oauthSecretsSources.get(i);
             if (s.getName().contains("classpath:")) {
                 System.out.printf("%s information was found on classpath. this is a security violation: %s",
-                        oauthIds.get(i), s);
+                                  oauthIds.get(i),
+                                  s);
                 System.exit(1);
             }
         }

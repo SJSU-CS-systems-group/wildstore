@@ -37,7 +37,7 @@ public class OauthController {
     @PreAuthorize("hasRole('GUEST')")
     @RequestMapping(value = { "/", "/token", "/forbidden", "/home" })
 
-    public String index () { return "index.html"; }
+    public String index() {return "index.html";}
 
     @PreAuthorize("hasRole('GUEST')")
     @GetMapping("/api/oauth/user")
@@ -63,7 +63,7 @@ public class OauthController {
     @GetMapping("/api/oauth/token/regenerate")
     public ResponseEntity<String> tokenRegenerate(OAuth2AuthenticationToken user) {
         String email = user.getPrincipal().getAttribute("email");
-        if(email == null) {
+        if (email == null) {
             email = user.getPrincipal().getAttribute("login") + "@github";
         }
         Query query = new Query(Criteria.where("email").is(email));
@@ -86,10 +86,9 @@ public class OauthController {
         Query query = new Query(Criteria.where("email").is(email));
         var opaqueTokenMap = mongoTemplate.find(query, Map.class, USER_COLLECTION);
         String opaqueToken = null;
-        if(!opaqueTokenMap.isEmpty()) {
+        if (!opaqueTokenMap.isEmpty()) {
             opaqueToken = (String) opaqueTokenMap.get(0).get("token");
-        }
-        else {
+        } else {
             opaqueToken = generateToken();
             Map<String, Object> map = new HashMap<>();
             map.put("name", name);

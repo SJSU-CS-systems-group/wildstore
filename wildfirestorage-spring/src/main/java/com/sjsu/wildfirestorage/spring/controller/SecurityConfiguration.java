@@ -48,16 +48,14 @@ public class SecurityConfiguration {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(CsrfConfigurer::disable)
+        http.csrf(CsrfConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .authorizeHttpRequests(ac ->
-                        ac.requestMatchers("/error")
-                                .permitAll()
+                .authorizeHttpRequests(ac -> ac.requestMatchers("/error").permitAll()
 //                                .requestMatchers("/api").hasRole("ADMIN")
-                                .anyRequest().authenticated())
+                        .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> {
-                    oauth2.userInfoEndpoint().userAuthoritiesMapper(userAuthoritiesMapper())
+                    oauth2.userInfoEndpoint()
+                            .userAuthoritiesMapper(userAuthoritiesMapper())
                             .and()
                             .successHandler(oAuth2LoginSuccessHandler);
                 })
@@ -85,8 +83,8 @@ public class SecurityConfiguration {
         RequestMatcher readMethodRequestMatcher = request -> readMethod.contains(request.getMethod());
         authenticationManagers.put(readMethodRequestMatcher, opaque());
 
-        RequestMatchingAuthenticationManagerResolver authenticationManagerResolver
-                = new RequestMatchingAuthenticationManagerResolver(authenticationManagers);
+        RequestMatchingAuthenticationManagerResolver authenticationManagerResolver =
+                new RequestMatchingAuthenticationManagerResolver(authenticationManagers);
 
         authenticationManagerResolver.setDefaultAuthenticationManager(opaque());
         return authenticationManagerResolver;
@@ -96,8 +94,13 @@ public class SecurityConfiguration {
         OpaqueTokenIntrospector introspectionClient = token -> {
             Map userInfo = UserInfo.getUser(token);
             if (userInfo != null) {
-                return new DefaultOAuth2AuthenticatedPrincipal("user", Map.of("name", userInfo.get("name"), "email", userInfo.get("email")),
-                        List.of(new SimpleGrantedAuthority((String) userInfo.get("role"))));
+                return new DefaultOAuth2AuthenticatedPrincipal("user",
+                                                               Map.of("name",
+                                                                      userInfo.get("name"),
+                                                                      "email",
+                                                                      userInfo.get("email")),
+                                                               List.of(new SimpleGrantedAuthority((String) userInfo.get(
+                                                                       "role"))));
             } else {
                 throw new BadOpaqueTokenException("Invalid token " + token);
             }
@@ -111,7 +114,9 @@ public class SecurityConfiguration {
             authorities.forEach(authority -> {
                 Map userInfo = null;
                 if (authority.getAuthority().equals("OAUTH2_USER")) {
-                    userInfo = UserInfo.getUserBy("email", (String) ((OAuth2UserAuthority) authority).getAttributes().get("login") + "@github");
+                    userInfo = UserInfo.getUserBy("email",
+                                                  (String) ((OAuth2UserAuthority) authority).getAttributes()
+                                                          .get("login") + "@github");
 
                     if (userInfo != null && userInfo.get("role") != null) {
                         GrantedAuthority ga = new SimpleGrantedAuthority((String) userInfo.get("role"));
@@ -121,7 +126,9 @@ public class SecurityConfiguration {
                         mappedAuthorities.add(ga);
                     }
                 } else if (authority.getAuthority().equals("OIDC_USER")) {
-                    userInfo = UserInfo.getUserBy("email", (String) ((OidcUserAuthority) authority).getAttributes().get("email"));
+                    userInfo = UserInfo.getUserBy("email",
+                                                  (String) ((OidcUserAuthority) authority).getAttributes()
+                                                          .get("email"));
 
                     if (userInfo != null && userInfo.get("role") != null) {
                         GrantedAuthority ga = new SimpleGrantedAuthority((String) userInfo.get("role"));
@@ -141,8 +148,7 @@ public class SecurityConfiguration {
     @Bean
     static RoleHierarchy roleHierarchy() {
         RoleHierarchyImpl hierarchy = new RoleHierarchyImpl();
-        hierarchy.setHierarchy("ROLE_ADMIN > ROLE_USER\n" +
-                "ROLE_USER > ROLE_GUEST");
+        hierarchy.setHierarchy("ROLE_ADMIN > ROLE_USER\n" + "ROLE_USER > ROLE_GUEST");
         return hierarchy;
     }
 

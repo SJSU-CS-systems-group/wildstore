@@ -26,7 +26,9 @@ public class FilesController {
 
     @CrossOrigin(origins = "http://localhost:3000")
     @GetMapping("/file/{digestString}")
-    public void downloadFile(@PathVariable String digestString, HttpServletRequest request, HttpServletResponse response) {
+    public void downloadFile(@PathVariable String digestString,
+                             HttpServletRequest request,
+                             HttpServletResponse response) {
         final String uri = metadataServerUrl + "/api/metadata/" + digestString;
 
         RestTemplate restTemplate = new RestTemplate();
@@ -108,7 +110,7 @@ public class FilesController {
                 response.setHeader("Content-Disposition", "attachment; filename=" + fileToOpen);
                 response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
 
-                byte[] buffer = new byte[1024*1024];
+                byte[] buffer = new byte[1024 * 1024];
                 int bytesRead;
                 long totalRead = 0;
 
@@ -117,7 +119,8 @@ public class FilesController {
                     outputStream.flush();
                     totalRead += bytesRead;
                 }
-                log.info("Finished writing file " + fileToOpen + " last " + bytesRead + " total bytes read: " + totalRead);
+                log.info("Finished writing file " + fileToOpen + " last " + bytesRead + " total bytes read: " +
+                                 totalRead);
             }
         } catch (Exception e) {
             log.info("download error", e);
@@ -130,7 +133,9 @@ public class FilesController {
     }
 
     @GetMapping("/share/{shareId}")
-    public void downloadSharedFile(@PathVariable String shareId, HttpServletRequest request, HttpServletResponse response) {
+    public void downloadSharedFile(@PathVariable String shareId,
+                                   HttpServletRequest request,
+                                   HttpServletResponse response) {
         try {
             final String verifyUri = metadataServerUrl + "/api/share-link/verify";
 
