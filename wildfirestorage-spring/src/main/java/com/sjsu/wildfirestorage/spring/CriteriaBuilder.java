@@ -32,13 +32,12 @@ public class CriteriaBuilder {
     public static final String LOCATION_FIELD = "location";
 
     /**
-     *
      * @param query WHERE clause of an SQL query
      * @return MongoDB Criteria
      * @throws JSQLParserException
      */
     public static Criteria buildFromSQL(String query) throws JSQLParserException {
-        if(query.isEmpty()) {
+        if (query.isEmpty()) {
             return null;
         }
         // Set SELECT clause for parsing
@@ -49,111 +48,114 @@ public class CriteriaBuilder {
 
     /**
      * Builds Criteria recursively
+     *
      * @param ex a JSQLParser expression
      * @return a MongoDB Criteria representing the SQL query
      */
     private static Criteria build(Expression ex) {
-        switch(ex.getClass().getSimpleName()){
-            case "AndExpression" : {
+        switch (ex.getClass().getSimpleName()) {
+            case "AndExpression": {
                 Criteria criteriaLeft = build(((AndExpression) ex).getLeftExpression());
                 Criteria criteriaRight = build(((AndExpression) ex).getRightExpression());
                 Criteria criteria = new Criteria();
                 criteria.andOperator(criteriaLeft, criteriaRight);
                 return criteria;
             }
-            case "OrExpression" : {
+            case "OrExpression": {
                 Criteria criteriaLeft = build(((OrExpression) ex).getLeftExpression());
                 Criteria criteriaRight = build(((OrExpression) ex).getRightExpression());
                 Criteria criteria = new Criteria();
                 criteria.orOperator(criteriaLeft, criteriaRight);
                 return criteria;
             }
-            case "EqualsTo" : {
+            case "EqualsTo": {
                 EqualsTo eq = (EqualsTo) ex;
                 Column column = (Column) eq.getLeftExpression();
                 Criteria arrayCriteria = getArrayMatchCriteria(column);
-                if(arrayCriteria != null) {
+                if (arrayCriteria != null) {
                     arrayCriteria.and(column.getColumnName()).is(getPrimitiveValue(eq.getRightExpression()));
                     return getElemMatchCriteria(column, arrayCriteria);
                 } else {
                     return Criteria.where(column.toString()).is(getPrimitiveValue(eq.getRightExpression()));
                 }
             }
-            case "LikeExpression" : {
+            case "LikeExpression": {
                 LikeExpression like = (LikeExpression) ex;
                 Column column = (Column) like.getLeftExpression();
                 Criteria arrayCriteria = getArrayMatchCriteria(column);
-                if(arrayCriteria != null) {
-                    arrayCriteria.and(column.getColumnName()).regex((String)getPrimitiveValue(like.getRightExpression()));
+                if (arrayCriteria != null) {
+                    arrayCriteria.and(column.getColumnName())
+                            .regex((String) getPrimitiveValue(like.getRightExpression()));
                     return getElemMatchCriteria(column, arrayCriteria);
                 } else {
-                    return Criteria.where(column.toString()).regex((String)getPrimitiveValue(like.getRightExpression()));
+                    return Criteria.where(column.toString())
+                            .regex((String) getPrimitiveValue(like.getRightExpression()));
                 }
             }
-            case "NotEqualsTo" : {
+            case "NotEqualsTo": {
                 NotEqualsTo neq = (NotEqualsTo) ex;
                 Column column = (Column) neq.getLeftExpression();
                 Criteria arrayCriteria = getArrayMatchCriteria(column);
-                if(arrayCriteria != null) {
+                if (arrayCriteria != null) {
                     arrayCriteria.and(column.getColumnName()).ne(getPrimitiveValue(neq.getRightExpression()));
                     return getElemMatchCriteria(column, arrayCriteria);
                 } else {
                     return Criteria.where(column.toString()).ne(getPrimitiveValue(neq.getRightExpression()));
                 }
             }
-            case "GreaterThan" : {
+            case "GreaterThan": {
                 GreaterThan gt = (GreaterThan) ex;
                 Column column = (Column) gt.getLeftExpression();
                 Criteria arrayCriteria = getArrayMatchCriteria(column);
-                if(arrayCriteria != null) {
+                if (arrayCriteria != null) {
                     arrayCriteria.and(column.getColumnName()).gt(getPrimitiveValue(gt.getRightExpression()));
                     return getElemMatchCriteria(column, arrayCriteria);
                 } else {
                     return Criteria.where(column.toString()).gt(getPrimitiveValue(gt.getRightExpression()));
                 }
             }
-            case "GreaterThanEquals" : {
+            case "GreaterThanEquals": {
                 GreaterThanEquals gte = (GreaterThanEquals) ex;
                 Column column = (Column) gte.getLeftExpression();
                 Criteria arrayCriteria = getArrayMatchCriteria(column);
-                if(arrayCriteria != null) {
+                if (arrayCriteria != null) {
                     arrayCriteria.and(column.getColumnName()).gte(getPrimitiveValue(gte.getRightExpression()));
                     return getElemMatchCriteria(column, arrayCriteria);
                 } else {
                     return Criteria.where(column.toString()).gte(getPrimitiveValue(gte.getRightExpression()));
                 }
             }
-            case "MinorThan" : {
+            case "MinorThan": {
                 MinorThan mt = (MinorThan) ex;
                 Column column = (Column) mt.getLeftExpression();
                 Criteria arrayCriteria = getArrayMatchCriteria(column);
-                if(arrayCriteria != null) {
+                if (arrayCriteria != null) {
                     arrayCriteria.and(column.getColumnName()).lt(getPrimitiveValue(mt.getRightExpression()));
                     return getElemMatchCriteria(column, arrayCriteria);
                 } else {
                     return Criteria.where(column.toString()).lt(getPrimitiveValue(mt.getRightExpression()));
                 }
             }
-            case "MinorThanEquals" : {
+            case "MinorThanEquals": {
                 MinorThanEquals mte = (MinorThanEquals) ex;
                 Column column = (Column) mte.getLeftExpression();
                 Criteria arrayCriteria = getArrayMatchCriteria(column);
-                if(arrayCriteria != null) {
+                if (arrayCriteria != null) {
                     arrayCriteria.and(column.getColumnName()).lte(getPrimitiveValue(mte.getRightExpression()));
                     return getElemMatchCriteria(column, arrayCriteria);
                 } else {
                     return Criteria.where(column.toString()).lte(getPrimitiveValue(mte.getRightExpression()));
                 }
             }
-            case "InExpression" : {
+            case "InExpression": {
                 InExpression in = (InExpression) ex;
                 Column column = (Column) in.getLeftExpression();
-                if(column.getColumnName().equals(LOCATION_TYPE)) {
+                if (column.getColumnName().equals(LOCATION_TYPE)) {
                     List<Point> polygonPoints = new ArrayList<>();
-                    for(var item: ((ExpressionList)in.getRightItemsList()).getExpressions()){
+                    for (var item : ((ExpressionList) in.getRightItemsList()).getExpressions()) {
                         ArrayList<Double> pt = new ArrayList<>();
-                        for(var coordinate : ((RowConstructor)item).getExprList().getExpressions()) {
-                            pt.add((Double)getPrimitiveValue(coordinate));
+                        for (var coordinate : ((RowConstructor) item).getExprList().getExpressions()) {
+                            pt.add((Double) getPrimitiveValue(coordinate));
                         }
                         polygonPoints.add(new Point(pt.get(1), pt.get(0)));
                     }
@@ -163,10 +165,10 @@ public class CriteriaBuilder {
                 } else {
                     Criteria arrayCriteria = getArrayMatchCriteria(column);
                     List<Object> inListItems = new ArrayList<>();
-                    for(var item: ((ExpressionList)in.getRightItemsList()).getExpressions()){
+                    for (var item : ((ExpressionList) in.getRightItemsList()).getExpressions()) {
                         inListItems.add(getPrimitiveValue(item));
                     }
-                    if(arrayCriteria != null) {
+                    if (arrayCriteria != null) {
                         arrayCriteria.and(column.getColumnName()).in(inListItems);
                         return getElemMatchCriteria(column, arrayCriteria);
                     } else {
@@ -188,11 +190,12 @@ public class CriteriaBuilder {
      * Returns a Criteria for an Array (variables, globalAttributes)
      * Schema name is used to identify variables or globalAttributes array.
      * Table name is used to identify a particular variable or global attribute name.
+     *
      * @param column JSQLParser column
      * @return A Criteria that simply matches the variableName or attributeName fields with the requested value
      */
     private static Criteria getArrayMatchCriteria(Column column) {
-        if(column.getTable() != null && column.getTable().getSchemaName() != null) {
+        if (column.getTable() != null && column.getTable().getSchemaName() != null) {
             switch (column.getTable().getSchemaName()) {
                 case VAR_TYPE: {
                     return Criteria.where(VARIABLE_NAME_FIELD).is(column.getTable().getName());
@@ -209,13 +212,12 @@ public class CriteriaBuilder {
     }
 
     /**
-     *
-     * @param column JSQLParser Column
+     * @param column       JSQLParser Column
      * @param elemCriteria the criteria that needs to be wrapped up in an elemMatch operator
      * @return Criteria with elemMatch operator
      */
     private static Criteria getElemMatchCriteria(Column column, Criteria elemCriteria) {
-        if(column.getTable() != null && column.getTable().getSchemaName() != null) {
+        if (column.getTable() != null && column.getTable().getSchemaName() != null) {
             switch (column.getTable().getSchemaName()) {
                 case VAR_TYPE: {
                     return Criteria.where(VARIABLES_ARRAY_FIELD).elemMatch(elemCriteria);
@@ -233,31 +235,32 @@ public class CriteriaBuilder {
 
     /**
      * Converts JSQLParser values to Java values
+     *
      * @param ex JSQLParser expression
      * @return A java representation of the queried value
      */
     private static Object getPrimitiveValue(Expression ex) {
         switch (ex.getClass().getSimpleName()) {
             case "LongValue": {
-                return (long) ((LongValue)ex).getValue();
+                return (long) ((LongValue) ex).getValue();
             }
             case "DoubleValue": {
-                return (double) ((DoubleValue)ex).getValue();
+                return (double) ((DoubleValue) ex).getValue();
             }
             case "DateTimeLiteralExpression": {
                 SimpleDateFormat isoFormat = new SimpleDateFormat(DATE_FORMAT);
                 try {
                     String datetime = ((DateTimeLiteralExpression) ex).getValue();
-                    return isoFormat.parse(datetime.substring(1, datetime.length()-1));
+                    return isoFormat.parse(datetime.substring(1, datetime.length() - 1));
                 } catch (ParseException e) {
                     throw new RuntimeException(e);
                 }
             }
             case "StringValue": {
-                return ((StringValue)ex).getValue();
+                return ((StringValue) ex).getValue();
             }
             case "SignedExpression": {
-                return ((DoubleValue)((SignedExpression)ex).getExpression()).getValue() * -1;
+                return ((DoubleValue) ((SignedExpression) ex).getExpression()).getValue() * -1;
             }
             default: {
                 System.out.println("Unknown JSQLParser Value type");
