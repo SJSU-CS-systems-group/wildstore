@@ -62,11 +62,17 @@ public class ShareLinkController {
         if (fileDigests != null) {
             listOfCriteria.add(Criteria.where("digestString").in((fileDigests)));
         }
-        query.addCriteria(new Criteria().orOperator(listOfCriteria));
+        if (!listOfCriteria.isEmpty()) {
+            query.addCriteria(new Criteria().orOperator(listOfCriteria));
+        }
         query.fields().exclude("variables", "globalAttributes");
         System.out.println(query.toString());
-        List<Metadata> res = mongoTemplate.find(query, Metadata.class, METADATA_COLLECTION);
-        if (!res.isEmpty()) {
+
+        List<Metadata> res = null;
+        if (!query.getQueryObject().isEmpty())
+            res = mongoTemplate.find(query, Metadata.class, METADATA_COLLECTION);
+
+        if (res != null && !res.isEmpty()) {
             Map<String, Metadata> existingDigests = res.stream().collect(Collectors.toMap(m -> m.digestString, m -> m));
             Query linkQuery = new Query(Criteria.where("fileDigest").in(existingDigests.keySet()));
             linkQuery.addCriteria(Criteria.where("createdBy").is(getCurrentUserName()));
@@ -110,6 +116,24 @@ public class ShareLinkController {
                             break;
                     }
                     linksToInsert.add(shareLink);
+/*
+                    String fileName = "";
+                    List<String> listOfFileName;
+                    for (Metadata data : res) {
+                        if (data.filePath.equals(shareLink.filePath)) {
+                            listOfFileName = new ArrayList<String>(data.fileName);
+                            fileName = listOfFileName.getLast();
+                            break;
+                        }
+                    }
+                    if (fileName.isEmpty()) {
+                        finalShareLinks.add(fileServerUrl + "/api/share/" + shareLink.shareId + "?filename=" + "FileNameNotFound");
+                    }
+                    finalShareLinks.add(fileServerUrl + "/api/share/" + shareLink.shareId + "?" + fileName);
+
+
+
+ */
                     finalShareLinks.add(fileServerUrl + "/api/share/" + shareLink.shareId);
                 }
                 mongoTemplate.insert(linksToInsert, "share-links");
