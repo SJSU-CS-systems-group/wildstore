@@ -53,6 +53,13 @@ Sample .env file
 REACT_APP_GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY'
 ```
 
+you are going to need to setup the OAuth2 credentials for Google and GitHub.
+you can find detailed instructions here: https://spring.io/guides/tutorials/spring-boot-oauth2/
+to setup quick test credentials, go to https://console.cloud.google.com/apis/credentials
+create a credential of type OAuth2 Client ID, select application type Web Application,
+and add Authorized redirect URIs: `http://localhost:27777/login/oauth2/code/google`
+(assuming spring.port is 27777 for the meta-data server.)
+
 Sample properties.yml:
 ```
 spring:
