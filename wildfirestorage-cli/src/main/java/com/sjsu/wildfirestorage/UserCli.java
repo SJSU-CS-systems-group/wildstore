@@ -8,12 +8,12 @@ import picocli.CommandLine;
 import java.util.List;
 import java.util.Map;
 
-@CommandLine.Command(name = "user", description = "manage users. admin role required.", mixinStandardHelpOptions = true, hidden = true)
+@CommandLine.Command(name = "user", description = "manage users. admin role required.", mixinStandardHelpOptions = true)
 class UserCli {
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec;
 
-    @CommandLine.Command(description = "List all users with their roles")
+    @CommandLine.Command(description = "List all users with their roles", mixinStandardHelpOptions = true)
     public void list(@CommandLine.Mixin CliOptions cliOptions) throws CommandLine.PicocliException {
         try {
             List<Map> users = Client.get(cliOptions.metadataURL + "/api/userlist/", cliOptions.token);
@@ -29,7 +29,7 @@ class UserCli {
         }
     }
 
-    @CommandLine.Command(description = "Update or Add and email with a role")
+    @CommandLine.Command(description = "Update or Add and email with a role", mixinStandardHelpOptions = true)
     public void update(@CommandLine.Parameters(paramLabel = "email", description = "email to add/update", index = "0")
                        String email,
                        @CommandLine.Option(names = "--role", description = "role to assign") String role,
@@ -56,7 +56,7 @@ class UserCli {
         }
     }
 
-    @CommandLine.Command(description = "Remove a user by email")
+    @CommandLine.Command(description = "Remove a user by email", mixinStandardHelpOptions = true)
     public void remove(@CommandLine.Parameters(paramLabel = "email", description = "email to add/update", index = "0")
                        String email, @CommandLine.Mixin CliOptions cliOptions) {
         WebClient webClient = Client.getWebClient(cliOptions.metadataURL + "/api/userlist/" + email, cliOptions.token);

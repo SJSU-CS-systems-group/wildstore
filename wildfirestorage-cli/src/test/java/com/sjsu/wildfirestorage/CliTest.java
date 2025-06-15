@@ -6,9 +6,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import picocli.CommandLine;
@@ -27,7 +27,7 @@ public class CliTest {
     private static ConfigurableApplicationContext springCtx;
     private static String metaURL;
 
-    @TestConfiguration
+    @Configuration
     public static class TestOAuthSecurityConfig {
         @Bean
         public ClientRegistrationRepository clientRegistrationRepository() {
@@ -79,13 +79,13 @@ public class CliTest {
         var cmd = new Main.Cli();
         var adminTokenFile = tempDir.resolve("admin-token.txt");
         var result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--token", adminTokenFile.toString());
-        System.out.println(result);
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("No such file"));
         Files.write(adminTokenFile, "token=bigboss".getBytes());
         result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--token", adminTokenFile.toString());
-        System.out.println("------------------");
-        System.out.println(result);
+        Assertions.assertEquals(1, result.exitCode);
+
+        Assertions.assertTrue(result.err.contains("Unauthorized"));
         springCtx.getBean(MongoTemplate.class).createCollection("userData");
         var rec = Map.of("role", "ROLE_ADMIN",
                          "name", "boss",
@@ -93,8 +93,10 @@ public class CliTest {
                          "token", "bigboss");
         springCtx.getBean(MongoTemplate.class).insert(new HashMap(rec), "userData");
         result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--token", adminTokenFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        result = clirun(cmd, "user", "update", "--metaURL", metaURL, "--token", adminTokenFile.toString());
         System.out.println(result);
-        Thread.sleep(10000);
+
     }
     record TestResult(int exitCode, String out, String err) {}
     private static TestResult clirun(Object command, String... args) {
