@@ -76,21 +76,28 @@ public class CliTest {
 
     @Test
     public void testUserCli() throws InterruptedException, IOException {
+        String role = "ROLE_ADMIN";
+        String name = "boss";
+        String email = "boss@example.com";
+        String token = "bigboss";
+
         var cmd = new Main.Cli();
         var adminTokenFile = tempDir.resolve("admin-token.txt");
+
+        // the token file doesn't even exist, so this should fail
         var result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--token", adminTokenFile.toString());
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("No such file"));
-        Files.write(adminTokenFile, "token=bigboss".getBytes());
+        Files.write(adminTokenFile, ("token=" + token).getBytes());
         result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--token", adminTokenFile.toString());
         Assertions.assertEquals(1, result.exitCode);
 
         Assertions.assertTrue(result.err.contains("Unauthorized"));
         springCtx.getBean(MongoTemplate.class).createCollection("userData");
-        var rec = Map.of("role", "ROLE_ADMIN",
-                         "name", "boss",
-                         "email", "boss@example.com",
-                         "token", "bigboss");
+        var rec = Map.of("role", role,
+                         "name", name,
+                         "email", email,
+                         "token", token);
         springCtx.getBean(MongoTemplate.class).insert(new HashMap(rec), "userData");
         result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--token", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
