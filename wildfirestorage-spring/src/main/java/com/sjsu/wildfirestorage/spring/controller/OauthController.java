@@ -101,7 +101,7 @@ public class OauthController {
         return opaqueToken;
     }
 
-    private String generateToken() {
+    public static String generateToken() {
         Random random = ThreadLocalRandom.current();
         byte[] randomBytes = new byte[32];
         random.nextBytes(randomBytes);

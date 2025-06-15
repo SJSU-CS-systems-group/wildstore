@@ -1,0 +1,17 @@
+# this has some defaults for quick startup
+# you still need to define the oauth properties
+# for production, you should definitely override the settings with localhost
+# to add/change properties use the command line argument:
+#      --spring.config.additional-locations=<additional yml file>
+server:
+  port: 27777
+  forward-headers-strategy: framework
+custom:
+  fileServer: "http://localhost:27778"
+  frontendUrl: "http://localhost:27777"
+  expireAfterSeconds: 292000
+  allowedCorsOrigins: "https://localhost"
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost/wildfire
