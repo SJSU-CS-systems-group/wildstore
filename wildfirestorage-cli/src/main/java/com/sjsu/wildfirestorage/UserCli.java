@@ -46,7 +46,7 @@ class UserCli {
         };
         Boolean result = Client.post(
                 cliOptions.metadataURL + "/api/userlist/" + email,
-                Map.of("role", role),
+                Map.of("role", canonicalRole),
                 cliOptions.token
         );
         if (result == null || !result) {
