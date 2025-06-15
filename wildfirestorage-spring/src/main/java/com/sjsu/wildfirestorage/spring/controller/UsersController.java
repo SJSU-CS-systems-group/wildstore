@@ -43,10 +43,10 @@ public class UsersController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{email}")
-    public List<DBObject> getUser(@PathVariable String email) {
+    public List<Map> getUser(@PathVariable String email) {
         Query query = new Query(Criteria.where("email").is(email));
         var result = mongoTemplate.find(query, DBObject.class, "userData");
-        return result.stream().toList();
+        return result.stream().map(DBObject::toMap).toList();
     }
 
     @PreAuthorize("hasRole('ADMIN')")

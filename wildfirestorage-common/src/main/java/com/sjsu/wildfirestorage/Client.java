@@ -97,10 +97,6 @@ public class Client {
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<T>() {})
                 .retry(1)
-                .onErrorComplete(e -> {
-                    System.err.println(e.getMessage());
-                    return true;
-                })
                 .block();
     }
 }

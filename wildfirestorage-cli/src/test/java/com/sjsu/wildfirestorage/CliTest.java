@@ -23,6 +23,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import static java.lang.String.format;
+
 public class CliTest {
     private static ConfigurableApplicationContext springCtx;
     private static String metaURL;
@@ -83,16 +85,20 @@ public class CliTest {
 
         var cmd = new Main.Cli();
         var adminTokenFile = tempDir.resolve("admin-token.txt");
+        var userTokenFile = tempDir.resolve("user-token.txt");
 
-        // the token file doesn't even exist, so this should fail
+        // the token file doesn't even exist, so this should fail with no such file
         var result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--token", adminTokenFile.toString());
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("No such file"));
+
+        // create the token file but since it's not in the db, it should give unauthorized
         Files.write(adminTokenFile, ("token=" + token).getBytes());
         result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--token", adminTokenFile.toString());
         Assertions.assertEquals(1, result.exitCode);
+        Assertions.assertTrue(result.err.contains("Unauthorized"), format("%s doesn't contain Unauthorized", result.err));
 
-        Assertions.assertTrue(result.err.contains("Unauthorized"));
+        // add the token to the db, so everything should work
         springCtx.getBean(MongoTemplate.class).createCollection("userData");
         var rec = Map.of("role", role,
                          "name", name,
@@ -101,8 +107,41 @@ public class CliTest {
         springCtx.getBean(MongoTemplate.class).insert(new HashMap(rec), "userData");
         result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--token", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
-        result = clirun(cmd, "user", "update", "--metaURL", metaURL, "--token", adminTokenFile.toString());
-        System.out.println(result);
+        Assertions.assertEquals("", result.err);
+        Assertions.assertEquals(format("%s: %s %s%n", email, role, name), result.out);
+
+        result = clirun(cmd, "user", "update", "x@y.z", "--role", "user", "--metaURL", metaURL, "--token", adminTokenFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertEquals("", result.err);
+        Assertions.assertEquals("User x@y.z updated to role ROLE_USER\n", result.out);
+
+        result = clirun(cmd, "user", "getToken", "x@y.z", "--metaURL", metaURL, "--token", adminTokenFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertEquals("", result.err);
+        var userToken = result.out.trim().split(" ")[1];
+
+        Files.write(userTokenFile, ("token=" + userToken).getBytes());
+        result = clirun(cmd, "user", "getToken", "x@y.z", "--metaURL", metaURL, "--token", userTokenFile.toString());
+        Assertions.assertEquals(1, result.exitCode);
+        Assertions.assertTrue(result.err.contains("Forbidden"));
+
+        result = clirun(cmd, "user", "update", "x2@y.z", "--metaURL", metaURL, "--token", userTokenFile.toString());
+        Assertions.assertEquals(1, result.exitCode);
+        Assertions.assertTrue(result.err.contains("Forbidden"));
+
+        result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--token", adminTokenFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertEquals("", result.err);
+        Assertions.assertEquals(2, result.out.split("\n").length);
+
+        result = clirun(cmd, "user", "remove", "x@y.z", "--metaURL", metaURL, "--token", adminTokenFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertEquals("", result.err);
+
+        result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--token", adminTokenFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertEquals("", result.err);
+        Assertions.assertEquals(1, result.out.split("\n").length);
 
     }
     record TestResult(int exitCode, String out, String err) {}
