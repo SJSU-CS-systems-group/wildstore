@@ -54,17 +54,20 @@ public class ShareLinkController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Query query = new Query();
         var listOfCriteria = new ArrayList<Criteria>();
-        var fileNames = (List<String>) request.get("fileNames");
-        var fileDigests = (List<String>) request.get("fileDigests");
+        var fileNamesList = (List<String>) request.get("fileNames");
+        var fileNames = fileNamesList == null ? null : new HashSet<>(fileNamesList);
+        var fileDigests = (List<String>) request.get("fileDigest");
         if (fileNames != null) {
             listOfCriteria.add(Criteria.where("fileName").in(fileNames));
         }
         if (fileDigests != null) {
             listOfCriteria.add(Criteria.where("digestString").in((fileDigests)));
         }
+        if (listOfCriteria.isEmpty()) {
+            return "NO_FILE_SPECIFIED";
+        }
         query.addCriteria(new Criteria().orOperator(listOfCriteria));
         query.fields().exclude("variables", "globalAttributes");
-        System.out.println(query.toString());
         List<Metadata> res = mongoTemplate.find(query, Metadata.class, METADATA_COLLECTION);
         if (!res.isEmpty()) {
             Map<String, Metadata> existingDigests = res.stream().collect(Collectors.toMap(m -> m.digestString, m -> m));
@@ -77,10 +80,9 @@ public class ShareLinkController {
             List<String> finalShareLinks = new ArrayList<>();
             if (!existing.isEmpty()) {
                 for (ShareLink sl : existing) {
-                    finalShareLinks.add(fileServerUrl + "/api/share/" + sl.shareId);
+                    finalShareLinks.add(fileServerUrl + "/api/share/" + sl.shareId + getFileName(res, fileNames));
                     existingDigests.remove(sl.fileDigest);
                 }
-                //return fileServerUrl + "/api/share/" + existing.get(0).shareId;
             }
 
             List<ShareLink> linksToInsert = new ArrayList<>();
@@ -110,7 +112,7 @@ public class ShareLinkController {
                             break;
                     }
                     linksToInsert.add(shareLink);
-                    finalShareLinks.add(fileServerUrl + "/api/share/" + shareLink.shareId);
+                    finalShareLinks.add(fileServerUrl + "/api/share/" + shareLink.shareId + getFileName(res, fileNames));
                 }
                 mongoTemplate.insert(linksToInsert, "share-links");
             }
@@ -263,5 +265,19 @@ public class ShareLinkController {
         } else {
             return (String) ((DefaultOidcUser) (auth.getPrincipal())).getAttribute("email");
         }
+    }
+
+    private String getFileName(List<Metadata> res, Set<String> fileNames) {
+        if (fileNames == null) return "";
+        for (Metadata data : res) {
+            var intersection = new HashSet<>(data.fileName);
+            intersection.retainAll(fileNames);
+            if (!intersection.isEmpty()) {
+                String fileName = intersection.iterator().next();
+                fileName = fileName.substring(fileName.lastIndexOf("/") + 1);
+                return "?filename=" + fileName;
+            }
+        }
+        return "";
     }
 }
