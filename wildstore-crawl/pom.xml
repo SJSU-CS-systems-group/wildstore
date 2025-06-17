@@ -3,14 +3,14 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>com.sjsu.wildfirestorage</groupId>
-    <artifactId>wildfirestorage</artifactId>
+    <groupId>edu.sjsu.wildstore</groupId>
+    <artifactId>wildstore</artifactId>
     <version>1.0-SNAPSHOT</version>
   </parent>
   <artifactId>wildstore-crawl</artifactId>
   <packaging>jar</packaging>
   <version>1.0-SNAPSHOT</version>
-  <name>wildfirestorage-core</name>
+  <name>wildstore-crawl</name>
   <url>https://maven.apache.org</url>
 
     <dependencyManagement>
@@ -67,8 +67,8 @@
           <version>4.7.6</version>
       </dependency>
     <dependency>
-      <groupId>com.sjsu.wildfirestorage</groupId>
-      <artifactId>wildfirestorage-common</artifactId>
+      <groupId>edu.sjsu.wildstore</groupId>
+      <artifactId>wildstore-common</artifactId>
       <version>1.0-SNAPSHOT</version>
       <scope>compile</scope>
     </dependency>
@@ -92,7 +92,7 @@
                         </goals>
                         <configuration>
                             <classifier>crawler</classifier>
-                            <finalName>wildfirestorage</finalName>
+                            <finalName>wildstore</finalName>
                             <mainClass>
                                 com.sjsu.wildfirestorage.WildfireFilesCrawler
                             </mainClass>

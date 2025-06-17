@@ -4,8 +4,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.sjsu.wildfirestorage</groupId>
-        <artifactId>wildfirestorage</artifactId>
+        <groupId>edu.sjsu.wildstore</groupId>
+        <artifactId>wildstore</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
@@ -35,7 +35,7 @@
             <version>4.7.6</version>
         </dependency>
         <dependency>
-            <groupId>com.sjsu.wildfirestorage</groupId>
+            <groupId>edu.sjsu.wildstore</groupId>
             <artifactId>wildstore-meta</artifactId>
             <version>1.0-SNAPSHOT</version>
             <scope>compile</scope>
@@ -48,7 +48,7 @@
         </dependency>
     </dependencies>
     <build>
-        <finalName>wildfirestorage-cli</finalName>
+        <finalName>wildstore-cli</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
