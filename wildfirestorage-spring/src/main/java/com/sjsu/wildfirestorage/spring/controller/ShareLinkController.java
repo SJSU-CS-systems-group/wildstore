@@ -55,7 +55,7 @@ public class ShareLinkController {
         Query query = new Query();
         var listOfCriteria = new ArrayList<Criteria>();
         var fileNames = (List<String>) request.get("fileNames");
-        var fileDigests = (List<String>) request.get("fileDigest"); //no 's'?
+        var fileDigests = (List<String>) request.get("fileDigests");
         if (fileNames != null) {
             listOfCriteria.add(Criteria.where("fileName").in(fileNames));
         }
@@ -281,6 +281,6 @@ public class ShareLinkController {
                 break;
             }
         }
-        return "?" + fileName.substring(0, fileName.length() - 1);
+        return "?filename=" + fileName.substring(0, fileName.length() - 1);
     }
 }
