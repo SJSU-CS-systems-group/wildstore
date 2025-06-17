@@ -55,7 +55,7 @@ public class ShareLinkController {
         Query query = new Query();
         var listOfCriteria = new ArrayList<Criteria>();
         var fileNames = (List<String>) request.get("fileNames");
-        var fileDigests = (List<String>) request.get("fileDigests");
+        var fileDigests = (List<String>) request.get("fileDigest"); //no 's'?
         if (fileNames != null) {
             listOfCriteria.add(Criteria.where("fileName").in(fileNames));
         }
@@ -83,7 +83,7 @@ public class ShareLinkController {
             List<String> finalShareLinks = new ArrayList<>();
             if (!existing.isEmpty()) {
                 for (ShareLink sl : existing) {
-                    finalShareLinks.add(fileServerUrl + "/api/share/" + sl.shareId);
+                    finalShareLinks.add(fileServerUrl + "/api/share/" + sl.shareId + getFileName(res, sl.filePath));
                     existingDigests.remove(sl.fileDigest);
                 }
                 //return fileServerUrl + "/api/share/" + existing.get(0).shareId;
@@ -116,31 +116,14 @@ public class ShareLinkController {
                             break;
                     }
                     linksToInsert.add(shareLink);
-/*
-                    String fileName = "";
-                    List<String> listOfFileName;
-                    for (Metadata data : res) {
-                        if (data.filePath.equals(shareLink.filePath)) {
-                            listOfFileName = new ArrayList<String>(data.fileName);
-                            fileName = listOfFileName.getLast();
-                            break;
-                        }
-                    }
-                    if (fileName.isEmpty()) {
-                        finalShareLinks.add(fileServerUrl + "/api/share/" + shareLink.shareId + "?filename=" + "FileNameNotFound");
-                    }
-                    finalShareLinks.add(fileServerUrl + "/api/share/" + shareLink.shareId + "?" + fileName);
-
-
-
- */
-                    finalShareLinks.add(fileServerUrl + "/api/share/" + shareLink.shareId);
+                    finalShareLinks.add(fileServerUrl + "/api/share/" + shareLink.shareId + getFileName(res, shareLink.filePath));
                 }
                 mongoTemplate.insert(linksToInsert, "share-links");
             }
             return String.join("\n", finalShareLinks);
         } else {
-            return "FILE_NOT_FOUND";
+            System.out.println(request);
+            return "FILE_NOT_FOUND" + request;
         }
     }
 
@@ -287,5 +270,17 @@ public class ShareLinkController {
         } else {
             return (String) ((DefaultOidcUser) (auth.getPrincipal())).getAttribute("email");
         }
+    }
+
+    private String getFileName(List<Metadata> res, Set<String> filePath) {
+        String fileName = "NOT_FOUND";
+        for (Metadata data : res) {
+            if (data.filePath.equals(filePath)) {
+                fileName = data.fileName.toString();
+                fileName = fileName.substring(fileName.lastIndexOf("/") + 1);
+                break;
+            }
+        }
+        return "?" + fileName.substring(0, fileName.length() - 1);
     }
 }
