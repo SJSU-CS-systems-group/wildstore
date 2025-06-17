@@ -1,6 +1,7 @@
 package com.sjsu.wildfirestorage;
 
-import junit.framework.TestCase;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -10,7 +11,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
-public class DigestingRandomAccessFileTest extends TestCase {
+public class DigestingRandomAccessFileTest {
+    @Test
     public void testRandomAccessFile() throws NoSuchAlgorithmException, IOException {
         var dis = new DigestInputStream(DigestingRandomAccessFileTest.class.getResourceAsStream("/wrfout.nc"),
                 MessageDigest.getInstance("SHA512"));
@@ -23,8 +25,8 @@ public class DigestingRandomAccessFileTest extends TestCase {
 
         reader.processFile(maxReadSize);
         var readerDigest = reader.getRandomAccessFile().getDigest(true);
-        assertTrue("file digest and DigestingRandomAccessFile do not match", Arrays.equals(readerDigest, readDigest));
+        Assertions.assertArrayEquals(readerDigest, readDigest);
         new File("test.nc").delete();
-        assertNotNull(reader.getRandomAccessFile().getDigestString(false));
+        Assertions.assertNotNull(reader.getRandomAccessFile().getDigestString(false));
     }
 }

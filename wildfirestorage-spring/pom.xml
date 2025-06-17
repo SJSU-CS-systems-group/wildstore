@@ -91,6 +91,9 @@
                         <goals>
                             <goal>repackage</goal>
                         </goals>
+                        <configuration>
+                            <classifier>server</classifier>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

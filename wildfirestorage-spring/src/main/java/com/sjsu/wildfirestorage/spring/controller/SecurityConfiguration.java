@@ -145,6 +145,8 @@ public class SecurityConfiguration {
         };
     }
 
+    public static final List<String> ROLES = List.of("ROLE_ADMIN", "ROLE_USER", "ROLE_GUEST");
+
     @Bean
     static RoleHierarchy roleHierarchy() {
         RoleHierarchyImpl hierarchy = new RoleHierarchyImpl();

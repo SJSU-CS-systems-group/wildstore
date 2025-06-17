@@ -3,7 +3,6 @@ package com.sjsu.wildfirestorage;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientException;
 import picocli.CommandLine;
 
 import java.nio.file.Files;
@@ -16,12 +15,33 @@ import java.util.concurrent.ExecutionException;
 
 public class Main {
     public static void main(String[] args) {
-        System.exit(new CommandLine(new Cli()).execute(args));
+        CommandLine cmd = new CommandLine(new Cli());
+        cmd.setExecutionExceptionHandler((ex, cl, pr) -> {
+            System.err.println(ex.getMessage());
+            return 2;
+        });
+        cmd.setParameterExceptionHandler((ex, as) -> {
+            var t = ex.getCause() != null ? ex.getCause() : ex;
+            System.err.println(t.getMessage());
+            if (t instanceof CommandLine.ParameterException) {
+                cmd.usage(System.err);
+            }
+            return 1;
+        });
+        System.exit(cmd.execute(args));
     }
 
-    @CommandLine.Command(mixinStandardHelpOptions = true)
+    @CommandLine.Command(mixinStandardHelpOptions = true, subcommands = { UserCli.class})
     static class Cli {
-
+        @CommandLine.Option(names = "--xhelp", description = "show admin commands")
+        public void setXHelp(boolean xhelp) {
+            if (xhelp) {
+                var cmd = new CommandLine(new Cli());
+                cmd.getSubcommands().forEach((k,v) -> v.getCommandSpec().usageMessage().hidden(false));
+                cmd.usage(System.out);
+                System.exit(0);
+            }
+        }
         @CommandLine.Command
         public void datasetInfo(@CommandLine.Parameters(paramLabel = "fileName") String fileName,
                                 @CommandLine.Parameters(paramLabel = "hostname") String hostname) throws
@@ -40,11 +60,10 @@ public class Main {
                 @CommandLine.Parameters(description = "Absolute file name", index = "0..*") String[] fileNames,
                 @CommandLine.Option(names = "--token", required = true) String token,
                 @CommandLine.Option(names = "--email", split = ",", description = "Email addresses to share with " +
-                        "separated with comma")
-                String[] emails,
+                        "separated with comma") String[] emails,
                 @CommandLine.Option(names = "--validFor", description = "Validity of share link, values are: day, " +
-                        "week, month, year", defaultValue = "month")
-                String validFor) throws InterruptedException, ExecutionException {
+                        "week, month, year", defaultValue = "month") String validFor) throws InterruptedException,
+                ExecutionException {
 //            for (var fileName : fileNames) {
             System.out.println(Arrays.toString(emails));
             try {
@@ -56,9 +75,7 @@ public class Main {
                                                       "validFor",
                                                       validFor),
                                                new ParameterizedTypeReference<String>() {},
-                                               httpHeaders -> {
-                                                   httpHeaders.setBearerAuth(token);
-                                               }));
+                                               httpHeaders -> httpHeaders.setBearerAuth(token)));
             } catch (ExecutionException e) {
                 var message = e.getMessage();
                 // if this is a message about a connection problem, drop all the text before connection
@@ -78,7 +95,6 @@ public class Main {
                            @CommandLine.Option(names = "--offset", defaultValue = "0") int offset,
                            @CommandLine.Option(names = "--token") String token) throws InterruptedException,
                 ExecutionException {
-
             MetadataRequest metadataRequest = new MetadataRequest();
             metadataRequest.searchQuery = query;
             metadataRequest.limit = limit;
@@ -89,9 +105,7 @@ public class Main {
             var res = (ArrayList<Metadata>) (Client.post(webClient,
                                                          metadataRequest,
                                                          new ParameterizedTypeReference<ArrayList<Metadata>>() {},
-                                                         httpHeaders -> {
-                                                             httpHeaders.setBearerAuth(token);
-                                                         }));
+                                                         httpHeaders -> httpHeaders.setBearerAuth(token)));
             System.out.println("SEARCH returned: " + res.size() + " results");
             if (option.equals("all")) {
                 for (Metadata m : res) {
@@ -110,8 +124,9 @@ public class Main {
         @CommandLine.Command
         public void clean(@CommandLine.Parameters(paramLabel = "limit") int limit,
                           @CommandLine.Parameters(paramLabel = "hostname") String hostname,
-                          @CommandLine.Option(names = "--token") String token) throws InterruptedException,
-                ExecutionException {
+                          @CommandLine.Option(names = "--token") String token,
+                          @CommandLine.Option(names = "--dryrun", negatable = true, defaultValue = "true")
+                          boolean dryrun) throws InterruptedException, ExecutionException {
             int offset = 0;
             LinkedMultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
             parameters.add("limit", String.valueOf(limit));
@@ -125,16 +140,15 @@ public class Main {
                                                    parameters,
                                                    new ParameterizedTypeReference<List<String>>() {});
                 System.out.println("The following Metadata documents will be removed from the database:");
-                result.forEach(str -> System.out.println(str));
+                result.forEach(System.out::println);
                 List<String> deletedFiles = result.stream().filter(item -> !Files.exists(Paths.get(item))).toList();
                 System.out.println("DELETE RESULT:" + Client.post(webClient,
                                                                   deletedFiles,
                                                                   new ParameterizedTypeReference<Integer>() {},
-                                                                  httpHeaders -> {
-                                                                      httpHeaders.setBearerAuth(token);
-                                                                  }));
+                                                                  httpHeaders -> httpHeaders.setBearerAuth(token)));
                 offset += limit;
             } while (!result.isEmpty());
         }
     }
+
 }
