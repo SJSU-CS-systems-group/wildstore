@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.sjsu.wildfirestorage</groupId>
-  <artifactId>wildfirestorage</artifactId>
+  <groupId>edu.sjsu.wildstore</groupId>
+  <artifactId>wildstore</artifactId>
   <packaging>pom</packaging>
   <version>1.0-SNAPSHOT</version>
-  <name>wildfirestorage</name>
+  <name>wildstore</name>
   <url>https://maven.apache.org</url>
 
   <properties>
@@ -31,10 +31,10 @@
   </build>
 
   <modules>
-    <module>wildfirestorage-core</module>
-    <module>wildfirestorage-common</module>
-    <module>wildfirestorage-spring</module>
-    <module>wildfirestorage-fileserver</module>
-    <module>wildfirestorage-cli</module>
+    <module>wildstore-crawl</module>
+    <module>wildstore-common</module>
+    <module>wildstore-meta</module>
+    <module>wildstore-fileserve</module>
+    <module>wildstore-cli</module>
   </modules>
 </project>
