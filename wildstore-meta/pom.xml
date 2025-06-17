@@ -18,7 +18,7 @@
     </properties>
 
     <groupId>com.sjsu.wildfirestorage</groupId>
-    <artifactId>wildfirestorage-spring</artifactId>
+    <artifactId>wildstore-meta</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>wildfirestorage-spring</name>

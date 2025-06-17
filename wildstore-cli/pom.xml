@@ -9,7 +9,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>wildfirestorage-cli</artifactId>
+    <artifactId>wildstore-cli</artifactId>
 
     <properties>
         <java.version>17</java.version>
@@ -36,7 +36,7 @@
         </dependency>
         <dependency>
             <groupId>com.sjsu.wildfirestorage</groupId>
-            <artifactId>wildfirestorage-spring</artifactId>
+            <artifactId>wildstore-meta</artifactId>
             <version>1.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
