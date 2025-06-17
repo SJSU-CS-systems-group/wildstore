@@ -6,10 +6,26 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 
 class CliOptions {
+
+    @CommandLine.Spec
+    private CommandLine.Model.CommandSpec spec;
+
+    final PrintWriter out() {
+        return cmd().getOut();
+    }
+
+    final PrintWriter err() {
+        return cmd().getErr();
+    }
+
+    final CommandLine cmd() {
+        return spec.commandLine();
+    }
     @CommandLine.Option(names = "--token", description = "Authentication token file", required = true)
     void setTokenFile(File tokenFile) {
         try (var br = new BufferedReader(new FileReader(tokenFile))) {

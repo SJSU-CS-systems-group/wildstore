@@ -14,34 +14,20 @@ import java.util.Map;
 
 @Command(name = "user", description = "manage users. admin role required.", mixinStandardHelpOptions = true)
 class UserCli {
-    @CommandLine.Spec
-    private CommandLine.Model.CommandSpec spec;
-
-    private final PrintWriter out() {
-        return cmd().getOut();
-    }
-
-    private final PrintWriter err() {
-        return cmd().getErr();
-    }
-
-    private final CommandLine cmd() {
-        return spec.commandLine();
-    }
 
     @Command(description = "List all users with their roles", mixinStandardHelpOptions = true)
     public void list(@Mixin CliOptions cliOptions) throws CommandLine.PicocliException {
         try {
             List<Map> users = Client.get(cliOptions.metadataURL + "/api/userlist/", cliOptions.token);
             if (users == null) {
-                throw new CommandLine.ExecutionException(cmd(), "Error retrieving user list", null);
+                throw new CommandLine.ExecutionException(cliOptions.cmd(), "Error retrieving user list", null);
             } else if (users.isEmpty()) {
-                out().println("No users found");
+                cliOptions.out().println("No users found");
             } else {
-                users.forEach(u -> out().printf("%s: %s %s%n", u.get("email"), u.get("role"), u.get("name")));
+                users.forEach(u -> cliOptions.out().printf("%s: %s %s%n", u.get("email"), u.get("role"), u.get("name")));
             }
         } catch (WebClientResponseException e) {
-            throw new CommandLine.ExecutionException(cmd(), e.getMessage(), null);
+            throw new CommandLine.ExecutionException(cliOptions.cmd(), e.getMessage(), null);
         }
     }
 
@@ -52,16 +38,16 @@ class UserCli {
         try {
             List<Map> result = Client.get(cliOptions.metadataURL + "/api/userlist/" + email, cliOptions.token);
             if (result == null || result.isEmpty()) {
-                throw new CommandLine.ExecutionException(cmd(), "User not found", null);
+                throw new CommandLine.ExecutionException(cliOptions.cmd(), "User not found", null);
             }
             String token = (String)result.get(0).get("token");
             if (token == null) {
-                throw new CommandLine.ExecutionException(cmd(), "User token not found", null);
+                throw new CommandLine.ExecutionException(cliOptions.cmd(), "User token not found", null);
             } else {
-                out().printf("%s: %s%n", email, token);
+                cliOptions.out().printf("%s: %s%n", email, token);
             }
         } catch (WebClientResponseException e) {
-            throw new CommandLine.ExecutionException(cmd(), e.getMessage(), null);
+            throw new CommandLine.ExecutionException(cliOptions.cmd(), e.getMessage(), null);
         }
     }
 
@@ -74,19 +60,19 @@ class UserCli {
             case "admin", "ADMIN", "ROLE_ADMIN" -> "ROLE_ADMIN";
             case "user", "USER", "ROLE_USER" -> "ROLE_USER";
             case "guest", "GUEST", "ROLE_GUEST" -> "ROLE_GUEST";
-            default -> throw new CommandLine.ExecutionException(cmd(), "Invalid role, must be one of admin, user, guest");
+            default -> throw new CommandLine.ExecutionException(cliOptions.cmd(), "Invalid role, must be one of admin, user, guest");
         };
         try {
             Boolean result = Client.post(cliOptions.metadataURL + "/api/userlist/" + email,
                                          Map.of("role", canonicalRole),
                                          cliOptions.token);
             if (result == null || !result) {
-                throw new CommandLine.ExecutionException(cmd(), "Error updating user");
+                throw new CommandLine.ExecutionException(cliOptions.cmd(), "Error updating user");
             } else {
-                out().printf("User %s updated to role %s%n", email, canonicalRole);
+                cliOptions.out().printf("User %s updated to role %s%n", email, canonicalRole);
             }
         } catch (WebClientResponseException e) {
-            throw new CommandLine.ExecutionException(cmd(), e.getMessage(), null);
+            throw new CommandLine.ExecutionException(cliOptions.cmd(), e.getMessage(), null);
         }
     }
 
@@ -95,13 +81,13 @@ class UserCli {
                        String email, @Mixin CliOptions cliOptions) {
         WebClient webClient = Client.getWebClient(cliOptions.metadataURL + "/api/userlist/" + email, cliOptions.token);
         var result = webClient.delete().retrieve().bodyToMono(Boolean.class).retry(1).onErrorComplete(e -> {
-            err().println(e.getMessage());
+            cliOptions.err().println(e.getMessage());
             return true;
         }).block();
         if (result == null || !result) {
-            out().printf("Error deleting %s%n", email);
+            cliOptions.out().printf("Error deleting %s%n", email);
         } else {
-            out().printf("%s deleted%n", email);
+            cliOptions.out().printf("%s deleted%n", email);
         }
     }
 }
