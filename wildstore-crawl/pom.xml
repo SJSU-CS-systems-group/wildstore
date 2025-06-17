@@ -94,7 +94,7 @@
                             <classifier>crawler</classifier>
                             <finalName>wildstore</finalName>
                             <mainClass>
-                                com.sjsu.wildfirestorage.WildfireFilesCrawler
+                                edu.sjsu.wildstore.WildfireFilesCrawler
                             </mainClass>
                         </configuration>
                     </execution>

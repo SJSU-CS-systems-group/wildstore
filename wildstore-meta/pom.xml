@@ -84,7 +84,7 @@
                 <version>${spring.boot.version}</version>
                 <configuration>
                     <executable>true</executable>
-                    <mainClass>com.sjsu.wildfirestorage.spring.Main</mainClass>
+                    <mainClass>edu.sjsu.wildstore.meta.Main</mainClass>
                 </configuration>
                 <executions>
                     <execution>
