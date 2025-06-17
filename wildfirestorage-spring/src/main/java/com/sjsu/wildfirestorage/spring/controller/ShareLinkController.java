@@ -54,7 +54,8 @@ public class ShareLinkController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Query query = new Query();
         var listOfCriteria = new ArrayList<Criteria>();
-        var fileNames = (List<String>) request.get("fileNames");
+        var fileNamesList = (List<String>) request.get("fileNames");
+        var fileNames = fileNamesList == null ? null : new HashSet<>(fileNamesList);
         var fileDigests = (List<String>) request.get("fileDigest");
         if (fileNames != null) {
             listOfCriteria.add(Criteria.where("fileName").in(fileNames));
@@ -79,7 +80,7 @@ public class ShareLinkController {
             List<String> finalShareLinks = new ArrayList<>();
             if (!existing.isEmpty()) {
                 for (ShareLink sl : existing) {
-                    finalShareLinks.add(fileServerUrl + "/api/share/" + sl.shareId + getFileName(res, sl.filePath));
+                    finalShareLinks.add(fileServerUrl + "/api/share/" + sl.shareId + getFileName(res, fileNames));
                     existingDigests.remove(sl.fileDigest);
                 }
             }
@@ -111,7 +112,7 @@ public class ShareLinkController {
                             break;
                     }
                     linksToInsert.add(shareLink);
-                    finalShareLinks.add(fileServerUrl + "/api/share/" + shareLink.shareId + getFileName(res, shareLink.filePath));
+                    finalShareLinks.add(fileServerUrl + "/api/share/" + shareLink.shareId + getFileName(res, fileNames));
                 }
                 mongoTemplate.insert(linksToInsert, "share-links");
             }
@@ -266,15 +267,17 @@ public class ShareLinkController {
         }
     }
 
-    private String getFileName(List<Metadata> res, Set<String> filePath) {
-        String fileName = "NOT_FOUND";
+    private String getFileName(List<Metadata> res, Set<String> fileNames) {
+        if (fileNames == null) return "";
         for (Metadata data : res) {
-            if (data.filePath.equals(filePath)) {
-                fileName = data.fileName.toString();
+            var intersection = new HashSet<>(data.fileName);
+            intersection.retainAll(fileNames);
+            if (!intersection.isEmpty()) {
+                String fileName = intersection.iterator().next();
                 fileName = fileName.substring(fileName.lastIndexOf("/") + 1);
-                break;
+                return "?filename=" + fileName;
             }
         }
-        return "?filename=" + fileName.substring(0, fileName.length() - 1);
+        return "";
     }
 }
