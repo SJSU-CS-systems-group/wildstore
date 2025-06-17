@@ -55,24 +55,20 @@ public class ShareLinkController {
         Query query = new Query();
         var listOfCriteria = new ArrayList<Criteria>();
         var fileNames = (List<String>) request.get("fileNames");
-        var fileDigests = (List<String>) request.get("fileDigests");
+        var fileDigests = (List<String>) request.get("fileDigest");
         if (fileNames != null) {
             listOfCriteria.add(Criteria.where("fileName").in(fileNames));
         }
         if (fileDigests != null) {
             listOfCriteria.add(Criteria.where("digestString").in((fileDigests)));
         }
-        if (!listOfCriteria.isEmpty()) {
-            query.addCriteria(new Criteria().orOperator(listOfCriteria));
+        if (listOfCriteria.isEmpty()) {
+            return "NO_FILE_SPECIFIED";
         }
+        query.addCriteria(new Criteria().orOperator(listOfCriteria));
         query.fields().exclude("variables", "globalAttributes");
-        System.out.println(query.toString());
-
-        List<Metadata> res = null;
-        if (!query.getQueryObject().isEmpty())
-            res = mongoTemplate.find(query, Metadata.class, METADATA_COLLECTION);
-
-        if (res != null && !res.isEmpty()) {
+        List<Metadata> res = mongoTemplate.find(query, Metadata.class, METADATA_COLLECTION);
+        if (!res.isEmpty()) {
             Map<String, Metadata> existingDigests = res.stream().collect(Collectors.toMap(m -> m.digestString, m -> m));
             Query linkQuery = new Query(Criteria.where("fileDigest").in(existingDigests.keySet()));
             linkQuery.addCriteria(Criteria.where("createdBy").is(getCurrentUserName()));
@@ -86,7 +82,6 @@ public class ShareLinkController {
                     finalShareLinks.add(fileServerUrl + "/api/share/" + sl.shareId + getFileName(res, sl.filePath));
                     existingDigests.remove(sl.fileDigest);
                 }
-                //return fileServerUrl + "/api/share/" + existing.get(0).shareId;
             }
 
             List<ShareLink> linksToInsert = new ArrayList<>();
@@ -122,8 +117,7 @@ public class ShareLinkController {
             }
             return String.join("\n", finalShareLinks);
         } else {
-            System.out.println(request);
-            return "FILE_NOT_FOUND" + request;
+            return "FILE_NOT_FOUND";
         }
     }
 
