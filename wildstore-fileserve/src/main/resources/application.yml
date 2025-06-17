@@ -2,7 +2,7 @@
 # you still need to define the oauth properties
 # for production, you should definitely override the settings with localhost
 # to add/change properties use the command line argument:
-#      --meta.config.additional-locations=<additional yml file>
+#      --spring.config.additional-locations=<additional yml file>
 server:
   port: 27778
 custom:

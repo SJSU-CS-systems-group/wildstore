@@ -49,7 +49,7 @@ public class CliTest {
         var app = new SpringApplication(edu.sjsu.wildstore.meta.Main.class, TestOAuthSecurityConfig.class);
         app.setDefaultProperties(props);
 
-        springCtx = app.run("--meta.data.mongodb.uri=mongodb://localhost/wildfire-test-" + System.currentTimeMillis(),
+        springCtx = app.run("--spring.data.mongodb.uri=mongodb://localhost/wildfire-test-" + System.currentTimeMillis(),
                             "--server.port=" + port );
         while (!springCtx.isActive()) {
             try {
