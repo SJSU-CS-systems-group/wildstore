@@ -1,5 +1,7 @@
 package edu.sjsu.wildstore;
 
+import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -10,6 +12,8 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import picocli.CommandLine;
 
@@ -19,9 +23,14 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.rmi.RemoteException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import static java.lang.String.format;
 
@@ -59,6 +68,8 @@ public class CliTest {
             }
         }
         metaURL = "http://localhost:" + port;
+        springCtx.getBean(MongoTemplate.class).createCollection("userData");
+        //springCtx.getBean(MongoTemplate.class).createCollection("metadata");
     }
 
     @AfterAll
@@ -98,13 +109,7 @@ public class CliTest {
         Assertions.assertEquals(1, result.exitCode);
         Assertions.assertTrue(result.err.contains("Unauthorized"), format("%s doesn't contain Unauthorized", result.err));
 
-        // add the token to the db, so everything should work
-        springCtx.getBean(MongoTemplate.class).createCollection("userData");
-        var rec = Map.of("role", role,
-                         "name", name,
-                         "email", email,
-                         "token", token);
-        springCtx.getBean(MongoTemplate.class).insert(new HashMap(rec), "userData");
+        createUser(role, name, email, token);
         result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--token", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertEquals("", result.err);
@@ -144,6 +149,106 @@ public class CliTest {
         Assertions.assertEquals(1, result.out.split("\n").length);
 
     }
+
+    @Test
+    void testShare() throws IOException {
+        var cmd = new Main.Cli();
+        var userTokenFile = tempDir.resolve("user-token.txt");
+        var guestTokenFile = tempDir.resolve("guest-token.txt");
+        var userToken = "String";
+        var guestToken = "Int";
+
+        Files.write(userTokenFile, ("token=" + userToken).getBytes());
+        Files.write(guestTokenFile, ("token=" + guestToken).getBytes());
+
+        createUser("ROLE_USER", "ShareUser", "user@share", userToken);
+        createUser("ROLE_GUEST", "ShareGuest", "guest@share", guestToken);
+
+        //var testFile = tempDir.resolve("testfile.txt");
+        //Files.createDirectories(testFile.getParent());
+        //Files.write(testFile, "dummy content".getBytes());
+
+        /*
+        // guests should not be able to share
+        var result = clirun(cmd, "share", "/testfile", "--metaURL", metaURL, "--token", guestTokenFile.toString());
+        Assertions.assertEquals(2, result.exitCode);
+        Assertions.assertTrue(result.err.contains("Missing required option"));
+        result = clirun(cmd, "share", "/testfile", "--metaURL", metaURL, "--token", guestTokenFile.toString(), "--email", "guest@share");
+        Assertions.assertEquals(1, result.exitCode);
+        Assertions.assertTrue(result.err.contains("CommandLine$ExecutionException"));
+
+        // users need to have required parameters
+        result = clirun(cmd, "share", "/testfile", "--metaURL", metaURL, "--token", userTokenFile.toString());
+        Assertions.assertEquals(2, result.exitCode);
+        Assertions.assertTrue(result.err.contains("Missing required option"));
+        result = clirun(cmd, "share", "/testfile", "--metaURL", metaURL, "--email", "user@share");
+        Assertions.assertEquals(2, result.exitCode);
+        Assertions.assertTrue(result.err.contains("Missing required option"));
+
+        // filenames are required and has to be valid
+        result = clirun(cmd, "share", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
+        Assertions.assertEquals(1, result.exitCode);
+        Assertions.assertTrue(result.err.contains("NullPointerException"));
+        result = clirun(cmd, "share", "", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains("FILE_NOT_FOUND"));
+
+        result = clirun(cmd, "share", "/testfile", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains("FILE_NOT_FOUND"));
+
+        */
+        /*
+        Path testPath = Files.createTempFile("fakefile", ".txt");
+        Files.write(testPath, "dummy content".getBytes());
+        Document testDoc = new Document("fileName", "fakefile.txt")
+                .append("filePath", testPath.toAbsolutePath().toString())
+                .append("digest", "dummy-digest");
+        springCtx.getBean(MongoTemplate.class).getCollection("userData").insertOne(testDoc);
+        var result = clirun(cmd, "share", testPath.toString(), "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
+        System.out.println(result);
+
+         */
+
+        Path testFile = Paths.get("testfile.txt");
+        Files.write(testFile, "dummy content".getBytes());
+
+        Metadata testMeta = new Metadata();
+        testMeta.fileName = new HashSet<String>(Set.of(testFile.toAbsolutePath().toString() + "testfile.txt"));
+        testMeta.filePath = new HashSet<String>(Set.of(testFile.toAbsolutePath().toString()));
+
+        springCtx.getBean(MongoTemplate.class).insert(testMeta, "metadata");
+
+        var result = clirun(cmd, "share", testFile.toAbsolutePath().toString(), "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
+
+        System.out.println(result);
+        Query query = new Query();
+        query.addCriteria(new Criteria().orOperator(new ArrayList<Criteria>));
+        /*
+        // token should not be empty
+        result = clirun(cmd, "share", "/testfile", "--metaURL", metaURL, "--token", "");
+        Assertions.assertEquals(2, result.exitCode);
+        Assertions.assertTrue(result.err.contains("No such file or directory"));
+
+        // validFor should be one of day, week, month, year
+        result = clirun(cmd, "share", "/testfile", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share", "--validFor", "week");
+
+
+         */
+        throw new RemoteException();
+
+
+    }
+
+    private static void createUser(String role, String name, String email, String token) {
+        // add the token to the db, so everything should work
+        var rec = Map.of("role", role,
+                         "name", name,
+                         "email", email,
+                         "token", token);
+        springCtx.getBean(MongoTemplate.class).insert(new HashMap(rec), "userData");
+    }
+    
     record TestResult(int exitCode, String out, String err) {}
     private static TestResult clirun(Object command, String... args) {
         var commandLine = new CommandLine(command);
@@ -157,7 +262,7 @@ public class CliTest {
 
         return new TestResult(
                 exitCode,
-                out.toString(),
+                out.toString().trim(),
                 err.toString()
         );
     }
