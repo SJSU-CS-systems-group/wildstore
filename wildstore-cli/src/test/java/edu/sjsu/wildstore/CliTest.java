@@ -1,7 +1,5 @@
 package edu.sjsu.wildstore;
 
-import org.bson.Document;
-import org.bson.conversions.Bson;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -12,10 +10,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 import picocli.CommandLine;
 
 import java.io.ByteArrayOutputStream;
@@ -24,9 +19,6 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.rmi.RemoteException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -192,7 +184,6 @@ public class CliTest {
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("Missing required option"));
 
-        // filenames are required and have to be valid
         result = clirun(cmd, "share", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(1, result.exitCode);
         Assertions.assertTrue(result.err.contains("NullPointerException"));
@@ -209,16 +200,21 @@ public class CliTest {
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("?filename=test-data.txt"));
 
-        // token should not be empty
-        result = clirun(cmd, "share", testDataPath, "--metaURL", metaURL, "--token", "", "--email", "user@share");
+        result = clirun(cmd, "share", testDataPath, "--metaURL", "--token", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(2, result.exitCode);
-        Assertions.assertTrue(result.err.contains("No such file or directory"));
+        Assertions.assertTrue(result.err.contains("Expected parameter for option '--metaURL'"));
+
+        result = clirun(cmd, "share", testDataPath, "--metaURL", "http://localhost:", "--token", userTokenFile.toString(), "--email", "user@share");
+        Assertions.assertEquals(1, result.exitCode);
+        Assertions.assertTrue(result.err.contains("WebClientRequestException"));
+
+        result = clirun(cmd, "share", testDataPath, "--metaURL", metaURL, "--token", "--email", "user@share");
+        Assertions.assertEquals(2, result.exitCode);
+        Assertions.assertTrue(result.err.contains("Expected parameter for option '--token'"));
 
         result = clirun(cmd, "share", testDataPath, "--metaURL", metaURL, "--token", "faulty-token", "--email", "user@share");
-        System.out.println(result);
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("No such file or directory"));
-        System.out.println(result);
     }
 
     private static void createUser(String role, String name, String email, String token) {
