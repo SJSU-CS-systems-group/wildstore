@@ -10,6 +10,8 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import picocli.CommandLine;
 
@@ -104,6 +106,7 @@ public class CliTest {
 
         createUser(role, name, email, token);
         result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--token", adminTokenFile.toString());
+        System.out.println(result);
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertEquals("", result.err);
         Assertions.assertEquals(format("%s: %s %s%n", email, role, name), result.out);
@@ -141,6 +144,7 @@ public class CliTest {
         Assertions.assertEquals("", result.err);
         Assertions.assertEquals(1, result.out.split("\n").length);
 
+        deleteUsers();
     }
 
     @Test
@@ -215,6 +219,8 @@ public class CliTest {
         result = clirun(cmd, "share", testDataPath, "--metaURL", metaURL, "--token", "faulty-token", "--email", "user@share");
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("No such file or directory"));
+
+        deleteUsers();
     }
 
     private static void createUser(String role, String name, String email, String token) {
@@ -225,7 +231,12 @@ public class CliTest {
                          "token", token);
         springCtx.getBean(MongoTemplate.class).insert(new HashMap(rec), "userData");
     }
-    
+
+    private static void deleteUsers() {
+        var query = new Query(Criteria.where("email").regex("@share"));
+        springCtx.getBean(MongoTemplate.class).remove(query, "userData");
+    }
+
     record TestResult(int exitCode, String out, String err) {}
     private static TestResult clirun(Object command, String... args) {
         var commandLine = new CommandLine(command);
