@@ -72,10 +72,6 @@ public class Client {
                 .retrieve()
                 .bodyToMono(parameterizedTypeReference)
                 .retry(1)
-                .onErrorComplete(e -> {
-                    System.err.println(e.getMessage());
-                    return true;
-                })
                 .block();
     }
 

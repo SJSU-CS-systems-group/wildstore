@@ -3,6 +3,7 @@ package edu.sjsu.wildstore;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import picocli.CommandLine;
 
 import java.nio.file.Files;
@@ -54,20 +55,15 @@ public class Main {
 
         @CommandLine.Command
         public void share(
-                @CommandLine.Option(names = "--meta-url", description = "URL of metadata server", defaultValue =
-                        "http://127.0.0.1:27777")
-                String metaURL,
+                @CommandLine.Mixin CliOptions co,
                 @CommandLine.Parameters(description = "Absolute file name", index = "0..*") String[] fileNames,
-                @CommandLine.Option(names = "--token", required = true) String token,
-                @CommandLine.Option(names = "--email", split = ",", description = "Email addresses to share with " +
+                @CommandLine.Option(names = "--email", split = ",", required = true, description = "Email addresses to share with " +
                         "separated with comma") String[] emails,
                 @CommandLine.Option(names = "--validFor", description = "Validity of share link, values are: day, " +
                         "week, month, year", defaultValue = "month") String validFor) throws InterruptedException,
                 ExecutionException {
-//            for (var fileName : fileNames) {
-            System.out.println(Arrays.toString(emails));
             try {
-                System.out.println(Client.post(Client.getWebClient(metaURL + "/api/share-link/create"),
+                var result = Client.post(Client.getWebClient(co.metadataURL + "/api/share-link/create"),
                                                Map.of("fileNames",
                                                       fileNames,
                                                       "emailAddresses",
@@ -75,14 +71,16 @@ public class Main {
                                                       "validFor",
                                                       validFor),
                                                new ParameterizedTypeReference<String>() {},
-                                               httpHeaders -> httpHeaders.setBearerAuth(token)));
+                                               httpHeaders -> httpHeaders.setBearerAuth(co.token));
+                co.out().println(result);
             } catch (ExecutionException e) {
                 var message = e.getMessage();
                 // if this is a message about a connection problem, drop all the text before connection
                 if (message.contains("Connection")) message = message.substring(message.indexOf("Connection"));
-                System.err.printf("%s: %s\n", message, Arrays.toString(fileNames));
+                co.err().printf("%s: %s\n", message, Arrays.toString(fileNames));
+            } catch (WebClientResponseException e) {
+                throw new CommandLine.ExecutionException(co.cmd(), e.getMessage(), null);
             }
-            //}
         }
 
         @CommandLine.Command
