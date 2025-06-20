@@ -106,7 +106,6 @@ public class CliTest {
 
         createUser(role, name, email, token);
         result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--token", adminTokenFile.toString());
-        System.out.println(result);
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertEquals("", result.err);
         Assertions.assertEquals(format("%s: %s %s%n", email, role, name), result.out);
@@ -153,14 +152,14 @@ public class CliTest {
         var userTokenFile = tempDir.resolve("user-token.txt");
         var guestTokenFile = tempDir.resolve("guest-token.txt");
         var testDataFile = tempDir.resolve("test-data.txt");
-        var userToken = "String";
-        var guestToken = "Int";
+        var userToken = "secret-user-token";
+        var guestToken = "secret-guest-token";
 
         Files.write(userTokenFile, ("token=" + userToken).getBytes());
         Files.write(guestTokenFile, ("token=" + guestToken).getBytes());
         Files.write(testDataFile, "dummy content".getBytes());
 
-        var testDataPath = testDataFile.toAbsolutePath().toString();
+        var testDataPath = testDataFile.toAbsolutePath();
         var testMeta = new Metadata();
         testMeta.fileName = new HashSet<String>(Set.of(testDataFile.toAbsolutePath().toString()));
         testMeta.filePath = new HashSet<String>(Set.of(testDataFile.toAbsolutePath().getParent().toString()));
@@ -171,27 +170,28 @@ public class CliTest {
         createUser("ROLE_GUEST", "ShareGuest", "guest@share", guestToken);
 
         // guests should not be able to share
-        var result = clirun(cmd, "share", testDataPath, "--metaURL", metaURL, "--token", guestTokenFile.toString());
-        Assertions.assertEquals(2, result.exitCode);
-        Assertions.assertTrue(result.err.contains("Missing required option"));
-
-        result = clirun(cmd, "share", testDataPath, "--metaURL", metaURL, "--token", guestTokenFile.toString(), "--email", "guest@share");
+        var result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", metaURL, "--token", guestTokenFile.toString(), "--email", "guest@share");
         Assertions.assertEquals(1, result.exitCode);
         Assertions.assertTrue(result.err.contains("CommandLine$ExecutionException"));
 
         // users need to provide the required parameters
-        result = clirun(cmd, "share", testDataPath, "--metaURL", metaURL, "--token", userTokenFile.toString());
+        result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", metaURL, "--token", userTokenFile.toString());
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("Missing required option"));
 
-        result = clirun(cmd, "share", testDataPath, "--metaURL", metaURL, "--email", "user@share");
+        result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", metaURL, "--email", "user@share");
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("Missing required option"));
 
-        result = clirun(cmd, "share", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
-        Assertions.assertEquals(1, result.exitCode);
-        Assertions.assertTrue(result.err.contains("NullPointerException"));
+        result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", "--token", userTokenFile.toString(), "--email", "user@share");
+        Assertions.assertEquals(2, result.exitCode);
+        Assertions.assertTrue(result.err.contains("Expected parameter for option '--metaURL'"));
 
+        result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", metaURL, "--token", "--email", "user@share");
+        Assertions.assertEquals(2, result.exitCode);
+        Assertions.assertTrue(result.err.contains("Expected parameter for option '--token'"));
+
+        // users need to provide a valid file
         result = clirun(cmd, "share", "", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("FILE_NOT_FOUND"));
@@ -200,23 +200,17 @@ public class CliTest {
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("FILE_NOT_FOUND"));
 
-        result = clirun(cmd, "share", testDataPath, "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
+        result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("?filename=test-data.txt"));
 
-        result = clirun(cmd, "share", testDataPath, "--metaURL", "--token", userTokenFile.toString(), "--email", "user@share");
-        Assertions.assertEquals(2, result.exitCode);
-        Assertions.assertTrue(result.err.contains("Expected parameter for option '--metaURL'"));
-
-        result = clirun(cmd, "share", testDataPath, "--metaURL", "http://localhost:", "--token", userTokenFile.toString(), "--email", "user@share");
+        // metaURL needs to be valid
+        result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", "http://localhost:", "--token", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(1, result.exitCode);
         Assertions.assertTrue(result.err.contains("WebClientRequestException"));
 
-        result = clirun(cmd, "share", testDataPath, "--metaURL", metaURL, "--token", "--email", "user@share");
-        Assertions.assertEquals(2, result.exitCode);
-        Assertions.assertTrue(result.err.contains("Expected parameter for option '--token'"));
-
-        result = clirun(cmd, "share", testDataPath, "--metaURL", metaURL, "--token", "faulty-token", "--email", "user@share");
+        // token needs to be valid
+        result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", metaURL, "--token", "faulty-token", "--email", "user@share");
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("No such file or directory"));
 
