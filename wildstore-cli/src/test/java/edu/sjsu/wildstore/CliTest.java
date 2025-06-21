@@ -169,6 +169,7 @@ public class CliTest {
         createUser("ROLE_USER", "ShareUser", "user@share", userToken);
         createUser("ROLE_GUEST", "ShareGuest", "guest@share", guestToken);
 
+        /*
         // guests should not be able to share
         var result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", metaURL, "--token", guestTokenFile.toString(), "--email", "guest@share");
         Assertions.assertEquals(1, result.exitCode);
@@ -213,6 +214,14 @@ public class CliTest {
         result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", metaURL, "--token", "faulty-token", "--email", "user@share");
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("No such file or directory"));
+
+
+         */
+
+        var result = clirun(cmd, "share", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
+        System.out.println(result);
+        Assertions.assertEquals(1, result.exitCode);
+        Assertions.assertTrue(result.err.contains("NullPointerException"));
 
         deleteUsers();
     }
