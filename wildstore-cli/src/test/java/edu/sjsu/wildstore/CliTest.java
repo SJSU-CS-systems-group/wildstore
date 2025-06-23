@@ -152,6 +152,7 @@ public class CliTest {
         var userTokenFile = tempDir.resolve("user-token.txt");
         var guestTokenFile = tempDir.resolve("guest-token.txt");
         var testDataFile = tempDir.resolve("test-data.txt");
+        var testDataFile2 = tempDir.resolve("test-data-2.txt");
         var userToken = "secret-user-token";
         var guestToken = "secret-guest-token";
 
@@ -160,11 +161,17 @@ public class CliTest {
         Files.write(testDataFile, "dummy content".getBytes());
 
         var testDataPath = testDataFile.toAbsolutePath();
+        var testDataPath2 = testDataFile2.toAbsolutePath();
         var testMeta = new Metadata();
+        var testMeta2 = new Metadata();
         testMeta.fileName = new HashSet<String>(Set.of(testDataFile.toAbsolutePath().toString()));
         testMeta.filePath = new HashSet<String>(Set.of(testDataFile.toAbsolutePath().getParent().toString()));
         testMeta.digestString = "dummy-digest";
+        testMeta2.fileName = new HashSet<String>(Set.of(testDataPath2.toAbsolutePath().toString()));
+        testMeta2.filePath = new HashSet<String>(Set.of(testDataPath2.toAbsolutePath().getParent().toString()));
+        testMeta2.digestString = "dummy-digest-2";
         springCtx.getBean(MongoTemplate.class).insert(testMeta, "metadata");
+        springCtx.getBean(MongoTemplate.class).insert(testMeta2, "metadata");
 
         createUser("ROLE_USER", "ShareUser", "user@share", userToken);
         createUser("ROLE_GUEST", "ShareGuest", "guest@share", guestToken);
@@ -217,6 +224,11 @@ public class CliTest {
         result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", metaURL, "--token", "faulty-token", "--email", "user@share");
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("No such file or directory"));
+
+        // multiple files can be shared with correct filename query
+        result = clirun(cmd, "share", testDataPath.toString(), testDataPath2.toString(), "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains("?filename=test-data.txt") && result.out.contains("?filename=test-data-2.txt"));
 
         deleteUsers();
     }

@@ -80,7 +80,7 @@ public class ShareLinkController {
             List<String> finalShareLinks = new ArrayList<>();
             if (!existing.isEmpty()) {
                 for (ShareLink sl : existing) {
-                    finalShareLinks.add(fileServerUrl + "/api/share/" + sl.shareId + getFileName(res, fileNames));
+                    finalShareLinks.add(fileServerUrl + "/api/share/" + sl.shareId + getFileName(res, fileNames, sl.fileDigest));
                     existingDigests.remove(sl.fileDigest);
                 }
             }
@@ -112,7 +112,7 @@ public class ShareLinkController {
                             break;
                     }
                     linksToInsert.add(shareLink);
-                    finalShareLinks.add(fileServerUrl + "/api/share/" + shareLink.shareId + getFileName(res, fileNames));
+                    finalShareLinks.add(fileServerUrl + "/api/share/" + shareLink.shareId + getFileName(res, fileNames, digest));
                 }
                 mongoTemplate.insert(linksToInsert, "share-links");
             }
@@ -267,15 +267,17 @@ public class ShareLinkController {
         }
     }
 
-    private String getFileName(List<Metadata> res, Set<String> fileNames) {
+    private String getFileName(List<Metadata> res, Set<String> fileNames, String fileDigest) {
         if (fileNames == null) return "";
         for (Metadata data : res) {
-            var intersection = new HashSet<>(data.fileName);
-            intersection.retainAll(fileNames);
-            if (!intersection.isEmpty()) {
-                String fileName = intersection.iterator().next();
-                fileName = fileName.substring(fileName.lastIndexOf("/") + 1);
-                return "?filename=" + fileName;
+            if (fileDigest.equals(data.digestString)) {
+                var intersection = new HashSet<>(data.fileName);
+                intersection.retainAll(fileNames);
+                if (!intersection.isEmpty()) {
+                    String fileName = intersection.iterator().next();
+                    fileName = fileName.substring(fileName.lastIndexOf("/") + 1);
+                    return "?filename=" + fileName;
+                }
             }
         }
         return "";
