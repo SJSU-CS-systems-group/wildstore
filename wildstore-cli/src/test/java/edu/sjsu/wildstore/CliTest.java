@@ -192,6 +192,10 @@ public class CliTest {
         Assertions.assertTrue(result.err.contains("Expected parameter for option '--token'"));
 
         // users need to provide a valid file
+        result = clirun(cmd, "share", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
+        Assertions.assertEquals(2, result.exitCode);
+        Assertions.assertTrue(result.err.contains("Missing required parameter: '<fileNames>'"));
+
         result = clirun(cmd, "share", "", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("FILE_NOT_FOUND"));

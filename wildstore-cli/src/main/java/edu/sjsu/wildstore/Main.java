@@ -56,7 +56,7 @@ public class Main {
         @CommandLine.Command
         public void share(
                 @CommandLine.Mixin CliOptions co,
-                @CommandLine.Parameters(description = "Absolute file name", index = "0..*") String[] fileNames,
+                @CommandLine.Parameters(description = "Absolute file name", index = "0..*", arity = "1..*") String[] fileNames,
                 @CommandLine.Option(names = "--email", split = ",", required = true, description = "Email addresses to share with " +
                         "separated with comma") String[] emails,
                 @CommandLine.Option(names = "--validFor", description = "Validity of share link, values are: day, " +
