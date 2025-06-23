@@ -80,6 +80,16 @@ public class Main {
                 co.err().printf("%s: %s\n", message, Arrays.toString(fileNames));
             } catch (WebClientResponseException e) {
                 throw new CommandLine.ExecutionException(co.cmd(), e.getMessage(), null);
+            } catch (NullPointerException e) {
+                if (fileNames == null) {
+                    throw new CommandLine.ExecutionException(co.cmd(), "fileNames is missing or not provided");
+                } else if (emails == null) {
+                    throw new CommandLine.ExecutionException(co.cmd(), "emailAddresses (--email) is missing or not provided");
+                } else if (validFor == null) {
+                    throw new CommandLine.ExecutionException(co.cmd(), "validFor (--validFor) is missing");
+                } else {
+                    throw new CommandLine.ExecutionException(co.cmd(), "Unexpected null in share command", e);
+                }
             }
         }
 
