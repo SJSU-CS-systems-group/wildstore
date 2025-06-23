@@ -193,9 +193,8 @@ public class CliTest {
 
         // users need to provide a valid file
         result = clirun(cmd, "share", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
-        System.out.println(result);
-        Assertions.assertEquals(1, result.exitCode);
-        Assertions.assertTrue(result.err.contains("fileNames is missing or not provided"));
+        Assertions.assertEquals(2, result.exitCode);
+        Assertions.assertTrue(result.err.contains("Missing required parameter: '<fileNames>'"));
 
         result = clirun(cmd, "share", "", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(0, result.exitCode);

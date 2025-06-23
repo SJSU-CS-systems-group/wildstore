@@ -56,7 +56,7 @@ public class Main {
         @CommandLine.Command
         public void share(
                 @CommandLine.Mixin CliOptions co,
-                @CommandLine.Parameters(description = "Absolute file name", index = "0..*") String[] fileNames,
+                @CommandLine.Parameters(description = "Absolute file name", index = "0..*", arity = "1..*") String[] fileNames,
                 @CommandLine.Option(names = "--email", split = ",", required = true, description = "Email addresses to share with " +
                         "separated with comma") String[] emails,
                 @CommandLine.Option(names = "--validFor", description = "Validity of share link, values are: day, " +
@@ -80,16 +80,6 @@ public class Main {
                 co.err().printf("%s: %s\n", message, Arrays.toString(fileNames));
             } catch (WebClientResponseException e) {
                 throw new CommandLine.ExecutionException(co.cmd(), e.getMessage(), null);
-            } catch (NullPointerException e) {
-                if (fileNames == null) {
-                    throw new CommandLine.ExecutionException(co.cmd(), "fileNames is missing or not provided");
-                } else if (emails == null) {
-                    throw new CommandLine.ExecutionException(co.cmd(), "emailAddresses (--email) is missing or not provided");
-                } else if (validFor == null) {
-                    throw new CommandLine.ExecutionException(co.cmd(), "validFor (--validFor) is missing");
-                } else {
-                    throw new CommandLine.ExecutionException(co.cmd(), "Unexpected null in share command", e);
-                }
             }
         }
 
