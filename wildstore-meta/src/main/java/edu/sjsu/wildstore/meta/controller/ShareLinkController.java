@@ -80,7 +80,9 @@ public class ShareLinkController {
             List<String> finalShareLinks = new ArrayList<>();
             if (!existing.isEmpty()) {
                 for (ShareLink sl : existing) {
-                    finalShareLinks.add(fileServerUrl + "/api/share/" + sl.shareId + getFileName(res, fileNames, sl.fileDigest));
+                    var fileName = getFileName(res, fileNames, sl.fileDigest);
+                    finalShareLinks.add(fileServerUrl + "/api/share/" + sl.shareId + fileName);
+                    removeFileName(fileNamesList, fileName.substring("?filename=".length()));
                     existingDigests.remove(sl.fileDigest);
                 }
             }
@@ -112,11 +114,13 @@ public class ShareLinkController {
                             break;
                     }
                     linksToInsert.add(shareLink);
-                    finalShareLinks.add(fileServerUrl + "/api/share/" + shareLink.shareId + getFileName(res, fileNames, digest));
+                    var fileName = getFileName(res, fileNames, digest);
+                    finalShareLinks.add(fileServerUrl + "/api/share/" + shareLink.shareId + fileName);
+                    removeFileName(fileNamesList, fileName.substring("?filename=".length()));
                 }
                 mongoTemplate.insert(linksToInsert, "share-links");
             }
-            return String.join("\n", finalShareLinks);
+            return String.join("\n", finalShareLinks) + (fileNamesList.isEmpty() ? "" : "\nFiles not found:\n" + String.join("\n", fileNamesList));
         } else {
             return "FILE_NOT_FOUND";
         }
@@ -281,5 +285,16 @@ public class ShareLinkController {
             }
         }
         return "";
+    }
+
+    private void removeFileName(List<String> fileNames, String fileName) {
+        if (fileNames.isEmpty() || fileName.isEmpty()) return;
+        for (String name : fileNames) {
+            var nameOnly = name.substring(name.lastIndexOf("/") + 1);
+            if (nameOnly.equals(fileName)) {
+                fileNames.remove(name);
+                return;
+            }
+        }
     }
 }
