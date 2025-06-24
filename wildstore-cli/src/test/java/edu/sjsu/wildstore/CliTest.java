@@ -205,11 +205,11 @@ public class CliTest {
 
         result = clirun(cmd, "share", "", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(0, result.exitCode);
-        Assertions.assertTrue(result.out.contains("FILE_NOT_FOUND"));
+        Assertions.assertTrue(result.err.contains("Missing Files"));
 
         result = clirun(cmd, "share", "/testfile", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(0, result.exitCode);
-        Assertions.assertTrue(result.out.contains("FILE_NOT_FOUND"));
+        Assertions.assertTrue(result.err.contains("Missing Files"));
 
         result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(0, result.exitCode);
@@ -228,11 +228,11 @@ public class CliTest {
         // sharing multiple files
         result = clirun(cmd, "share", testDataPath.toString(), testDataPath2.toString(), "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(0, result.exitCode);
-        Assertions.assertTrue(result.out.contains("?filename=test-data.txt") && result.out.contains("?filename=test-data-2.txt") && !result.out.contains("Files not found"));
+        Assertions.assertTrue(result.out.contains("?filename=test-data.txt") && result.out.contains("?filename=test-data-2.txt") && !result.err.contains("Missing Files"));
 
         result = clirun(cmd, "share", testDataPath.toString(), "/testfile", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(0, result.exitCode);
-        Assertions.assertTrue(result.out.contains("?filename=test-data.txt") && result.out.contains("/testfile"));
+        Assertions.assertTrue(result.out.contains("?filename=test-data.txt") && result.err.contains("/testfile"));
 
         deleteUsers();
     }

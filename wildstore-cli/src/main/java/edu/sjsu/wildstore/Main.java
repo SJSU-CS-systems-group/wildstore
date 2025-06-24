@@ -1,5 +1,6 @@
 package edu.sjsu.wildstore;
 
+import edu.sjsu.wildstore.meta.controller.ShareLinkController;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -70,9 +71,11 @@ public class Main {
                                                       emails,
                                                       "validFor",
                                                       validFor),
-                                               new ParameterizedTypeReference<String>() {},
+                                               new ParameterizedTypeReference<ShareLinkController.CreatedLinks>() {},
                                                httpHeaders -> httpHeaders.setBearerAuth(co.token));
-                co.out().println(result);
+                result.created.forEach(co.out()::println);
+                if (!result.missing.isEmpty()) co.err().println("Missing Files:");
+                result.missing.forEach(co.err()::println);
             } catch (ExecutionException e) {
                 var message = e.getMessage();
                 // if this is a message about a connection problem, drop all the text before connection

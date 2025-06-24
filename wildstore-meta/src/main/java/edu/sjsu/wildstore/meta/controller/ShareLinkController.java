@@ -48,9 +48,19 @@ public class ShareLinkController {
     @Autowired
     private MongoTemplate mongoTemplate;
 
+    public static class CreatedLinks {
+        public List<String> created;
+        public List<String> missing;
+
+        public CreatedLinks(List<String> created, List<String> missing) {
+            this.created = created;
+            this.missing = missing;
+        }
+    }
+
     @PreAuthorize("hasRole('USER')")
     @PostMapping("/create")
-    public String create(@RequestBody Map<String, Object> request) {
+    public CreatedLinks create(@RequestBody Map<String, Object> request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Query query = new Query();
         var listOfCriteria = new ArrayList<Criteria>();
@@ -62,9 +72,6 @@ public class ShareLinkController {
         }
         if (fileDigests != null) {
             listOfCriteria.add(Criteria.where("digestString").in((fileDigests)));
-        }
-        if (listOfCriteria.isEmpty()) {
-            return "NO_FILE_SPECIFIED";
         }
         query.addCriteria(new Criteria().orOperator(listOfCriteria));
         query.fields().exclude("variables", "globalAttributes");
@@ -120,9 +127,9 @@ public class ShareLinkController {
                 }
                 mongoTemplate.insert(linksToInsert, "share-links");
             }
-            return String.join("\n", finalShareLinks) + (fileNamesList.isEmpty() ? "" : "\nFiles not found:\n" + String.join("\n", fileNamesList));
+            return new CreatedLinks(finalShareLinks, fileNamesList);
         } else {
-            return "FILE_NOT_FOUND";
+            return new CreatedLinks(Collections.emptyList(), fileNamesList);
         }
     }
 
