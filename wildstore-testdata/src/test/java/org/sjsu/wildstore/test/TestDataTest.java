@@ -1,7 +1,6 @@
 package org.sjsu.wildstore.test;
 
 import edu.sjsu.wildstore.NetcdfFileReader;
-import edu.sjsu.wildstore.TestDataDuplicator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -14,7 +13,7 @@ import java.util.HashSet;
 public class TestDataTest {
     @Test
     public void testTestData() throws URISyntaxException, IOException {
-        var resourcesUrl = TestDataDuplicator.class.getResource("/testdata");
+        var resourcesUrl = TestDataTest.class.getResource("/testdata");
         var resourcesPath = Paths.get(resourcesUrl.toURI());
         var ncFiles = Files.walk(resourcesPath)
                 .filter(Files::isRegularFile)
