@@ -36,5 +36,6 @@
     <module>wildstore-meta</module>
     <module>wildstore-fileserve</module>
     <module>wildstore-cli</module>
+    <module>wildstore-testdata</module>
   </modules>
 </project>
