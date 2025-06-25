@@ -16,13 +16,20 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
+import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 public class CrawlTest {
     private static ConfigurableApplicationContext springCtx;
@@ -43,32 +50,20 @@ public class CrawlTest {
     @BeforeAll
     public static void setup() throws Exception {
         // Copy test data to the temp dir
-        var testDataDir = tempDir.resolve("testdata");
-        var resourcesUrl = CrawlTest.class.getResource("/testdata");
-        var resourcesPath = Paths.get(resourcesUrl.toURI());
-        var exceptions = new ArrayList<Exception>();
-        var ncFiles = new ArrayList<Path>();
-        Files.walk(resourcesPath)
-                .filter(Files::isRegularFile)
-                .filter(p -> p.toString().endsWith(".nc"))
-                .forEach(p -> {
-                    try {
-                        var relativePath = resourcesPath.relativize(p);
-                        var dstPath = testDataDir.resolve(relativePath);
-                        Files.createDirectories(dstPath.getParent());
-                        Files.copy(p, dstPath);
-                        ncFiles.add(p);
-                    } catch (IOException e) {
-                        exceptions.add(e);
-                    }
-                });
-        if (!exceptions.isEmpty()) {
+        var exceptions= new ArrayList<IOException>();
+        TestDataUtils.walkTestDataFiles((fpath, rpath) -> {
+            var dst = tempDir.resolve(rpath);
+            System.out.printf("Copying test %s -> %s%n", fpath, dst);
+            try {
+                Files.createDirectories(dst.getParent());
+                Files.copy(fpath, dst);
+            } catch (IOException e) {
+                exceptions.add(e);
+            }
+        });
+        if (!exceptions.isEmpty()) {;
             throw exceptions.get(0);
         }
-        if (ncFiles.isEmpty()) {
-            throw new IOException("No .nc files found in the test data directory");
-        }
-
         var sock = new ServerSocket(0);
         var port = sock.getLocalPort();
         sock.close();
@@ -105,6 +100,8 @@ public class CrawlTest {
     @Test
     public void contextLoads() {
     }
+
+    // TODO: we still need to write the actual crawl tests...
 
     record TestResult(int exitCode, String out, String err) {}
     private static TestResult clirun(Object command, String... args) {
