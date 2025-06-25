@@ -7,8 +7,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.function.BiFunction;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 @CommandLine.Command
 public class TestDataDuplicator implements Runnable {
     @CommandLine.Parameters
@@ -24,7 +22,6 @@ public class TestDataDuplicator implements Runnable {
         if (count < 1 || count > MAX_COUNT) {
             System.err.printf("Count must be between 1 and %s%n", MAX_COUNT);
             System.exit(2);
-            return;
         }
         try {
             duplicateFiles(fileToDuplicate, count, (file, i) -> {
