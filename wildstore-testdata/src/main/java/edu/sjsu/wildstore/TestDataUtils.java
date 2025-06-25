@@ -14,10 +14,10 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class TestDataUtils {
-    private static FileSystem getFileSystemForUrl(URL uri) throws IOException {
+    private static FileSystem getFileSystemForUrl(URL uri) throws IOException, URISyntaxException {
         if (Set.of("jar", "zip").contains(uri.getProtocol())) {
             var bangIndex = uri.getPath().lastIndexOf('!');
-            var jarUri = URI.create(uri.getPath().substring(0, bangIndex));
+            var jarUri =uri.toURI();
             System.out.println("getting file system for jar: " + jarUri);
             return FileSystems.newFileSystem(jarUri, Map.of());
         } else {
