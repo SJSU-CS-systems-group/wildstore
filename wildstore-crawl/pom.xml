@@ -1,17 +1,18 @@
 <?xml version="1.0"?>
-<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <groupId>edu.sjsu.wildstore</groupId>
-    <artifactId>wildstore</artifactId>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
+         xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>edu.sjsu.wildstore</groupId>
+        <artifactId>wildstore</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <artifactId>wildstore-crawl</artifactId>
+    <packaging>jar</packaging>
     <version>1.0-SNAPSHOT</version>
-  </parent>
-  <artifactId>wildstore-crawl</artifactId>
-  <packaging>jar</packaging>
-  <version>1.0-SNAPSHOT</version>
-  <name>wildstore-crawl</name>
-  <url>https://maven.apache.org</url>
+    <name>wildstore-crawl</name>
+    <url>https://maven.apache.org</url>
 
     <dependencyManagement>
         <dependencies>
@@ -26,61 +27,44 @@
         </dependencies>
     </dependencyManagement>
 
-  <repositories>
-    <repository>
-      <id>unidata-all</id>
-      <name>Unidata All</name>
-      <url>https://artifacts.unidata.ucar.edu/repository/unidata-all/</url>
-    </repository>
-  </repositories>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-mongodb</artifactId>
+        </dependency>
 
-  <dependencies>
-    <!-- https://mvnrepository.com/artifact/edu.ucar/netcdf -->
-    <dependency>
-      <groupId>edu.ucar</groupId>
-      <artifactId>netcdf</artifactId>
-      <version>4.3.23</version>
-    </dependency>
-
-    <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>2.0.12</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-reload4j</artifactId>
-      <version>2.0.12</version>
-      <scope>runtime</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.springframework.data</groupId>
-      <artifactId>spring-data-mongodb</artifactId>
-    </dependency>
-    
-    <dependency>
-          <groupId>info.picocli</groupId>
-          <artifactId>picocli</artifactId>
-          <version>4.7.6</version>
-      </dependency>
-    <dependency>
-      <groupId>edu.sjsu.wildstore</groupId>
-      <artifactId>wildstore-common</artifactId>
-      <version>1.0-SNAPSHOT</version>
-      <scope>compile</scope>
-    </dependency>
-      <dependency>
-          <groupId>org.junit.jupiter</groupId>
-          <artifactId>junit-jupiter</artifactId>
-          <version>5.10.2</version>
-          <scope>test</scope>
-      </dependency>
-  </dependencies>
-  <build>
-     <plugins>
+        <dependency>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli</artifactId>
+            <version>4.7.6</version>
+        </dependency>
+        <dependency>
+            <groupId>edu.sjsu.wildstore</groupId>
+            <artifactId>wildstore-common</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>edu.sjsu.wildstore</groupId>
+            <artifactId>wildstore-meta</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-reload4j</artifactId>
+                </exclusion>
+            </exclusions>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>edu.sjsu.wildstore</groupId>
+            <artifactId>wildstore-testdata</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
