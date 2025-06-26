@@ -19,6 +19,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -235,6 +236,31 @@ public class CliTest {
         Assertions.assertTrue(result.out.contains("?filename=test-data.txt") && result.err.contains("/testfile"));
 
         deleteUsers();
+    }
+
+    @Test
+    void testClean() throws IOException, URISyntaxException {
+        var cmd = new Main.Cli();
+        var adminTokenFile = tempDir.resolve("admin-token.txt");
+        var userTokenFile = tempDir.resolve("user-token.txt");
+
+        var adminToken = "secret-admin-token";
+        var userToken = "secret-user-token";
+
+        Files.write(adminTokenFile, ("token=" + adminToken).getBytes());
+        Files.write(userTokenFile, ("token=" + userToken).getBytes());
+
+        createUser("ROLE_ADMIN", "CleanAdmin", "admin@share", adminToken);
+        var query = new Query(Criteria.where("email").regex("@share"));
+
+        var testDataUtils = new TestDataUtils();
+        testDataUtils.extractTestData(tempDir);
+
+        var result = clirun(edu.sjsu.wildstore.WildfireFilesCrawler.class ,"--hostname", metaURL, "--configFile", adminTokenFile.toString(), tempDir.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        System.out.println(springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
+        clirun(cmd, "clean", "--metaURL", metaURL, "--token", adminTokenFile.toString());
+        //Assertions.assertEquals(0, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
     }
 
     private static void createUser(String role, String name, String email, String token) {
