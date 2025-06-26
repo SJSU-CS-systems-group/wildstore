@@ -29,9 +29,9 @@ public class TestDataUtils {
         if (Set.of("jar", "zip").contains(uri.getProtocol())) {
             var bangIndex = uri.getPath().lastIndexOf('!');
             var pathString = uri.getPath().substring(bangIndex+1);
-            return fs.getPath(pathString);
+            return Path.of(pathString);
         } else {
-            return fs.getPath(uri.getPath());
+            return Path.of(uri.getPath());
         }
     }
 
