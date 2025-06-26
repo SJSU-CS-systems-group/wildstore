@@ -49,21 +49,7 @@ public class CrawlTest {
 
     @BeforeAll
     public static void setup() throws Exception {
-        // Copy test data to the temp dir
-        var exceptions= new ArrayList<IOException>();
-        TestDataUtils.walkTestDataFiles((fpath, rpath) -> {
-            var dst = tempDir.resolve(rpath);
-            System.out.printf("Copying test %s -> %s%n", fpath, dst);
-            try {
-                Files.createDirectories(dst.getParent());
-                Files.copy(fpath, dst);
-            } catch (IOException e) {
-                exceptions.add(e);
-            }
-        });
-        if (!exceptions.isEmpty()) {;
-            throw exceptions.get(0);
-        }
+        TestDataUtils.extractTestData(tempDir);
         var sock = new ServerSocket(0);
         var port = sock.getLocalPort();
         sock.close();

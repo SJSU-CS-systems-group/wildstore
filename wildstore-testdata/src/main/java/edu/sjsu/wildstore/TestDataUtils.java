@@ -1,6 +1,7 @@
 package edu.sjsu.wildstore;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -12,6 +13,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 public class TestDataUtils {
     private static FileSystem getFileSystemForUrl(URL uri) throws IOException, URISyntaxException {
@@ -35,25 +38,26 @@ public class TestDataUtils {
         }
     }
 
-    public static void walkTestDataFiles(BiConsumer<Path, Path> consumer) throws IOException, URISyntaxException {
-        var resourcesUrl = TestDataUtils.class.getResource("/testdata");
+    public static void extractTestData(Path destinationPath) throws IOException, URISyntaxException {
+        var is = TestDataUtils.class.getResourceAsStream("/testdata.zip");
+        if (is == null) {
+            throw new IOException("Test data zip file /testdata.zip not found in classpath.");
+        }
+        var zipStream = new ZipInputStream(is);
 
-        var fs = getFileSystemForUrl(resourcesUrl);
-        try {
-            var path = fs.getPath(resourcesUrl.getPath());
-            System.out.println("Walking test data files in: " + path);
-            try (var pathStream = Files.walk(path)) {
-                pathStream.filter(Files::isRegularFile)
-                        .map(p -> new Path[] { p, path.relativize(p) })
-                        .forEach(pa -> consumer.accept(pa[0], pa[1]));
+        ZipEntry entry;
+        while ((entry = zipStream.getNextEntry()) != null) {
+            if (!entry.isDirectory()) {
+                var entryPath = entry.getName();
+                if (entryPath.startsWith("/")) {
+                    entryPath = entryPath.substring(1);
+                }
+                var dst = destinationPath.resolve(entryPath);
+                Files.createDirectories(dst.getParent());
+                try (var os = Files.newOutputStream(dst)) {
+                    zipStream.transferTo(os);
+                }
             }
-        } finally {
-            if (fs == FileSystems.getDefault()) {
-                // this hack brought to you by the devs that thought it would be a good idea
-                // that FileSystems.default() is not autoclosable...
-                return;
-            }
-            fs.close();
         }
     }
 }
