@@ -39,7 +39,7 @@ public class TestDataUtils {
     }
 
     public static void extractTestData(Path destinationPath) throws IOException, URISyntaxException {
-        var is = TestDataUtils.class.getResourceAsStream("/testdata.zip");
+        var is = TestDataUtils.class.getResourceAsStream("testdata.zip");
         if (is == null) {
             throw new IOException("Test data zip file /testdata.zip not found in classpath.");
         }

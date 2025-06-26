@@ -13,23 +13,10 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import picocli.CommandLine;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
 public class CrawlTest {
     private static ConfigurableApplicationContext springCtx;
