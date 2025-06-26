@@ -24,6 +24,17 @@ public class TestDataUtils {
             return FileSystems.getDefault();
         }
     }
+
+    private static Path getPathForUrl(FileSystem fs, URL uri) throws IOException, URISyntaxException {
+        if (Set.of("jar", "zip").contains(uri.getProtocol())) {
+            var bangIndex = uri.getPath().lastIndexOf('!');
+            var pathString = uri.getPath().substring(bangIndex+1);
+            return fs.getPath(pathString);
+        } else {
+            return fs.getPath(uri.getPath());
+        }
+    }
+
     public static void walkTestDataFiles(BiConsumer<Path, Path> consumer) throws IOException, URISyntaxException {
         var resourcesUrl = TestDataUtils.class.getResource("/testdata");
 
