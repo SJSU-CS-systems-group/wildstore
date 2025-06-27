@@ -3,10 +3,13 @@ package edu.sjsu.wildstore;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import picocli.CommandLine;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,10 +24,10 @@ import java.util.stream.Stream;
 public class WildfireFilesCrawler implements Runnable {
     @CommandLine.Option(names = "--option", defaultValue = "all", description = "Which information to print - 'all' or 'basic'")
     private String option;
-    @CommandLine.Parameters(paramLabel = "<file>", description = "Path to the file containing list of NetCDF files to process")
+    @CommandLine.Parameters(paramLabel = "<file>", description = "Path to the file containing list of NetCDF files to process", arity = "1")
     private String filesToProcessPath;
-    @CommandLine.Option(names = "--hostname", description = "Host name of the API server")
-    String hostname;
+    @CommandLine.Option(names = "--metaURL", description = "Host name of the API server", required = true)
+    String metaURL;
     @CommandLine.Option(names = "--log", description = "Whether to generate a log")
     Boolean log = false;
     @CommandLine.Option(names = "--enums", description = "Generate log of Enum Variable names")
@@ -35,46 +38,96 @@ public class WildfireFilesCrawler implements Runnable {
     @CommandLine.Option(names = "--maxReadSize", description = "Number of data elements to read per read call")
     int maxReadSize = 1000000000;
 
-    @CommandLine.Option(names = "--configFile") String configFile;
+    @CommandLine.Option(names = "--tokenFile", required = true) String tokenFile;
 
     @CommandLine.Option(names = "--dataset", description = "Whether to initiate dataset collection") boolean initiateDatasetCollection = false;
 
+    @CommandLine.Spec
+    private CommandLine.Model.CommandSpec spec;
+
+    final PrintWriter out() {
+        return cmd().getOut();
+    }
+
+    final PrintWriter err() {
+        return cmd().getErr();
+    }
+
+    final CommandLine cmd() {
+        return spec.commandLine();
+    }
+
     public void run() {
+        var okayException = new Exception("No exception");
         Properties appProps = new Properties();
         try {
-            appProps.load(new FileInputStream(configFile));
+            appProps.load(new FileInputStream(tokenFile));
+        } catch (FileNotFoundException e) {
+            throw new CommandLine.PicocliException(tokenFile + " is not a valid file", e);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new CommandLine.PicocliException("Error loading properties from token file: " + tokenFile, e);
         }
         String token = appProps.getProperty("token");
         Instant start = Instant.now();
-        ConcurrentHashMap<String, String> status = new ConcurrentHashMap<>();
+        ConcurrentHashMap<String, Exception> status = new ConcurrentHashMap<>();
         ExecutorService executorService = Executors.newFixedThreadPool(parallelism);
-        WebClient webClient = Client.getWebClient(hostname + "/api/metadata");
+        WebClient webClient = Client.getWebClient(metaURL + "/api/metadata");
         Semaphore semaphore = new Semaphore(parallelism);
         try (Stream<String> stream = Files.lines(Paths.get(filesToProcessPath))) {
-            stream.forEach(file -> {
+            var exceptions = stream.map(file -> {
                 try {
                     semaphore.acquire();
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
-                executorService.submit(()->{
+                return executorService.submit(() -> {
                     try {
-                        crawl(file, webClient, status, token);
+                        crawl(file, webClient, token, maxReadSize, option, enumLog);
+                        status.put(file, okayException);
+                        return null;
+                    } catch (Exception ex) {
+                        status.put(file, ex);
+                        return ex;
                     } finally {
                         semaphore.release();
                     }
                 });
-            });
+            }).takeWhile(future -> {
+                                               try {
+                                                   var exception = future.get();
+                                               } catch (InterruptedException e) {
+                                                   return false;
+                                               } catch (Exception e) {
+                                                   if (e instanceof WebClientResponseException webException &&
+                                                           webException.getStatusCode().is4xxClientError()) {
+                                                       err().println("Unrecoverable authorization error: " + webException.getMessage());
+                                                       return false;
+                                                   }
+                                                   err().println("Error processing file: " + future + " - " + e.getMessage());
+                                               }
+                                               return true;
+                                           }).toList();
+        } catch (IOException e) {
+            out().println("There was an exception: " + e.getMessage());
+        }
+        try {
             semaphore.acquire(parallelism);
             executorService.shutdown();
             executorService.awaitTermination(1, TimeUnit.SECONDS);
-
-        } catch (IOException e) {
-            System.out.println("There was an exception: " + e.getMessage());
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
+        }
+        boolean exceptionFound = false;
+        for(var entry : status.entrySet()) {
+            if (entry.getValue() != okayException) {
+                exceptionFound = true;
+                err().println("Error processing file: " + entry.getKey() + " - " + entry.getValue());
+                if (entry.getValue() instanceof WebClientResponseException webException && webException.getStatusCode().is4xxClientError()) {
+                    break;
+                }
+            } else {
+                out().println("Successfully processed file: " + entry.getKey());
+            }
         }
         if(log) {
             try {
@@ -91,69 +144,72 @@ public class WildfireFilesCrawler implements Runnable {
             }
         }
         Instant finish = Instant.now();
-        System.out.println("Execution Completed in: "+ Duration.between(start, finish).toMillis() + "ms");
+        out().println("Execution Completed in: "+ Duration.between(start, finish).toMillis() + "ms");
 
         if(initiateDatasetCollection) {
-            System.out.println("Initiating dataset collection");
+            out().println("Initiating dataset collection");
             //Write API service to call dataset routing
-            WebClient datasetWebClient = Client.getWebClient(hostname + "/api/dataset");
+            WebClient datasetWebClient = Client.getWebClient(metaURL + "/api/dataset");
             try {
-                if (hostname == null) {
-                    System.out.println("No hostname specified. Skipping dataset update.");
+                if (metaURL == null) {
+                    out().println("No hostname specified. Skipping dataset update.");
                 } else {
                     var res = Client.post(datasetWebClient, "", new ParameterizedTypeReference<Integer>() {
                     }, httpHeaders -> {
                         httpHeaders.setBearerAuth(token);
                     });
-                    System.out.println("RESULT: " + res);
+                    out().println("RESULT: " + res);
                 }
             } catch (WebClientRequestException ex) {
-                System.out.println("Dataset API call: " + ex.getMostSpecificCause() + ex.getMessage());
+                out().println("Dataset API call: " + ex.getMostSpecificCause() + ex.getMessage());
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
+        if (exceptionFound) {
+            throw new CommandLine.ExecutionException(cmd(), "Error(s) occurred during processing. See above for details.", null);
+        }
     }
     public static void main(String[] args) {
-        System.exit(new CommandLine(new WildfireFilesCrawler()).execute(args));
+        CommandLine commandLine = new CommandLine(new WildfireFilesCrawler());
+        commandLine.setExecutionExceptionHandler((ex, cl, pr) -> {
+            System.err.println(ex.getMessage());
+            return 2;
+        });
+        commandLine.setParameterExceptionHandler((ex, as) -> {
+            var t = ex.getCause() != null ? ex.getCause() : ex;
+            System.err.println(t.getMessage());
+            if (t instanceof CommandLine.ParameterException) {
+                commandLine.usage(System.err);
+            }
+            return 1;
+        });
+        System.exit(commandLine.execute(args));
     }
 
-    private void crawl(String file, WebClient webClient, ConcurrentHashMap<String,String> status, String token){
-        try {
-            NetcdfFileReader fileReader = new NetcdfFileReader(file);
-            var metadata = fileReader.processFile(maxReadSize);
+    public static void crawl(String file, WebClient webClient, String token, int maxReadSize, String option, boolean enumLog) throws
+            InterruptedException, ExecutionException {
+        NetcdfFileReader fileReader = new NetcdfFileReader(file);
+        var metadata = fileReader.processFile(maxReadSize);
 
-            if (option.equals("all")) {
-                PrintData.printAllData(metadata);
-            }
-            else if (option.equals("basic")) {
-                PrintData.printBasic(metadata);
-            }
-            if(enumLog) {
-                Path enumFile = Paths.get("enumVarList.txt");;
-                try {
-                    Files.createFile(enumFile);
-                } catch (FileAlreadyExistsException e) {
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-                PrintData.printEnums(enumFile, metadata);
-
-            }
-            if (hostname == null) {
-                System.out.println("No hostname specified. Skipping metadata update.");
-            } else {
-                var res = Client.post(webClient, metadata, new ParameterizedTypeReference<Integer>(){}, httpHeaders -> {
-                    httpHeaders.setBearerAuth(token);
-                });
-                System.out.println("FILE: "+file+" DIGEST: " + metadata.digestString+" RESULT: " + res);
-            }
-        } catch (WebClientRequestException ex) {
-            System.out.println(file + " -> " + ex.getMostSpecificCause() + ex.getMessage());
-            status.put(file, ex.toString());
-        } catch (Exception ex) {
-            System.out.println(file + " -> " + ex.getMessage());
-            status.put(file, ex.toString());
+        if (option.equals("all")) {
+            PrintData.printAllData(metadata);
+        } else if (option.equals("basic")) {
+            PrintData.printBasic(metadata);
         }
+        if (enumLog) {
+            Path enumFile = Paths.get("enumVarList.txt");
+            ;
+            try {
+                Files.createFile(enumFile);
+            } catch (FileAlreadyExistsException e) {
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            PrintData.printEnums(enumFile, metadata);
+        }
+        var res = Client.post(webClient, metadata, new ParameterizedTypeReference<Integer>() {}, httpHeaders -> {
+            httpHeaders.setBearerAuth(token);
+        });
     }
 }
