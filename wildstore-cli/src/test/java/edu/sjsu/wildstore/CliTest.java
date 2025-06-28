@@ -22,11 +22,15 @@ import java.net.ServerSocket;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Stream;
 
 import static java.lang.String.format;
 
@@ -82,6 +86,9 @@ public class CliTest {
     }
     @TempDir
     Path tempDir;
+
+    @TempDir
+    Path tempNameDir;
 
     @Test
     public void testUserCli() throws InterruptedException, IOException {
@@ -239,7 +246,7 @@ public class CliTest {
     }
 
     @Test
-    void testClean() throws IOException, URISyntaxException {
+    void testClean() throws IOException, URISyntaxException, ExecutionException, InterruptedException {
         var cmd = new Main.Cli();
         var adminTokenFile = tempDir.resolve("admin-token.txt");
         var userTokenFile = tempDir.resolve("user-token.txt");
@@ -250,17 +257,61 @@ public class CliTest {
         Files.write(adminTokenFile, ("token=" + adminToken).getBytes());
         Files.write(userTokenFile, ("token=" + userToken).getBytes());
 
-        createUser("ROLE_ADMIN", "CleanAdmin", "admin@share", adminToken);
-        var query = new Query(Criteria.where("email").regex("@share"));
+        createUser("ROLE_ADMIN", "CleanAdmin", "admin@clean", adminToken);
+        createUser("ROLE_USER", "ClearUser", "user@clean", userToken);
 
+        //put files into directory
         var testDataUtils = new TestDataUtils();
         testDataUtils.extractTestData(tempDir);
 
-        var result = clirun(edu.sjsu.wildstore.WildfireFilesCrawler.class ,"--hostname", metaURL, "--configFile", adminTokenFile.toString(), tempDir.toString());
+        //find all .nc files in the tempDir
+        List<String> fileNames = List.of();
+        try (Stream<Path> walk = Files.walk(tempDir)) {
+            fileNames = walk.filter(path -> path.toString().endsWith(".nc")).map(Path::toString).toList();
+        }
+        if (fileNames.isEmpty()) {
+            throw new IOException("No .nc files found in the test data directory.");
+        }
+
+        //creates a file with the filenames to crawl
+        var nameFile = tempNameDir.resolve("fileNames.txt");
+        Files.write(nameFile, String.join("\n", fileNames).getBytes());
+
+        //crawl files
+        try {
+            for (int i = 0; i < Math.min(2, fileNames.size()); i++) {
+                WildfireFilesCrawler.crawl(fileNames.get(i), Client.getWebClient(metaURL + "/api/metadata"), userToken, 1024 * 1024, "all", false);
+            }
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        Assertions.assertEquals(2, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
+
+        var deletedFile = fileNames.get(0);
+        Files.delete(Paths.get(fileNames.get(0)));
+        var query = new Query(Criteria.where("fileName").regex(deletedFile));
+
+        // users should not be able to clean
+        var result = clirun(cmd, "clean", "--metaURL", metaURL, "--token", userTokenFile.toString());
+        Assertions.assertEquals(1, result.exitCode);
+        Assertions.assertTrue(result.err.contains("WebClientResponseException"));
+
+        // dryrun should not delete anything
+        result = clirun(cmd, "clean", "--metaURL", metaURL, "--token", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains(deletedFile));
+        Assertions.assertEquals(2, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
         System.out.println(springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
-        clirun(cmd, "clean", "--metaURL", metaURL, "--token", adminTokenFile.toString());
-        //Assertions.assertEquals(0, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
+
+        // file should be deleted
+        result = clirun(cmd, "clean", "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--no-dryrun");
+        System.out.println(result);
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains(deletedFile));
+        Assertions.assertEquals(1, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
+
     }
 
     private static void createUser(String role, String name, String email, String token) {

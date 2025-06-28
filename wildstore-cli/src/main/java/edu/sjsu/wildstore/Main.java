@@ -144,6 +144,7 @@ public class Main {
                                                                   deletedFiles,
                                                                   new ParameterizedTypeReference<Integer>() {},
                                                                   httpHeaders -> httpHeaders.setBearerAuth(co.token)));
+                co.out().println("Deleted Files: " + String.join("\n", deletedFiles));
                 offset += limit;
             } while (!result.isEmpty());
         }
