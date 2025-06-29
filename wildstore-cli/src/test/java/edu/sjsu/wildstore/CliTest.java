@@ -152,7 +152,7 @@ public class CliTest {
         Assertions.assertEquals("", result.err);
         Assertions.assertEquals(1, result.out.split("\n").length);
 
-        deleteUsers();
+        deleteUsers("@example.com");
     }
 
     @Test
@@ -243,7 +243,7 @@ public class CliTest {
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("?filename=test-data.txt") && result.err.contains("/testfile"));
 
-        deleteUsers();
+        deleteUsers("@share");
     }
 
     @Test
@@ -365,7 +365,7 @@ public class CliTest {
                         }
                     });
         }
-        deleteUsers();
+        deleteUsers("@clean");
     }
 
     private static void createUser(String role, String name, String email, String token) {
@@ -377,8 +377,8 @@ public class CliTest {
         springCtx.getBean(MongoTemplate.class).insert(new HashMap(rec), "userData");
     }
 
-    private static void deleteUsers() {
-        var query = new Query(Criteria.where("email").regex("@share"));
+    private static void deleteUsers(String keyword) {
+        var query = new Query(Criteria.where("email").regex(keyword));
         springCtx.getBean(MongoTemplate.class).remove(query, "userData");
     }
 
