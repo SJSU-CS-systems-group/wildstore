@@ -166,9 +166,8 @@ public class MetadataController {
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/metadata/filepath")
     public int deleteMetadata(@RequestBody List<String> filePaths) {
-        Query query = new Query(Criteria.where("filePath").in(filePaths));
-        mongoTemplate.remove(query, METADATA_COLLECTION);
-        return 0;
+        Query query = new Query(Criteria.where("fileName").in(filePaths));
+        return (int) mongoTemplate.remove(query, METADATA_COLLECTION).getDeletedCount();
     }
 
     @PreAuthorize("hasRole('USER')")
