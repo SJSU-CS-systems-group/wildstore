@@ -148,7 +148,7 @@ public class Main {
                 co.out().println("Deleted Files: " + String.join("\n", deletedFiles));
                 offset += limit;
             } while (result.size() == offset);
-            if (dryrun) System.out.println("DRYRUN: NO FILES WERE DELETED.");
+            if (dryrunVal) System.out.println("DRYRUN: NO FILES WERE DELETED.");
         }
     }
 

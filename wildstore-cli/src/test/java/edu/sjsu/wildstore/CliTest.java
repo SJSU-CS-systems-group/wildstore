@@ -304,7 +304,7 @@ public class CliTest {
         Assertions.assertTrue(result.out.contains(deletedFile));
         Assertions.assertEquals(2, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
 
-        result = clirun(cmd, "clean", "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--no-dryrun");
+        result = clirun(cmd, "clean", "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--dryrun");
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains(deletedFile));
         Assertions.assertEquals(2, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
