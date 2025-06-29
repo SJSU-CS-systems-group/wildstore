@@ -125,7 +125,8 @@ public class Main {
         @CommandLine.Command
         public void clean(@CommandLine.Mixin CliOptions co,
                           @CommandLine.Parameters(paramLabel = "limit", defaultValue = "10000") int limit,
-                          @CommandLine.Option(names = "--dryrun", negatable = true) Boolean dryrun) throws InterruptedException, ExecutionException {
+                          @CommandLine.Option(names = "--dryrun", negatable = true) Boolean dryrun)
+                throws InterruptedException, ExecutionException {
             int offset = 0;
             LinkedMultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
             parameters.add("limit", String.valueOf(limit));
