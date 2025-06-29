@@ -279,15 +279,13 @@ public class CliTest {
         Files.write(nameFile, String.join("\n", fileNames).getBytes());
 
         //crawl files
-        try {
-            for (int i = 0; i < Math.min(2, fileNames.size()); i++) {
-                WildfireFilesCrawler.crawl(fileNames.get(i), Client.getWebClient(metaURL + "/api/metadata"),
-                                           userToken, 1024 * 1024, "all", false);
-            }
-        } catch (ExecutionException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+        for (int i = 0; i < Math.min(2, fileNames.size()); i++) {
+            WildfireFilesCrawler.crawl(fileNames.get(i),
+                                       Client.getWebClient(metaURL + "/api/metadata"),
+                                       userToken,
+                                       1024 * 1024,
+                                       "all",
+                                       false);
         }
         Assertions.assertEquals(2, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
 
@@ -306,7 +304,7 @@ public class CliTest {
         Assertions.assertTrue(result.out.contains(deletedFile));
         Assertions.assertEquals(2, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
 
-        result = clirun(cmd, "clean", "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--dryrun");
+        result = clirun(cmd, "clean", "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--no-dryrun");
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains(deletedFile));
         Assertions.assertEquals(2, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
@@ -318,15 +316,13 @@ public class CliTest {
         Assertions.assertEquals(0, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
 
         // crawl more files
-        try {
-            for (int i = 2; i < Math.min(32, fileNames.size()); i++) {
-                WildfireFilesCrawler.crawl(fileNames.get(i), Client.getWebClient(metaURL + "/api/metadata"),
-                                           userToken, 1024 * 1024, "all", false);
-            }
-        } catch (ExecutionException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+        for (int i = 2; i < Math.min(32, fileNames.size()); i++) {
+            WildfireFilesCrawler.crawl(fileNames.get(i),
+                                       Client.getWebClient(metaURL + "/api/metadata"),
+                                       userToken,
+                                       1024 * 1024,
+                                       "all",
+                                       false);
         }
 
         // clean test with more files
