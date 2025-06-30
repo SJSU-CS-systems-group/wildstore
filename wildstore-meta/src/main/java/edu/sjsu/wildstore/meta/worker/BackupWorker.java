@@ -37,7 +37,7 @@ public class BackupWorker {
         ProcessBuilder builder = new ProcessBuilder(
                 "mongoexport",
                 "--uri", mongoUri,
-                "--collection", "collection",
+                "--collection", collection,
                 "--out", backupDirectory + "/" + collection + ".json");
         builder.redirectErrorStream(true);
         Process process = builder.start();
