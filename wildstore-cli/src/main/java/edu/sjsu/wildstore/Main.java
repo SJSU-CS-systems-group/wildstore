@@ -125,7 +125,7 @@ public class Main {
         @CommandLine.Command
         public void clean(@CommandLine.Mixin CliOptions co,
                           @CommandLine.Parameters(paramLabel = "limit", defaultValue = "10000") int limit,
-                          @CommandLine.Option(names = "--dryrun", negatable = true) Boolean dryrun)
+                          @CommandLine.Option(names = "--no" + "-dryrun", negatable = true, defaultValue = "true") boolean dryrun)
                 throws InterruptedException, ExecutionException {
             int offset = 0;
             LinkedMultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
@@ -133,7 +133,6 @@ public class Main {
             List<String> result;
             int i = 0;
             WebClient webClient = Client.getWebClient(co.metadataURL + "/api/metadata/filepath", co.token);
-            boolean dryrunVal = (dryrun != null) ? dryrun : true;
 
             do {
                 parameters.put("offset", List.of(String.valueOf(offset)));
@@ -141,14 +140,14 @@ public class Main {
                                                    parameters,
                                                    new ParameterizedTypeReference<List<String>>() {});
                 List<String> deletedFiles = result.stream().filter(item -> !Files.exists(Paths.get(item))).toList();
-                if (!dryrunVal) System.out.println("DELETE RESULT:" + Client.post(webClient,
+                if (!dryrun) System.out.println("DELETE RESULT:" + Client.post(webClient,
                                                                   deletedFiles,
                                                                   new ParameterizedTypeReference<Integer>() {},
                                                                   httpHeaders -> httpHeaders.setBearerAuth(co.token)));
                 co.out().println("Deleted Files: " + String.join("\n", deletedFiles));
                 offset += limit;
             } while (result.size() == offset);
-            if (dryrunVal) System.out.println("DRYRUN: NO FILES WERE DELETED.");
+            if (dryrun) System.out.println("DRYRUN: NO FILES WERE DELETED.");
         }
     }
 
