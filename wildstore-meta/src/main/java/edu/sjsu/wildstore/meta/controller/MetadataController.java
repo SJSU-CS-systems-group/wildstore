@@ -151,8 +151,8 @@ public class MetadataController {
     public List<String> getFilePaths(@RequestParam("limit") int limit, @RequestParam("offset") int offset) {
         Aggregation aggregation = Aggregation.newAggregation(Aggregation.skip(offset),
                                                              Aggregation.limit(limit),
-                                                             Aggregation.unwind("filePath"),
-                                                             Aggregation.group().addToSet("filePath").as("files"),
+                                                             Aggregation.unwind("fileName"),
+                                                             Aggregation.group().addToSet("fileName").as("files"),
                                                              Aggregation.project("files"));
 
         List<DBObject> res = mongoTemplate.aggregate(aggregation, "metadata", DBObject.class).getMappedResults();
@@ -166,9 +166,8 @@ public class MetadataController {
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/metadata/filepath")
     public int deleteMetadata(@RequestBody List<String> filePaths) {
-        Query query = new Query(Criteria.where("filePath").in(filePaths));
-        mongoTemplate.remove(query, METADATA_COLLECTION);
-        return 0;
+        Query query = new Query(Criteria.where("fileName").in(filePaths));
+        return (int) mongoTemplate.remove(query, METADATA_COLLECTION).getDeletedCount();
     }
 
     @PreAuthorize("hasRole('USER')")

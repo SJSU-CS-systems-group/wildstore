@@ -114,11 +114,13 @@ public class CrawlTest {
             throw new IOException("No .nc files found in the test data directory.");
         }
 
-        // create a file with the names of the files
+        // create a file with the filenames to crawl
         var nameFile = tempNameDir.resolve("fileNames.txt");
         Files.write(nameFile, String.join("\n", fileNames.subList(0, Math.min(20, fileNames.size()))).getBytes());
+
+        // crawl method test
         try {
-            WildfireFilesCrawler.crawl(fileNames.get(1), Client.getWebClient(metaURL + "/api/metadata"), userToken, 1024 * 1024, "all", false);
+            WildfireFilesCrawler.crawl(fileNames.get(0), Client.getWebClient(metaURL + "/api/metadata"), userToken, 1024 * 1024, "all", false);
         } catch (ExecutionException e) {
             throw new RuntimeException(e);
         } catch (InterruptedException e) {
