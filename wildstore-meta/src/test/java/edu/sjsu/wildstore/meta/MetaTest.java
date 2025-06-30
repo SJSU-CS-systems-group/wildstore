@@ -57,7 +57,7 @@ public class MetaTest {
     }
 
     @AfterAll
-    public static void teardown() throws IOException {
+    public static void teardown() {
         if (staticMongoTemplate != null) {
             staticMongoTemplate.getDb().drop();
         }
@@ -78,6 +78,5 @@ public class MetaTest {
 
         Thread.sleep(1000);
         Assertions.assertTrue(firstTime.compareTo(Files.getLastModifiedTime(backupDir.resolve("share-links.json"))) < 0);
-
     }
 }
