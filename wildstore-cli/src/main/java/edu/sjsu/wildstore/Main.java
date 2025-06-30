@@ -87,14 +87,13 @@ public class Main {
         }
 
         @CommandLine.Command
-        public void search(@CommandLine.Parameters(paramLabel = "query") String query,
-                           @CommandLine.Parameters(paramLabel = "hostname") String hostname,
+        public void search(@CommandLine.Mixin CliOptions co,
+                @CommandLine.Parameters(paramLabel = "query") String query,
                            @CommandLine.Parameters(paramLabel = "<option>", defaultValue = "all", description =
                                    "Which information to print - 'all' or 'basic'")
                            String option,
                            @CommandLine.Option(names = "--limit", defaultValue = "10") int limit,
-                           @CommandLine.Option(names = "--offset", defaultValue = "0") int offset,
-                           @CommandLine.Option(names = "--token") String token) throws InterruptedException,
+                           @CommandLine.Option(names = "--offset", defaultValue = "0") int offset) throws InterruptedException,
                 ExecutionException {
             MetadataRequest metadataRequest = new MetadataRequest();
             metadataRequest.searchQuery = query;
@@ -102,11 +101,11 @@ public class Main {
             metadataRequest.offset = offset;
             metadataRequest.excludeFields = new String[] { "globalAttributes", "variables" };
             WebClient webClient =
-                    Client.getWebClient(hostname + "/api/metadata/search?excludeFields=globalAttributes,variables");
+                    Client.getWebClient(co.metadataURL + "/api/metadata/search?excludeFields=globalAttributes,variables");
             var res = (ArrayList<Metadata>) (Client.post(webClient,
                                                          metadataRequest,
                                                          new ParameterizedTypeReference<ArrayList<Metadata>>() {},
-                                                         httpHeaders -> httpHeaders.setBearerAuth(token)));
+                                                         httpHeaders -> httpHeaders.setBearerAuth(co.token)));
             System.out.println("SEARCH returned: " + res.size() + " results");
             if (option.equals("all")) {
                 for (Metadata m : res) {
