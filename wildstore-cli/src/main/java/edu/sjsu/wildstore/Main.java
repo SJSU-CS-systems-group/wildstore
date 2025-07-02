@@ -157,13 +157,13 @@ public class Main {
             try {
                 var result = Client.post(webClient, dryrun, new ParameterizedTypeReference<List<String>>() {},
                                      httpHeaders -> httpHeaders.setBearerAuth(co.token));
-                co.out().println("Deleted Links: " + String.join("\n", result));
+                result.forEach(co.out()::println);
             } catch (ExecutionException | InterruptedException e) {
                 var message = e.getMessage();
             } catch (WebClientResponseException e) {
                 throw new CommandLine.ExecutionException(co.cmd(), e.getMessage(), null);
             }
-            if (dryrun) System.out.println("DRYRUN: NO LINKS WERE DELETED.");
+            if (dryrun) System.out.println("DRYRUN: NO FILES WERE DELETED.");
         }
     }
 }
