@@ -64,11 +64,12 @@ public class ShareLinkController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Query query = new Query();
         var listOfCriteria = new ArrayList<Criteria>();
-        var fileNamesList = (List<String>) request.get("fileNames");
-        var fileNames = fileNamesList == null ? null : new HashSet<>(fileNamesList);
+        var fileNames = (List<String>) request.get("fileNames");
         var fileDigests = (List<String>) request.get("fileDigest");
         if (fileNames != null) {
             listOfCriteria.add(Criteria.where("fileName").in(fileNames));
+        } else {
+            fileNames = new ArrayList<>();
         }
         if (fileDigests != null) {
             listOfCriteria.add(Criteria.where("digestString").in((fileDigests)));
@@ -87,9 +88,25 @@ public class ShareLinkController {
             List<String> finalShareLinks = new ArrayList<>();
             if (!existing.isEmpty()) {
                 for (ShareLink sl : existing) {
-                    var fileName = getFileName(res, fileNames, sl.fileDigest);
+                    switch ((String) request.get("validFor")) {
+                        case "day":
+                            sl.expiry = LocalDateTime.now().plusDays(1);
+                            break;
+                        case "week":
+                            sl.expiry = LocalDateTime.now().plusWeeks(1);
+                            break;
+                        case "month":
+                            sl.expiry = LocalDateTime.now().plusMonths(1);
+                            break;
+                        case "year":
+                            sl.expiry = LocalDateTime.now().plusYears(1);
+                            break;
+                        default:
+                            break;
+                    }
+                    var fileName = getFileName(res, sl.fileDigest);
                     finalShareLinks.add(fileServerUrl + "/api/share/" + sl.shareId + fileName);
-                    removeFileName(fileNamesList, fileName.substring("?filename=".length()));
+                    removeFileName(fileNames, fileName.substring("?filename=".length()));
                     existingDigests.remove(sl.fileDigest);
                 }
             }
@@ -121,15 +138,15 @@ public class ShareLinkController {
                             break;
                     }
                     linksToInsert.add(shareLink);
-                    var fileName = getFileName(res, fileNames, digest);
+                    var fileName = getFileName(res, digest);
                     finalShareLinks.add(fileServerUrl + "/api/share/" + shareLink.shareId + fileName);
-                    removeFileName(fileNamesList, fileName.substring("?filename=".length()));
+                    removeFileName(fileNames, fileName.substring("?filename=".length()));
                 }
                 mongoTemplate.insert(linksToInsert, "share-links");
             }
-            return new CreatedLinks(finalShareLinks, fileNamesList);
+            return new CreatedLinks(finalShareLinks, fileNames);
         } else {
-            return new CreatedLinks(Collections.emptyList(), fileNamesList);
+            return new CreatedLinks(Collections.emptyList(), fileNames);
         }
     }
 
@@ -278,24 +295,19 @@ public class ShareLinkController {
         }
     }
 
-    private String getFileName(List<Metadata> res, Set<String> fileNames, String fileDigest) {
-        if (fileNames == null) return "";
+    private String getFileName(List<Metadata> res, String fileDigest) {
         for (Metadata data : res) {
             if (fileDigest.equals(data.digestString)) {
-                var intersection = new HashSet<>(data.fileName);
-                intersection.retainAll(fileNames);
-                if (!intersection.isEmpty()) {
-                    String fileName = intersection.iterator().next();
-                    fileName = fileName.substring(fileName.lastIndexOf("/") + 1);
-                    return "?filename=" + fileName;
-                }
+                var fileName = data.fileName.toString();
+                var fileNameOnly = fileName.substring(fileName.lastIndexOf("/") + 1, fileName.length() - 1);
+                return "?filename=" + fileNameOnly;
             }
         }
-        return "";
+        return "FILENAME_NOT_FOUND";
     }
 
     private void removeFileName(List<String> fileNames, String fileName) {
-        if (fileNames.isEmpty() || fileName.isEmpty()) return;
+        if (fileNames == null || fileName.isEmpty()) return;
         for (String name : fileNames) {
             var nameOnly = name.substring(name.lastIndexOf("/") + 1);
             if (nameOnly.equals(fileName)) {
