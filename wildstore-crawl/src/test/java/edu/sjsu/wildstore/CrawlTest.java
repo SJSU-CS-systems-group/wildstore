@@ -88,7 +88,7 @@ public class CrawlTest {
     static Path tempNameDir;
 
     @Test
-    public void testCrawl() throws IOException, URISyntaxException {
+    public void testCrawl() throws IOException, URISyntaxException, ExecutionException, InterruptedException {
         String userToken = "secret-user-token";
         String guestToken = "secret-guest-token";
         createUser("ROLE_USER", "user", "user@crawl", userToken);
@@ -119,13 +119,7 @@ public class CrawlTest {
         Files.write(nameFile, String.join("\n", fileNames.subList(0, Math.min(20, fileNames.size()))).getBytes());
 
         // crawl method test
-        try {
-            WildfireFilesCrawler.crawl(fileNames.get(0), Client.getWebClient(metaURL + "/api/metadata"), userToken, 1024 * 1024, "all", false);
-        } catch (ExecutionException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        WildfireFilesCrawler.crawl(fileNames.get(0), Client.getWebClient(metaURL + "/api/metadata"), userToken, 1024 * 1024, "all", false);
 
         // guests should not be able to crawl
         var result = clirun(WildfireFilesCrawler.class,
@@ -138,7 +132,6 @@ public class CrawlTest {
         result = clirun(WildfireFilesCrawler.class,
                         "--metaURL", metaURL,
                         "--tokenFile", "faulty-token", nameFile.toString());
-
         Assertions.assertEquals(1, result.exitCode);
         Assertions.assertTrue(result.err.contains("CommandLine$PicocliException") && result.err.contains("is not a valid file"));
 
