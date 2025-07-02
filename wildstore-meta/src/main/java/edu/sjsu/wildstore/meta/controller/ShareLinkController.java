@@ -64,11 +64,12 @@ public class ShareLinkController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Query query = new Query();
         var listOfCriteria = new ArrayList<Criteria>();
-        var fileNamesList = (List<String>) request.get("fileNames");
-        var fileNames = fileNamesList == null ? null : new HashSet<>(fileNamesList);
+        var fileNames = (List<String>) request.get("fileNames");
         var fileDigests = (List<String>) request.get("fileDigest");
         if (fileNames != null) {
             listOfCriteria.add(Criteria.where("fileName").in(fileNames));
+        } else {
+            fileNames = new ArrayList<>();
         }
         if (fileDigests != null) {
             listOfCriteria.add(Criteria.where("digestString").in((fileDigests)));
@@ -87,9 +88,9 @@ public class ShareLinkController {
             List<String> finalShareLinks = new ArrayList<>();
             if (!existing.isEmpty()) {
                 for (ShareLink sl : existing) {
-                    var fileName = getFileName(res, fileNames, sl.fileDigest);
-                    finalShareLinks.add(fileServerUrl + "/api/share/" + sl.shareId + fileName);
-                    removeFileName(fileNamesList, fileName.substring("?filename=".length()));
+                    var queryName = getQueryName(res, sl.fileDigest);
+                    finalShareLinks.add(fileServerUrl + "/api/share/" + sl.shareId + queryName);
+                    removeFileName(fileNames, queryName.substring("?filename=".length()));
                     existingDigests.remove(sl.fileDigest);
                 }
             }
@@ -121,15 +122,16 @@ public class ShareLinkController {
                             break;
                     }
                     linksToInsert.add(shareLink);
-                    var fileName = getFileName(res, fileNames, digest);
-                    finalShareLinks.add(fileServerUrl + "/api/share/" + shareLink.shareId + fileName);
-                    removeFileName(fileNamesList, fileName.substring("?filename=".length()));
+                    var queryName = getQueryName(res, digest);
+                    finalShareLinks.add(fileServerUrl + "/api/share/" + shareLink.shareId + queryName);
+                    // Remove the fileName from the list of fileNames to share so we can return fileName as a list of files not found
+                    removeFileName(fileNames, queryName.substring("?filename=".length()));
                 }
                 mongoTemplate.insert(linksToInsert, "share-links");
             }
-            return new CreatedLinks(finalShareLinks, fileNamesList);
+            return new CreatedLinks(finalShareLinks, fileNames);
         } else {
-            return new CreatedLinks(Collections.emptyList(), fileNamesList);
+            return new CreatedLinks(Collections.emptyList(), fileNames);
         }
     }
 
@@ -278,17 +280,12 @@ public class ShareLinkController {
         }
     }
 
-    private String getFileName(List<Metadata> res, Set<String> fileNames, String fileDigest) {
-        if (fileNames == null) return "";
+    private String getQueryName(List<Metadata> res, String fileDigest) {
         for (Metadata data : res) {
             if (fileDigest.equals(data.digestString)) {
-                var intersection = new HashSet<>(data.fileName);
-                intersection.retainAll(fileNames);
-                if (!intersection.isEmpty()) {
-                    String fileName = intersection.iterator().next();
-                    fileName = fileName.substring(fileName.lastIndexOf("/") + 1);
-                    return "?filename=" + fileName;
-                }
+                var fileName = data.fileName.toString();
+                var fileNameOnly = fileName.substring(fileName.lastIndexOf("/") + 1, fileName.length() - 1);
+                return "?filename=" + fileNameOnly;
             }
         }
         return "";
