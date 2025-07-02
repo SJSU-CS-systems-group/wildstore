@@ -288,7 +288,7 @@ public class ShareLinkController {
                 return "?filename=" + fileNameOnly;
             }
         }
-        return "FILENAME_NOT_FOUND";
+        return "";
     }
 
     private void removeFileName(List<String> fileNames, String fileName) {
