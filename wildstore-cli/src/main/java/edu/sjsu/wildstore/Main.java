@@ -149,6 +149,21 @@ public class Main {
             } while (result.size() == offset);
             if (dryrun) System.out.println("DRYRUN: NO FILES WERE DELETED.");
         }
-    }
+        @CommandLine.Command
+        public void cleanlinks(@CommandLine.Mixin CliOptions co,
+                               @CommandLine.Option(names = "--no" + "-dryrun", negatable = true, defaultValue = "true") boolean dryrun) {
 
+            WebClient webClient = Client.getWebClient(co.metadataURL + "/api/share-link/deleteexpired", co.token);
+            try {
+                var result = Client.post(webClient, dryrun, new ParameterizedTypeReference<List<String>>() {},
+                                     httpHeaders -> httpHeaders.setBearerAuth(co.token));
+                result.forEach(co.out()::println);
+            } catch (ExecutionException | InterruptedException e) {
+                var message = e.getMessage();
+            } catch (WebClientResponseException e) {
+                throw new CommandLine.ExecutionException(co.cmd(), e.getMessage(), null);
+            }
+            if (dryrun) System.out.println("DRYRUN: NO FILES WERE DELETED.");
+        }
+    }
 }
