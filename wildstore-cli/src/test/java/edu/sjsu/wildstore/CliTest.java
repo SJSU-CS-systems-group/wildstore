@@ -178,8 +178,8 @@ public class CliTest {
         var testMeta2 = new Metadata();
         var testDigest = "dummy-digest";
         var testDigest2 = "dummy-digest-2";
-        testMeta.fileName = new HashSet<String>(Set.of(testDataFile.toAbsolutePath().toString()));
-        testMeta.filePath = new HashSet<String>(Set.of(testDataFile.toAbsolutePath().getParent().toString()));
+        testMeta.fileName = new HashSet<String>(Set.of(testDataPath.toAbsolutePath().toString()));
+        testMeta.filePath = new HashSet<String>(Set.of(testDataPath.toAbsolutePath().getParent().toString()));
         testMeta.digestString = testDigest;
         testMeta2.fileName = new HashSet<String>(Set.of(testDataPath2.toAbsolutePath().toString()));
         testMeta2.filePath = new HashSet<String>(Set.of(testDataPath2.toAbsolutePath().getParent().toString()));
@@ -370,6 +370,42 @@ public class CliTest {
                     });
         }
         deleteUsers("@clean");
+    }
+
+    @Test
+    void testCleanLinks() throws IOException {
+        var cmd = new Main.Cli();
+        var adminTokenFile = tempDir.resolve("admin-token.txt");
+        var userTokenFile = tempDir.resolve("user-token.txt");
+        var adminToken = "secret-admin-token";
+        var userToken = "secret-user-token";
+        Files.write(adminTokenFile, ("token=" + adminToken).getBytes());
+        Files.write(userTokenFile, ("token=" + userToken).getBytes());
+        createUser("ROLE_ADMIN", "CleanAdmin", "admin@cleanlinks", adminToken);
+        createUser("ROLE_USER", "ClearUser", "user@cleanlinks", userToken);
+
+        var testDataFile = tempDir.resolve("test-data.txt");
+        var testDataFile2 = tempDir.resolve("test-data-2.txt");
+        var testDataPath = testDataFile.toAbsolutePath();
+        var testDataPath2 = testDataFile2.toAbsolutePath();
+        var testMeta = new Metadata();
+        var testMeta2 = new Metadata();
+        var testDigest = "dummy-digest";
+        var testDigest2 = "dummy-digest-2";
+        testMeta.fileName = new HashSet<String>(Set.of(testDataPath.toString()));
+        testMeta.filePath = new HashSet<String>(Set.of(testDataPath.getParent().toString()));
+        testMeta.digestString = testDigest;
+        testMeta2.fileName = new HashSet<String>(Set.of(testDataFile2.toString()));
+        testMeta2.filePath = new HashSet<String>(Set.of(testDataPath2.getParent().toString()));
+        testMeta2.digestString = testDigest2;
+        springCtx.getBean(MongoTemplate.class).insert(testMeta, "metadata");
+        springCtx.getBean(MongoTemplate.class).insert(testMeta2, "metadata");
+
+        clirun(cmd, "share", testDataPath.toString(), testDataPath2.toString(), "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--email", "admin@cleanlinks", "--validFor", "day");
+        Query query = new Query(Criteria.where("fileDigest").is(testDigest));
+        //ShareLink sl = springCtx.getBean(MongoTemplate.class).find();
+        LocalDateTime.now().plusDays(1);
+        var result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", adminTokenFile.toString());
     }
 
     private static void createUser(String role, String name, String email, String token) {
