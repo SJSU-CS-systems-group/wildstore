@@ -221,6 +221,24 @@ public class ShareLinkController {
         }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/deleteexpired")
+    public List<String> deleteExpiredLinks(@RequestParam boolean dryrun) {
+        List<ShareLink> res = mongoTemplate.findAll(ShareLink.class, SHARE_LINKS_COLLECTION);
+        List<String> shareIds = new ArrayList<>();
+        if (!res.isEmpty()) {
+            res.stream().filter(data -> data.expiry.isBefore(LocalDateTime.now()))
+                    .forEach(data -> {
+                        shareIds.add(data.shareId);
+                        if (!dryrun) {
+                            Query query = new Query(Criteria.where("shareId").is(data.shareId));
+                            mongoTemplate.remove(query, ShareLink.class, SHARE_LINKS_COLLECTION);
+                        }
+                    });
+        }
+        return shareIds;
+    }
+
     @PreAuthorize("hasRole('GUEST')")
     @PostMapping("/verify")
     public DBObject verify(@RequestBody String shareId) {
