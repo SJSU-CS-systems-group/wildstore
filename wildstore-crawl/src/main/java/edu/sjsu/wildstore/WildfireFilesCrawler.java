@@ -1,6 +1,9 @@
 package edu.sjsu.wildstore;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -16,8 +19,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @CommandLine.Command(name = "GET", mixinStandardHelpOptions = true)
@@ -44,6 +51,9 @@ public class WildfireFilesCrawler implements Runnable {
 
     @CommandLine.Spec
     private CommandLine.Model.CommandSpec spec;
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
 
     final PrintWriter out() {
         return cmd().getOut();
@@ -73,7 +83,15 @@ public class WildfireFilesCrawler implements Runnable {
         ExecutorService executorService = Executors.newFixedThreadPool(parallelism);
         WebClient webClient = Client.getWebClient(metaURL + "/api/metadata");
         Semaphore semaphore = new Semaphore(parallelism);
+/*
+        Query query = new Query();
+        query.fields().include("fileName");
+        List<Metadata> existingData = mongoTemplate.find(query, Metadata.class, "metadata");
+        Set<String> existingFiles = existingData.stream().map(data -> data.fileName.toString()).collect(Collectors.toSet());
+        AtomicInteger newCount = new AtomicInteger();
+ */
         try (Stream<String> stream = Files.lines(Paths.get(filesToProcessPath))) {
+            //var exceptions = stream.filter(existingFiles::add)
             var exceptions = stream.map(file -> {
                 try {
                     semaphore.acquire();
@@ -83,6 +101,7 @@ public class WildfireFilesCrawler implements Runnable {
                 return executorService.submit(() -> {
                     try {
                         crawl(file, webClient, token, maxReadSize, option, enumLog);
+                        //newCount.getAndIncrement();
                         status.put(file, okayException);
                         return null;
                     } catch (Exception ex) {
@@ -109,6 +128,8 @@ public class WildfireFilesCrawler implements Runnable {
                                            }).toList();
         } catch (IOException e) {
             out().println("There was an exception: " + e.getMessage());
+        } finally {
+            //out().println("Crawled " + newCount.get() + " new files.");
         }
         try {
             semaphore.acquire(parallelism);
