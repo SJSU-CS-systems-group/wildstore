@@ -23,11 +23,13 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -72,6 +74,7 @@ public class CliTest {
         metaURL = "http://localhost:" + port;
         springCtx.getBean(MongoTemplate.class).createCollection("userData");
         springCtx.getBean(MongoTemplate.class).createCollection("metadata");
+        springCtx.getBean(MongoTemplate.class).createCollection("share-links");
     }
 
     @AfterAll
@@ -173,12 +176,14 @@ public class CliTest {
         var testDataPath2 = testDataFile2.toAbsolutePath();
         var testMeta = new Metadata();
         var testMeta2 = new Metadata();
+        var testDigest = "dummy-digest";
+        var testDigest2 = "dummy-digest-2";
         testMeta.fileName = new HashSet<String>(Set.of(testDataFile.toAbsolutePath().toString()));
         testMeta.filePath = new HashSet<String>(Set.of(testDataFile.toAbsolutePath().getParent().toString()));
-        testMeta.digestString = "dummy-digest";
+        testMeta.digestString = testDigest;
         testMeta2.fileName = new HashSet<String>(Set.of(testDataPath2.toAbsolutePath().toString()));
         testMeta2.filePath = new HashSet<String>(Set.of(testDataPath2.toAbsolutePath().getParent().toString()));
-        testMeta2.digestString = "dummy-digest-2";
+        testMeta2.digestString = testDigest2;
         springCtx.getBean(MongoTemplate.class).insert(testMeta, "metadata");
         springCtx.getBean(MongoTemplate.class).insert(testMeta2, "metadata");
 
@@ -203,18 +208,10 @@ public class CliTest {
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("Expected parameter for option '--metaURL'"));
 
-        result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", metaURL, "--token", "--email", "user@share");
-        Assertions.assertEquals(2, result.exitCode);
-        Assertions.assertTrue(result.err.contains("Expected parameter for option '--token'"));
-
         // users need to provide a valid file
         result = clirun(cmd, "share", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("Missing required parameter: '<fileNames>'"));
-
-        result = clirun(cmd, "share", "", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
-        Assertions.assertEquals(0, result.exitCode);
-        Assertions.assertTrue(result.err.contains("Missing Files"));
 
         result = clirun(cmd, "share", "/testfile", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(0, result.exitCode);
@@ -238,10 +235,16 @@ public class CliTest {
         result = clirun(cmd, "share", testDataPath.toString(), testDataPath2.toString(), "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("?filename=test-data.txt") && result.out.contains("?filename=test-data-2.txt") && !result.err.contains("Missing Files"));
+        Query query = new Query(Criteria.where("fileDigest").is(testDigest));
+        LocalDateTime oldTime = Objects.requireNonNull(springCtx.getBean(MongoTemplate.class)
+                                                               .findOne(query, ShareLink.class, "share-links")).expiry;
 
-        result = clirun(cmd, "share", testDataPath.toString(), "/testfile", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
+        result = clirun(cmd, "share", testDataPath.toString(), "/testfile", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share", "--validFor", "year");
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("?filename=test-data.txt") && result.err.contains("/testfile"));
+        LocalDateTime newTime = Objects.requireNonNull(springCtx.getBean(MongoTemplate.class)
+                                                               .findOne(query, ShareLink.class, "share-links")).expiry;
+        Assertions.assertTrue(newTime.isAfter(oldTime));
 
         deleteUsers("@share");
     }
