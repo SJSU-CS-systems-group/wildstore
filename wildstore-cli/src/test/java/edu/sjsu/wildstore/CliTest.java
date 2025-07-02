@@ -231,7 +231,7 @@ public class CliTest {
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("No such file or directory"));
 
-        // sharing multiple files
+        // sharing multiple files and checks for update in expiry time
         result = clirun(cmd, "share", testDataPath.toString(), testDataPath2.toString(), "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("?filename=test-data.txt") && result.out.contains("?filename=test-data-2.txt") && !result.err.contains("Missing Files"));
@@ -245,6 +245,11 @@ public class CliTest {
         LocalDateTime newTime = Objects.requireNonNull(springCtx.getBean(MongoTemplate.class)
                                                                .findOne(query, ShareLink.class, "share-links")).expiry;
         Assertions.assertTrue(newTime.isAfter(oldTime));
+
+        // make sure the expiry time stays the same after sharing with shorter validFor time
+        result = clirun(cmd, "share", testDataPath.toString(), testDataPath2.toString(), "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share", "--validFor", "day");
+        Assertions.assertEquals(newTime, Objects.requireNonNull(springCtx.getBean(MongoTemplate.class)
+                                                               .findOne(query, ShareLink.class, "share-links")).expiry);
 
         deleteUsers("@share");
     }
