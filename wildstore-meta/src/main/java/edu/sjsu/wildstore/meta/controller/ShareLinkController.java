@@ -88,6 +88,27 @@ public class ShareLinkController {
             List<String> finalShareLinks = new ArrayList<>();
             if (!existing.isEmpty()) {
                 for (ShareLink sl : existing) {
+                    var newExpiry = sl.expiry;
+                    switch ((String) request.get("validFor")) {
+                        case "day":
+                            newExpiry = LocalDateTime.now().plusDays(1);
+                            break;
+                        case "week":
+                            newExpiry = LocalDateTime.now().plusWeeks(1);
+                            break;
+                        case "month":
+                            newExpiry = LocalDateTime.now().plusMonths(1);
+                            break;
+                        case "year":
+                            newExpiry = LocalDateTime.now().plusYears(1);
+                            break;
+                        default:
+                            break;
+                    }
+                    if (newExpiry.isAfter(sl.expiry)) {
+                        sl.expiry = newExpiry;
+                        mongoTemplate.save(sl, SHARE_LINKS_COLLECTION);
+                    }
                     var queryName = getQueryName(res, sl.fileDigest);
                     finalShareLinks.add(fileServerUrl + "/api/share/" + sl.shareId + queryName);
                     removeFileName(fileNames, queryName.substring("?filename=".length()));
