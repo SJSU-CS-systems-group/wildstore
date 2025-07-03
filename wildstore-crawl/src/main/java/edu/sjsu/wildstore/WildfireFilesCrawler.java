@@ -48,7 +48,6 @@ public class WildfireFilesCrawler implements Runnable {
     @CommandLine.Spec
     private CommandLine.Model.CommandSpec spec;
 
-
     final PrintWriter out() {
         return cmd().getOut();
     }
