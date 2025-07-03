@@ -39,12 +39,11 @@ public class Main {
         public void setXHelp(boolean xhelp) {
             if (xhelp) {
                 var cmd = new CommandLine(new Cli());
-                cmd.getSubcommands().forEach((k, v) -> v.getCommandSpec().usageMessage().hidden(false));
+                cmd.getSubcommands().forEach((k,v) -> v.getCommandSpec().usageMessage().hidden(false));
                 cmd.usage(System.out);
                 System.exit(0);
             }
         }
-
         @CommandLine.Command
         public void datasetInfo(@CommandLine.Parameters(paramLabel = "fileName") String fileName,
                                 @CommandLine.Parameters(paramLabel = "hostname") String hostname) throws
@@ -56,20 +55,24 @@ public class Main {
         }
 
         @CommandLine.Command
-        public void share(@CommandLine.Mixin CliOptions co,
-                          @CommandLine.Parameters(description = "Absolute file name", index = "0..*", arity = "1..*")
-                          String[] fileNames,
-                          @CommandLine.Option(names = "--email", split = ",", required = true, description =
-                                  "Email addresses to share with " + "separated with comma") String[] emails,
-                          @CommandLine.Option(names = "--validFor", description =
-                                  "Validity of share link, values are: day, " +
-                                          "week, month, year", defaultValue = "month") String validFor) throws
-                InterruptedException, ExecutionException {
+        public void share(
+                @CommandLine.Mixin CliOptions co,
+                @CommandLine.Parameters(description = "Absolute file name", index = "0..*", arity = "1..*") String[] fileNames,
+                @CommandLine.Option(names = "--email", split = ",", required = true, description = "Email addresses to share with " +
+                        "separated with comma") String[] emails,
+                @CommandLine.Option(names = "--validFor", description = "Validity of share link, values are: day, " +
+                        "week, month, year", defaultValue = "month") String validFor) throws InterruptedException,
+                ExecutionException {
             try {
                 var result = Client.post(Client.getWebClient(co.metadataURL + "/api/share-link/create"),
-                                         Map.of("fileNames", fileNames, "emailAddresses", emails, "validFor", validFor),
-                                         new ParameterizedTypeReference<ShareLinkController.CreatedLinks>() {},
-                                         httpHeaders -> httpHeaders.setBearerAuth(co.token));
+                                               Map.of("fileNames",
+                                                      fileNames,
+                                                      "emailAddresses",
+                                                      emails,
+                                                      "validFor",
+                                                      validFor),
+                                               new ParameterizedTypeReference<ShareLinkController.CreatedLinks>() {},
+                                               httpHeaders -> httpHeaders.setBearerAuth(co.token));
                 result.created.forEach(co.out()::println);
                 if (!result.missing.isEmpty()) co.err().println("Missing Files:");
                 result.missing.forEach(co.err()::println);
@@ -86,7 +89,8 @@ public class Main {
         @CommandLine.Command
         public void search(@CommandLine.Parameters(paramLabel = "query") String query,
                            @CommandLine.Parameters(paramLabel = "hostname") String hostname,
-                           @CommandLine.Parameters(paramLabel = "<option>", defaultValue = "all", description = "Which information to print - 'all' or 'basic'")
+                           @CommandLine.Parameters(paramLabel = "<option>", defaultValue = "all", description =
+                                   "Which information to print - 'all' or 'basic'")
                            String option,
                            @CommandLine.Option(names = "--limit", defaultValue = "10") int limit,
                            @CommandLine.Option(names = "--offset", defaultValue = "0") int offset,
@@ -121,8 +125,8 @@ public class Main {
         @CommandLine.Command
         public void clean(@CommandLine.Mixin CliOptions co,
                           @CommandLine.Parameters(paramLabel = "limit", defaultValue = "10000") int limit,
-                          @CommandLine.Option(names = "--no" + "-dryrun", negatable = true, defaultValue = "true")
-                          boolean dryrun) throws InterruptedException, ExecutionException {
+                          @CommandLine.Option(names = "--no" + "-dryrun", negatable = true, defaultValue = "true") boolean dryrun)
+                throws InterruptedException, ExecutionException {
             int offset = 0;
             LinkedMultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
             parameters.add("limit", String.valueOf(limit));
@@ -137,15 +141,14 @@ public class Main {
                                                    new ParameterizedTypeReference<List<String>>() {});
                 List<String> deletedFiles = result.stream().filter(item -> !Files.exists(Paths.get(item))).toList();
                 if (!dryrun) System.out.println("DELETE RESULT:" + Client.post(webClient,
-                                                                               deletedFiles,
-                                                                               new ParameterizedTypeReference<Integer>() {},
-                                                                               httpHeaders -> httpHeaders.setBearerAuth(
-                                                                                       co.token)));
+                                                                  deletedFiles,
+                                                                  new ParameterizedTypeReference<Integer>() {},
+                                                                  httpHeaders -> httpHeaders.setBearerAuth(co.token)));
                 co.out().println("Deleted Files: " + String.join("\n", deletedFiles));
                 offset += limit;
             } while (result.size() == offset);
             if (dryrun) System.out.println("DRYRUN: NO FILES WERE DELETED.");
         }
-
     }
+
 }
