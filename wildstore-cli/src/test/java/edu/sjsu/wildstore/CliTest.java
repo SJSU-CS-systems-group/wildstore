@@ -302,9 +302,14 @@ public class CliTest {
         Files.delete(Paths.get(fileNames.get(1)));
 
         // users should not be able to clean
-        var result = clirun(cmd, "clean", "--metaURL", metaURL, "--token", userTokenFile.toString());
+        var result = clirun(cmd, "clean", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--no-dryrun");
         Assertions.assertEquals(1, result.exitCode);
         Assertions.assertTrue(result.err.contains("WebClientResponseException"));
+
+        //users can dryrun clean
+        result = clirun(cmd, "clean", "--metaURL", metaURL, "--token", userTokenFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains("Deleted Files"));
 
         // dryrun should not delete anything
         result = clirun(cmd, "clean", "--metaURL", metaURL, "--token", adminTokenFile.toString());

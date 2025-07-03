@@ -19,10 +19,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
@@ -146,25 +148,26 @@ public class MetadataController {
         return 0;
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/metadata/filepath")
-    public List<String> getFilePaths(@RequestParam("limit") int limit, @RequestParam("offset") int offset) {
+    @PreAuthorize("hasRole('USER')")
+    @GetMapping("/metadata/filenames")
+    public List<Map<String,? extends Serializable>> getFileNames(@RequestParam("limit") int limit, @RequestParam("offset") int offset) {
         Aggregation aggregation = Aggregation.newAggregation(Aggregation.skip(offset),
                                                              Aggregation.limit(limit),
                                                              Aggregation.unwind("fileName"),
-                                                             Aggregation.group().addToSet("fileName").as("files"),
-                                                             Aggregation.project("files"));
-
+                                                             Aggregation.project("fileName", "lastModified"));
         List<DBObject> res = mongoTemplate.aggregate(aggregation, "metadata", DBObject.class).getMappedResults();
         if (res.isEmpty()) {
             return List.of();
         }
-        List<String> files = (List<String>) res.get(0).get("files");
-        return files;
+        return res.stream().map(dbObject -> {
+            String fileName = (String) dbObject.get("fileName");
+            Long lastModified = (Long) dbObject.get("lastModified");
+            return Map.of("fileName", fileName, "lastModified", lastModified == null ? Long.MIN_VALUE : lastModified);
+        }).collect(Collectors.toList());
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/metadata/filepath")
+    @PostMapping("/metadata/filenames")
     public int deleteMetadata(@RequestBody List<String> filePaths) {
         Query query = new Query(Criteria.where("fileName").in(filePaths));
         return (int) mongoTemplate.remove(query, METADATA_COLLECTION).getDeletedCount();

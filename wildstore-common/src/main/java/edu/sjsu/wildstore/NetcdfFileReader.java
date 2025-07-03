@@ -57,6 +57,7 @@ public class NetcdfFileReader {
         //File Size
         File file = new File(netcdfFilepath);
         metadata.fileSize = file.length();
+        metadata.lastModified = file.lastModified();
 
         metadata.globalAttributes = readGlobalAttributes();
 

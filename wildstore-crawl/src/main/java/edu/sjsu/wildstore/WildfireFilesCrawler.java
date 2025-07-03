@@ -1,6 +1,7 @@
 package edu.sjsu.wildstore;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -16,8 +17,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @CommandLine.Command(name = "GET", mixinStandardHelpOptions = true)
@@ -73,8 +79,47 @@ public class WildfireFilesCrawler implements Runnable {
         ExecutorService executorService = Executors.newFixedThreadPool(parallelism);
         WebClient webClient = Client.getWebClient(metaURL + "/api/metadata");
         Semaphore semaphore = new Semaphore(parallelism);
+        AtomicInteger newCount = new AtomicInteger();
+
+        List<Map<String, Object>> fileNames =  new ArrayList<>();
+        List<Map<String, Object>> newNames;
+        var limit = 10000;
+        var offset = 0;
+        try {
+            do {
+                LinkedMultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
+                parameters.add("limit", String.valueOf(limit));
+                parameters.add("offset", String.valueOf(offset));
+                newNames = Client.get(Client.getWebClient(metaURL + "/api/metadata/filenames", token), parameters, new ParameterizedTypeReference<>() {});
+                fileNames.addAll(newNames);
+                offset += limit;
+            } while (newNames.size() == limit);
+        } catch (Exception e) {
+            err().println("Error fetching file names from metadata service: " + e.getClass().getName());
+            if (e instanceof WebClientResponseException webException &&
+                    webException.getStatusCode().is4xxClientError()) {
+                err().println("Unrecoverable authorization error: " + webException.getMessage());
+            }
+            throw new CommandLine.ExecutionException(cmd(), "Error fetching file names from metadata service: " + e.getMessage(), e);
+        }
+
+        Map<String, Long> fileNamesMap = fileNames.stream()
+                .collect(Collectors.toMap(
+                        map -> map.get("fileName").toString(),
+                        map -> (Long) map.get("lastModified"),
+                        Long::min));
+
         try (Stream<String> stream = Files.lines(Paths.get(filesToProcessPath))) {
-            var exceptions = stream.map(file -> {
+            var exceptions = stream.filter(file -> {
+                try {
+                    if (fileNamesMap.containsKey(file) && fileNamesMap.get(file) >= Files.getLastModifiedTime(Paths.get(file)).toMillis()) {
+                        return false;
+                    }
+                    return true;
+                } catch (IOException e) {
+                    err().println("Error fetching fileNames or lastModified from map:" + e.getClass().getName());
+                    throw new CommandLine.ExecutionException(cmd(), "Error fetching fileNames or lastModified from map: " + e.getMessage(), e);                }
+            }).map(file -> {
                 try {
                     semaphore.acquire();
                 } catch (InterruptedException e) {
@@ -83,6 +128,7 @@ public class WildfireFilesCrawler implements Runnable {
                 return executorService.submit(() -> {
                     try {
                         crawl(file, webClient, token, maxReadSize, option, enumLog);
+                        newCount.getAndIncrement();
                         status.put(file, okayException);
                         return null;
                     } catch (Exception ex) {
@@ -93,22 +139,25 @@ public class WildfireFilesCrawler implements Runnable {
                     }
                 });
             }).takeWhile(future -> {
-                                               try {
-                                                   var exception = future.get();
-                                               } catch (InterruptedException e) {
-                                                   return false;
-                                               } catch (Exception e) {
-                                                   if (e instanceof WebClientResponseException webException &&
-                                                           webException.getStatusCode().is4xxClientError()) {
-                                                       err().println("Unrecoverable authorization error: " + webException.getMessage());
-                                                       return false;
-                                                   }
-                                                   err().println("Error processing file: " + future + " - " + e.getMessage());
-                                               }
-                                               return true;
-                                           }).toList();
+                                                        try {
+                                                            var exception = future.get();
+                                                            if (exception != null) {
+                                                                if (exception instanceof WebClientResponseException webException &&
+                                                                        webException.getStatusCode().is4xxClientError()) {
+                                                                    err().println("Unrecoverable authorization error: " + webException.getMessage());
+                                                                    return false;
+                                                                }
+                                                                err().println("Error processing file: " + future + " - " + exception.getMessage());
+                                                            }
+                                                        } catch (InterruptedException | ExecutionException e){
+                                                                return false;
+                                                        }
+                                                        return true;
+                                                    }).toList();
         } catch (IOException e) {
             out().println("There was an exception: " + e.getMessage());
+        } finally {
+            out().println("Crawled " + newCount.get() + " new files.");
         }
         try {
             semaphore.acquire(parallelism);
