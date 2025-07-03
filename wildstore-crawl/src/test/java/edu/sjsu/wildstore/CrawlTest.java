@@ -116,10 +116,12 @@ public class CrawlTest {
 
         // create a file with the filenames to crawl
         var nameFile = tempNameDir.resolve("fileNames.txt");
-        Files.write(nameFile, String.join("\n", fileNames.subList(0, Math.min(20, fileNames.size()))).getBytes());
+        var numToCrawl = Math.min(20, fileNames.size());
+        Files.write(nameFile, String.join("\n", fileNames.subList(0, numToCrawl)).getBytes());
 
         // crawl method test
         WildfireFilesCrawler.crawl(fileNames.get(0), Client.getWebClient(metaURL + "/api/metadata"), userToken, 1024 * 1024, "all", false);
+        numToCrawl--;
 
         // guests should not be able to crawl
         var result = clirun(WildfireFilesCrawler.class,
@@ -148,7 +150,7 @@ public class CrawlTest {
                         "--tokenFile", userTokenFile.toString(), nameFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("Successfully processed file"));
-        Assertions.assertTrue(result.out.contains("Crawled 19 new files"));
+        Assertions.assertTrue(result.out.contains("Crawled " + numToCrawl + " new files"));
     }
 
     private static void createUser(String role, String name, String email, String token) {
