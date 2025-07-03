@@ -126,7 +126,7 @@ public class CrawlTest {
                 "--metaURL", metaURL,
                 "--tokenFile", guestTokenFile.toString(), nameFile.toString());
         Assertions.assertEquals(1, result.exitCode);
-        Assertions.assertTrue(result.err.contains("CommandLine$ExecutionException") && result.err.contains("Error processing file"));
+        Assertions.assertTrue(result.err.contains("WebClientResponseException$Forbidden"));
 
         // faulty tokenFile test
         result = clirun(WildfireFilesCrawler.class,
@@ -140,7 +140,7 @@ public class CrawlTest {
                         "--metaURL", metaURL,
                         "--tokenFile", faultyTokenFile.toString(), nameFile.toString());
         Assertions.assertEquals(1, result.exitCode);
-        Assertions.assertTrue(result.err.contains("CommandLine$ExecutionException: Error(s) occurred during processing."));
+        Assertions.assertTrue(result.err.contains("WebClientResponseException$Unauthorized"));
 
         // user should be able to crawl
         result = clirun(WildfireFilesCrawler.class,
@@ -148,6 +148,7 @@ public class CrawlTest {
                         "--tokenFile", userTokenFile.toString(), nameFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("Successfully processed file"));
+        Assertions.assertTrue(result.out.contains("Crawled 19 new files"));
     }
 
     private static void createUser(String role, String name, String email, String token) {

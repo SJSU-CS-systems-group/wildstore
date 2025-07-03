@@ -23,6 +23,7 @@ import java.nio.charset.Charset;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
@@ -161,6 +162,16 @@ public class MetadataController {
         }
         List<String> files = (List<String>) res.get(0).get("files");
         return files;
+    }
+
+    @PreAuthorize("hasRole('USER')")
+    @GetMapping("/metadata/filenames")
+    public List<String> getFileNames() {
+        Query query = new Query();
+        query.fields().include("fileName");
+        List<Metadata> existingData = mongoTemplate.find(query, Metadata.class, "metadata");
+        return existingData.stream().map(data -> data.fileName.toString()
+                .substring(1, data.fileName.toString().length() - 1)).collect(Collectors.toList());
     }
 
     @PreAuthorize("hasRole('ADMIN')")

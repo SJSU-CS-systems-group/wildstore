@@ -1,9 +1,6 @@
 package edu.sjsu.wildstore;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -19,12 +16,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @CommandLine.Command(name = "GET", mixinStandardHelpOptions = true)
@@ -52,8 +48,6 @@ public class WildfireFilesCrawler implements Runnable {
     @CommandLine.Spec
     private CommandLine.Model.CommandSpec spec;
 
-    @Autowired
-    private MongoTemplate mongoTemplate;
 
     final PrintWriter out() {
         return cmd().getOut();
@@ -83,16 +77,21 @@ public class WildfireFilesCrawler implements Runnable {
         ExecutorService executorService = Executors.newFixedThreadPool(parallelism);
         WebClient webClient = Client.getWebClient(metaURL + "/api/metadata");
         Semaphore semaphore = new Semaphore(parallelism);
-/*
-        Query query = new Query();
-        query.fields().include("fileName");
-        List<Metadata> existingData = mongoTemplate.find(query, Metadata.class, "metadata");
-        Set<String> existingFiles = existingData.stream().map(data -> data.fileName.toString()).collect(Collectors.toSet());
+        var nameList = List.of();
+        try {
+            nameList = Client.get(metaURL + "/api/metadata/filenames", token);
+        } catch (Exception e) {
+            err().println("Error fetching file names from metadata service: " + e.getClass().getName());
+            if (e instanceof WebClientResponseException webException &&
+                    webException.getStatusCode().is4xxClientError()) {
+                err().println("Unrecoverable authorization error: " + webException.getMessage());
+            }
+        }
+        var nameSet = new HashSet<>(nameList);
         AtomicInteger newCount = new AtomicInteger();
- */
+
         try (Stream<String> stream = Files.lines(Paths.get(filesToProcessPath))) {
-            //var exceptions = stream.filter(existingFiles::add)
-            var exceptions = stream.map(file -> {
+            var exceptions = stream.filter(nameSet::add).map(file -> {
                 try {
                     semaphore.acquire();
                 } catch (InterruptedException e) {
@@ -101,7 +100,7 @@ public class WildfireFilesCrawler implements Runnable {
                 return executorService.submit(() -> {
                     try {
                         crawl(file, webClient, token, maxReadSize, option, enumLog);
-                        //newCount.getAndIncrement();
+                        newCount.getAndIncrement();
                         status.put(file, okayException);
                         return null;
                     } catch (Exception ex) {
@@ -129,7 +128,7 @@ public class WildfireFilesCrawler implements Runnable {
         } catch (IOException e) {
             out().println("There was an exception: " + e.getMessage());
         } finally {
-            //out().println("Crawled " + newCount.get() + " new files.");
+            out().println("Crawled " + newCount.get() + " new files.");
         }
         try {
             semaphore.acquire(parallelism);
