@@ -134,7 +134,7 @@ public class Main {
             WebClient webClient = Client.getWebClient(co.metadataURL + "/api/metadata/filenames", co.token);
 
             do {
-                parameters.put("offset", List.of(String.valueOf(offset)));
+                parameters.add("offset", String.valueOf(offset));
                 result = Client.get(webClient,
                                     parameters,
                                     new ParameterizedTypeReference<>() {});

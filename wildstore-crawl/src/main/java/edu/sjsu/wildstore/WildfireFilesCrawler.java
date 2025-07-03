@@ -89,7 +89,7 @@ public class WildfireFilesCrawler implements Runnable {
             do {
                 LinkedMultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
                 parameters.add("limit", String.valueOf(limit));
-                parameters.put("offset", List.of(String.valueOf(offset)));
+                parameters.add("offset", String.valueOf(offset));
                 newNames = Client.get(Client.getWebClient(metaURL + "/api/metadata/filenames", token), parameters, new ParameterizedTypeReference<>() {});
                 fileNames.addAll(newNames);
                 offset += limit;
@@ -100,7 +100,7 @@ public class WildfireFilesCrawler implements Runnable {
                     webException.getStatusCode().is4xxClientError()) {
                 err().println("Unrecoverable authorization error: " + webException.getMessage());
             }
-            status.put(e.getClass().getName(), e);
+            throw new CommandLine.ExecutionException(cmd(), "Error fetching file names from metadata service: " + e.getMessage(), e);
         }
 
         Map<String, Long> fileNamesMap = fileNames.stream()
@@ -117,8 +117,8 @@ public class WildfireFilesCrawler implements Runnable {
                     }
                     return true;
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                    err().println("Error fetching fileNames or lastModified from map:" + e.getClass().getName());
+                    throw new CommandLine.ExecutionException(cmd(), "Error fetching fileNames or lastModified from map: " + e.getMessage(), e);                }
             }).map(file -> {
                 try {
                     semaphore.acquire();
