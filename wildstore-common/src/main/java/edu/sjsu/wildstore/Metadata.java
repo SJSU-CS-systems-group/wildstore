@@ -19,6 +19,7 @@ public class Metadata {
 
     public long fileSize;
     public String digestString;
+    public long lastModified;
 
     @JsonDeserialize(using = GeoJsonPolygonDeserializer.class)
     @JsonSerialize(using = GeoJsonPolygonSerializer.class)

@@ -130,16 +130,15 @@ public class Main {
             int offset = 0;
             LinkedMultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
             parameters.add("limit", String.valueOf(limit));
-            List<String> result;
-            int i = 0;
-            WebClient webClient = Client.getWebClient(co.metadataURL + "/api/metadata/filepath", co.token);
+            List<Map<String, Object>> result;
+            WebClient webClient = Client.getWebClient(co.metadataURL + "/api/metadata/filenames", co.token);
 
             do {
                 parameters.put("offset", List.of(String.valueOf(offset)));
-                result = (List<String>) Client.get(webClient,
-                                                   parameters,
-                                                   new ParameterizedTypeReference<List<String>>() {});
-                List<String> deletedFiles = result.stream().filter(item -> !Files.exists(Paths.get(item))).toList();
+                result = Client.get(webClient,
+                                    parameters,
+                                    new ParameterizedTypeReference<>() {});
+                List<String> deletedFiles = result.stream().map(i -> i.get("fileName").toString()).filter(item -> !Files.exists(Paths.get(item))).toList();
                 if (!dryrun) System.out.println("DELETE RESULT:" + Client.post(webClient,
                                                                   deletedFiles,
                                                                   new ParameterizedTypeReference<Integer>() {},
