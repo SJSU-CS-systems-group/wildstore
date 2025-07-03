@@ -395,7 +395,7 @@ public class CliTest {
         testMeta.fileName = new HashSet<String>(Set.of(testDataPath.toString()));
         testMeta.filePath = new HashSet<String>(Set.of(testDataPath.getParent().toString()));
         testMeta.digestString = testDigest;
-        testMeta2.fileName = new HashSet<String>(Set.of(testDataFile2.toString()));
+        testMeta2.fileName = new HashSet<String>(Set.of(testDataPath2.toString()));
         testMeta2.filePath = new HashSet<String>(Set.of(testDataPath2.getParent().toString()));
         testMeta2.digestString = testDigest2;
         springCtx.getBean(MongoTemplate.class).insert(testMeta, "metadata");
