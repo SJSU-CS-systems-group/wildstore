@@ -80,7 +80,7 @@ public class WildfireFilesCrawler implements Runnable {
         ExecutorService executorService = Executors.newFixedThreadPool(parallelism);
         WebClient webClient = Client.getWebClient(metaURL + "/api/metadata");
         Semaphore semaphore = new Semaphore(parallelism);
-        AtomicInteger newCount = new AtomicInteger();
+        AtomicInteger crawledCount = new AtomicInteger();
 
         List<Map<String, Object>> fileNames =  new ArrayList<>();
         List<Map<String, Object>> newNames;
@@ -141,7 +141,7 @@ public class WildfireFilesCrawler implements Runnable {
                 return executorService.submit(() -> {
                     try {
                         crawl(file, webClient, token, maxReadSize, option, enumLog);
-                        newCount.getAndIncrement();
+                        crawledCount.getAndIncrement();
                         status.put(file, okayException);
                         return null;
                     } catch (Exception ex) {
@@ -170,7 +170,7 @@ public class WildfireFilesCrawler implements Runnable {
         } catch (IOException e) {
             out().println("There was an exception: " + e.getMessage());
         } finally {
-            out().println("Crawled " + newCount.get() + " new files.");
+            out().println("Crawled " + crawledCount.get() + " new files.");
         }
         try {
             semaphore.acquire(parallelism);
