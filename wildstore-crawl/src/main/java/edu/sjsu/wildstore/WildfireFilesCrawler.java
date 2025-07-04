@@ -7,6 +7,7 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import picocli.CommandLine;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -79,7 +80,7 @@ public class WildfireFilesCrawler implements Runnable {
         ExecutorService executorService = Executors.newFixedThreadPool(parallelism);
         WebClient webClient = Client.getWebClient(metaURL + "/api/metadata");
         Semaphore semaphore = new Semaphore(parallelism);
-        AtomicInteger newCount = new AtomicInteger();
+        AtomicInteger crawledCount = new AtomicInteger();
 
         List<Map<String, Object>> fileNames =  new ArrayList<>();
         List<Map<String, Object>> newNames;
@@ -110,7 +111,19 @@ public class WildfireFilesCrawler implements Runnable {
                         Long::min));
 
         try (Stream<String> stream = Files.lines(Paths.get(filesToProcessPath))) {
-            var exceptions = stream.filter(file -> {
+            var exceptions = stream.flatMap( fileName -> {
+                File file = new File(fileName);
+                if (file.isDirectory()) {
+                    try {
+                        return Files.walk(file.toPath()).filter(Files::isRegularFile).map(Path::toString)
+                                .filter(string -> string.endsWith(".nc"));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                } else {
+                    return Stream.of(fileName);
+                }
+            }).filter(file -> {
                 try {
                     if (fileNamesMap.containsKey(file) && fileNamesMap.get(file) >= Files.getLastModifiedTime(Paths.get(file)).toMillis()) {
                         return false;
@@ -128,7 +141,7 @@ public class WildfireFilesCrawler implements Runnable {
                 return executorService.submit(() -> {
                     try {
                         crawl(file, webClient, token, maxReadSize, option, enumLog);
-                        newCount.getAndIncrement();
+                        crawledCount.getAndIncrement();
                         status.put(file, okayException);
                         return null;
                     } catch (Exception ex) {
@@ -157,7 +170,7 @@ public class WildfireFilesCrawler implements Runnable {
         } catch (IOException e) {
             out().println("There was an exception: " + e.getMessage());
         } finally {
-            out().println("Crawled " + newCount.get() + " new files.");
+            out().println("Crawled " + crawledCount.get() + " new files.");
         }
         try {
             semaphore.acquire(parallelism);
