@@ -148,6 +148,33 @@ public class Main {
             } while (result.size() == offset);
             if (dryrun) System.out.println("DRYRUN: NO FILES WERE DELETED.");
         }
+
+        @CommandLine.Command
+        public void cleanlinks(@CommandLine.Mixin CliOptions co,
+                               @CommandLine.Option(names = "--no" + "-dryrun", negatable = true, defaultValue = "true") boolean dryrun) {
+
+            List<Object> shareLinks = new ArrayList<>();
+            LinkedMultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
+            int limit = 10000;
+            int offset = 0;
+            parameters.add("limit", "10000");
+            parameters.add("offset", "0");
+            do {
+                shareLinks = Client.get(Client.getWebClient(co.metadataURL + "/api/share-link/", co.token),
+                                      parameters,
+                                      new ParameterizedTypeReference<List<Object>>() {});
+                /*
+                if (!dryrun) System.out.println("DELETE RESULT:" + Client.post(Client.getWebClient(co.metaURL + "/api/share-link/delete", co.token),
+                                                                               deletedFiles,
+                                                                               new ParameterizedTypeReference<Integer>() {},
+                                                                               httpHeaders -> httpHeaders.setBearerAuth(co.token)));
+
+                 */
+                //co.out().println("Deleted Links: " + String.join("\n", shareLinks));
+                offset += limit;
+            } while (shareLinks.size() == limit);
+            if (dryrun) System.out.println("DRYRUN: NO LINKS WERE DELETED.");
+        }
     }
 
 }
