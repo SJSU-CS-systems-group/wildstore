@@ -1,5 +1,6 @@
 package edu.sjsu.wildstore;
 
+import com.mongodb.DBObject;
 import edu.sjsu.wildstore.meta.controller.ShareLinkController;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.util.LinkedMultiValueMap;
@@ -9,11 +10,14 @@ import picocli.CommandLine;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -166,19 +170,24 @@ public class Main {
                 shareLinks = Client.get(Client.getWebClient(co.metadataURL + "/api/share-link/", co.token),
                                                          parameters,
                                                          new ParameterizedTypeReference<List<Object>>() {});
-                shareLinks.forEach(System.out::println);
-                Map<String, String> deletedLinks = shareLinks.stream().map(dbObject -> (LinkedHashMap) dbObject)
-                        .collect(Collectors.toMap(
-                                dbObject -> ((List<String>) dbObject.get("filePath")).get(0).toString(),
-                                dbObject -> ((List<String>) dbObject.get("emailAddress")).get(0).toString()
-                        ));
+                List<Map<String, String>> deletedLinks = shareLinks.stream()
+                        .map(obj -> (LinkedHashMap<?, ?>) obj)
+                        .filter(obj -> OffsetDateTime.parse(obj.get("expiry").toString()).toLocalDateTime().isBefore(LocalDateTime.now()))
+                        .map(obj -> {
+                            String filePath = obj.get("filePath").toString();
+                            String emailAddresses = obj.get("emailAddresses").toString();
+                            return Map.of(
+                                    "filePath", filePath,
+                                    "emailAddresses", emailAddresses
+                            );
+                        })
+                        .collect(Collectors.toList());
 
                 if (!dryrun) System.out.println("DELETE RESULT:" + Client.post(Client.getWebClient(co.metadataURL + "/api/share-link/delete", co.token),
                                                                                deletedLinks,
                                                                                new ParameterizedTypeReference<Integer>() {},
                                                                                httpHeaders -> httpHeaders.setBearerAuth(co.token)));
-                co.out().println("Deleted Links: " + deletedLinks.entrySet().stream()
-                        .map(entry -> entry.getKey() + " " + entry.getValue()).collect(Collectors.joining("\n")));
+                co.out().println("Deleted Links: " + deletedLinks.stream().map(map -> map.get("filePath") + " : " + map.get("emailAddresses")).collect(Collectors.joining("\n")));
                 offset += limit;
             } while (shareLinks.size() == limit);
             if (dryrun) System.out.println("DRYRUN: NO LINKS WERE DELETED.");

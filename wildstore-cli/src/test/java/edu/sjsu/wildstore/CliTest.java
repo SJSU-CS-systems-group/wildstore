@@ -23,7 +23,11 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -409,9 +413,26 @@ public class CliTest {
         clirun(cmd, "share", testDataPath.toString(), testDataPath2.toString(), "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--email", "admin@cleanlinks", "--validFor", "day");
         //Query query = new Query(Criteria.where("fileDigest").is(testDigest));
         //ShareLink sl = springCtx.getBean(MongoTemplate.class).find();
-        //LocalDateTime.now().plusDays(1);
+
+        // should not delete links that are not expired
         var result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", adminTokenFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertFalse(result.out.contains("/") && result.out.contains("@"));
+
+        // dryrun should not delete anything
+        Clock fixedClock = Clock.fixed(Instant.now().plus(Duration.ofHours(2)), ZoneId.systemDefault());
+        LocalDateTime mockedNow = LocalDateTime.now(fixedClock);
+        result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--dryrun");
         System.out.println(result);
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertFalse(result.out.contains("/") && result.out.contains("@"));
+
+        // links should be deleted
+        result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--no-dryrun");
+        System.out.println(result);
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertFalse(result.out.contains("/") && result.out.contains("@"));
+
     }
 
     private static void createUser(String role, String name, String email, String token) {
