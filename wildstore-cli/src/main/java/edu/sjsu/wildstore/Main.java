@@ -11,9 +11,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] args) {
@@ -151,7 +153,8 @@ public class Main {
 
         @CommandLine.Command
         public void cleanlinks(@CommandLine.Mixin CliOptions co,
-                               @CommandLine.Option(names = "--no" + "-dryrun", negatable = true, defaultValue = "true") boolean dryrun) {
+                               @CommandLine.Option(names = "--no" + "-dryrun", negatable = true, defaultValue = "true") boolean dryrun) throws
+                ExecutionException, InterruptedException {
 
             List<Object> shareLinks = new ArrayList<>();
             LinkedMultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
@@ -161,16 +164,21 @@ public class Main {
             parameters.add("offset", "0");
             do {
                 shareLinks = Client.get(Client.getWebClient(co.metadataURL + "/api/share-link/", co.token),
-                                      parameters,
-                                      new ParameterizedTypeReference<List<Object>>() {});
-                /*
-                if (!dryrun) System.out.println("DELETE RESULT:" + Client.post(Client.getWebClient(co.metaURL + "/api/share-link/delete", co.token),
-                                                                               deletedFiles,
+                                                         parameters,
+                                                         new ParameterizedTypeReference<List<Object>>() {});
+                shareLinks.forEach(System.out::println);
+                Map<String, String> deletedLinks = shareLinks.stream().map(dbObject -> (LinkedHashMap) dbObject)
+                        .collect(Collectors.toMap(
+                                dbObject -> ((List<String>) dbObject.get("filePath")).get(0).toString(),
+                                dbObject -> ((List<String>) dbObject.get("emailAddress")).get(0).toString()
+                        ));
+
+                if (!dryrun) System.out.println("DELETE RESULT:" + Client.post(Client.getWebClient(co.metadataURL + "/api/share-link/delete", co.token),
+                                                                               deletedLinks,
                                                                                new ParameterizedTypeReference<Integer>() {},
                                                                                httpHeaders -> httpHeaders.setBearerAuth(co.token)));
-
-                 */
-                //co.out().println("Deleted Links: " + String.join("\n", shareLinks));
+                co.out().println("Deleted Links: " + deletedLinks.entrySet().stream()
+                        .map(entry -> entry.getKey() + " " + entry.getValue()).collect(Collectors.joining("\n")));
                 offset += limit;
             } while (shareLinks.size() == limit);
             if (dryrun) System.out.println("DRYRUN: NO LINKS WERE DELETED.");
