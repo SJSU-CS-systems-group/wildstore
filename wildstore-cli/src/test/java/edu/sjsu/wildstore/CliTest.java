@@ -411,8 +411,6 @@ public class CliTest {
         springCtx.getBean(MongoTemplate.class).insert(testMeta2, "metadata");
 
         clirun(cmd, "share", testDataPath.toString(), testDataPath2.toString(), "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--email", "admin@cleanlinks", "--validFor", "day");
-        //Query query = new Query(Criteria.where("fileDigest").is(testDigest));
-        //ShareLink sl = springCtx.getBean(MongoTemplate.class).find();
 
         // should not delete links that are not expired
         var result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", adminTokenFile.toString());
@@ -420,19 +418,17 @@ public class CliTest {
         Assertions.assertFalse(result.out.contains("/") && result.out.contains("@"));
 
         // dryrun should not delete anything
-        Clock fixedClock = Clock.fixed(Instant.now().plus(Duration.ofHours(2)), ZoneId.systemDefault());
-        LocalDateTime mockedNow = LocalDateTime.now(fixedClock);
         result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--dryrun");
-        System.out.println(result);
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertFalse(result.out.contains("/") && result.out.contains("@"));
 
         // links should be deleted
+        springCtx.getBean(MongoTemplate.class)
+                .updateMulti(new Query(Criteria.where("expiry").gt(LocalDateTime.now())),
+                            new org.springframework.data.mongodb.core.query.Update().set("expiry", LocalDateTime.now().minus(Duration.ofDays(1))), "share-links");
         result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--no-dryrun");
-        System.out.println(result);
         Assertions.assertEquals(0, result.exitCode);
-        Assertions.assertFalse(result.out.contains("/") && result.out.contains("@"));
-
+        Assertions.assertTrue(result.out.contains("Deleted ShareLinks: 2"));
     }
 
     private static void createUser(String role, String name, String email, String token) {

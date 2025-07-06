@@ -225,15 +225,9 @@ public class ShareLinkController {
 
     @PreAuthorize("hasRole('USER')")
     @PostMapping("/delete")
-    public boolean deleteShareLinks(@RequestBody List<String> shareId) {
-        try {
-            Query query = new Query(Criteria.where("shareId").in(shareId));
-            mongoTemplate.remove(query, DBObject.class, "share-links");
-            return true;
-        } catch (Exception ex) {
-            System.out.println(ex.getMessage());
-            return false;
-        }
+    public int deleteShareLinks(@RequestBody List<String> shareId) {
+        Query query = new Query(Criteria.where("shareId").in(shareId));
+        return (int) mongoTemplate.remove(query, DBObject.class, "share-links").getDeletedCount();
     }
 
     @PreAuthorize("hasRole('GUEST')")
