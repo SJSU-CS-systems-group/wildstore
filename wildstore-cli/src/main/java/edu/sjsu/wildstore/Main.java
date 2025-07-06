@@ -165,8 +165,8 @@ public class Main {
             LinkedMultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
             int limit = 10000;
             int offset = 0;
-            parameters.add("limit", "10000");
-            parameters.add("offset", "0");
+            parameters.add("limit", String.valueOf(limit));
+            parameters.add("offset", String.valueOf(offset));
             do {
                 shareLinks = Client.get(Client.getWebClient(co.metadataURL + "/api/share-link/", co.token),
                                                          parameters,
