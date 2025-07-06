@@ -429,6 +429,7 @@ public class CliTest {
         result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--no-dryrun");
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("Deleted ShareLinks: 2"));
+        Assertions.assertTrue(springCtx.getBean(MongoTemplate.class).getCollection("share-links").countDocuments() == 0);
     }
 
     private static void createUser(String role, String name, String email, String token) {
