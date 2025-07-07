@@ -1,5 +1,6 @@
 package edu.sjsu.wildstore;
 
+import com.mongodb.DBObject;
 import edu.sjsu.wildstore.meta.controller.ShareLinkController;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.util.LinkedMultiValueMap;
@@ -9,11 +10,17 @@ import picocli.CommandLine;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] args) {
@@ -147,6 +154,43 @@ public class Main {
                 offset += limit;
             } while (result.size() == offset);
             if (dryrun) System.out.println("DRYRUN: NO FILES WERE DELETED.");
+        }
+
+        @CommandLine.Command
+        public void cleanlinks(@CommandLine.Mixin CliOptions co,
+                               @CommandLine.Option(names = "--no" + "-dryrun", negatable = true, defaultValue = "true") boolean dryrun) throws
+                ExecutionException, InterruptedException {
+
+            List<Object> shareLinks = new ArrayList<>();
+            LinkedMultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
+            int limit = 10000;
+            int offset = 0;
+            parameters.add("limit", String.valueOf(limit));
+            parameters.add("offset", String.valueOf(offset));
+            do {
+                shareLinks = Client.get(Client.getWebClient(co.metadataURL + "/api/share-link/", co.token),
+                                                         parameters,
+                                                         new ParameterizedTypeReference<List<Object>>() {});
+                List<LinkedHashMap<?, ?>> expiredLinks = shareLinks.stream()
+                        .map(sl -> (LinkedHashMap<?, ?>) sl)
+                        .filter(sl -> OffsetDateTime.parse(sl.get("expiry").toString()).toLocalDateTime().isBefore(LocalDateTime.now()))
+                        .collect(Collectors.toList());
+                if (!dryrun) {
+                    List<String> shareIds = expiredLinks.stream()
+                            .map(sl -> sl.get("_id").toString()).toList();
+                    System.out.println("DELETE RESULT:" + Client.post(Client.getWebClient(co.metadataURL + "/api/share-link/delete", co.token),
+                                                                      shareIds,
+                                                                      new ParameterizedTypeReference<Integer>() {},
+                                                                      httpHeaders -> httpHeaders.setBearerAuth(co.token)));
+                }
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                co.out().println("Deleted ShareLinks: " + expiredLinks.size());
+                expiredLinks.forEach(sl -> {
+                    co.out().println("File path: " + sl.get("filePath").toString() + ", Emails: " + sl.get("emailAddresses").toString() + ", Expired on: " + (OffsetDateTime.parse(sl.get("expiry").toString())).format(formatter));
+                });
+                offset += limit;
+            } while (shareLinks.size() == limit);
+            if (dryrun) System.out.println("DRYRUN: NO LINKS WERE DELETED.");
         }
     }
 

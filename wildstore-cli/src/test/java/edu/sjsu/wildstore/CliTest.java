@@ -23,7 +23,11 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,6 +45,9 @@ import static java.lang.String.format;
 public class CliTest {
     private static ConfigurableApplicationContext springCtx;
     private static String metaURL;
+    public static final String USER_DATA_COLLECTION = "userData";
+    public static final String METADATA_COLLECTION = "metadata";
+    public static final String SHARE_LINKS_COLLECTION = "share-links";
 
     @Configuration
     public static class TestOAuthSecurityConfig {
@@ -72,9 +79,9 @@ public class CliTest {
             }
         }
         metaURL = "http://localhost:" + port;
-        springCtx.getBean(MongoTemplate.class).createCollection("userData");
-        springCtx.getBean(MongoTemplate.class).createCollection("metadata");
-        springCtx.getBean(MongoTemplate.class).createCollection("share-links");
+        springCtx.getBean(MongoTemplate.class).createCollection(USER_DATA_COLLECTION);
+        springCtx.getBean(MongoTemplate.class).createCollection(METADATA_COLLECTION);
+        springCtx.getBean(MongoTemplate.class).createCollection(SHARE_LINKS_COLLECTION);
     }
 
     @AfterAll
@@ -155,7 +162,7 @@ public class CliTest {
         Assertions.assertEquals("", result.err);
         Assertions.assertEquals(1, result.out.split("\n").length);
 
-        deleteUsers("@example.com");
+        emptyCollections();
     }
 
     @Test
@@ -178,14 +185,14 @@ public class CliTest {
         var testMeta2 = new Metadata();
         var testDigest = "dummy-digest";
         var testDigest2 = "dummy-digest-2";
-        testMeta.fileName = new HashSet<String>(Set.of(testDataFile.toAbsolutePath().toString()));
-        testMeta.filePath = new HashSet<String>(Set.of(testDataFile.toAbsolutePath().getParent().toString()));
+        testMeta.fileName = new HashSet<String>(Set.of(testDataPath.toAbsolutePath().toString()));
+        testMeta.filePath = new HashSet<String>(Set.of(testDataPath.toAbsolutePath().getParent().toString()));
         testMeta.digestString = testDigest;
         testMeta2.fileName = new HashSet<String>(Set.of(testDataPath2.toAbsolutePath().toString()));
         testMeta2.filePath = new HashSet<String>(Set.of(testDataPath2.toAbsolutePath().getParent().toString()));
         testMeta2.digestString = testDigest2;
-        springCtx.getBean(MongoTemplate.class).insert(testMeta, "metadata");
-        springCtx.getBean(MongoTemplate.class).insert(testMeta2, "metadata");
+        springCtx.getBean(MongoTemplate.class).insert(testMeta, METADATA_COLLECTION);
+        springCtx.getBean(MongoTemplate.class).insert(testMeta2, METADATA_COLLECTION);
 
         createUser("ROLE_USER", "ShareUser", "user@share", userToken);
         createUser("ROLE_GUEST", "ShareGuest", "guest@share", guestToken);
@@ -237,21 +244,21 @@ public class CliTest {
         Assertions.assertTrue(result.out.contains("?filename=test-data.txt") && result.out.contains("?filename=test-data-2.txt") && !result.err.contains("Missing Files"));
         Query query = new Query(Criteria.where("fileDigest").is(testDigest));
         LocalDateTime oldTime = Objects.requireNonNull(springCtx.getBean(MongoTemplate.class)
-                                                               .findOne(query, ShareLink.class, "share-links")).expiry;
+                                                               .findOne(query, ShareLink.class, SHARE_LINKS_COLLECTION)).expiry;
 
         result = clirun(cmd, "share", testDataPath.toString(), "/testfile", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share", "--validFor", "year");
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("?filename=test-data.txt") && result.err.contains("/testfile"));
         LocalDateTime newTime = Objects.requireNonNull(springCtx.getBean(MongoTemplate.class)
-                                                               .findOne(query, ShareLink.class, "share-links")).expiry;
+                                                               .findOne(query, ShareLink.class, SHARE_LINKS_COLLECTION)).expiry;
         Assertions.assertTrue(newTime.isAfter(oldTime));
 
         // make sure the expiry time stays the same after sharing with shorter validFor time
         result = clirun(cmd, "share", testDataPath.toString(), testDataPath2.toString(), "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share", "--validFor", "day");
         Assertions.assertEquals(newTime, Objects.requireNonNull(springCtx.getBean(MongoTemplate.class)
-                                                               .findOne(query, ShareLink.class, "share-links")).expiry);
+                                                               .findOne(query, ShareLink.class, SHARE_LINKS_COLLECTION)).expiry);
 
-        deleteUsers("@share");
+        emptyCollections();
     }
 
     @Test
@@ -295,7 +302,7 @@ public class CliTest {
                                        "all",
                                        false);
         }
-        Assertions.assertEquals(2, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
+        Assertions.assertEquals(2, springCtx.getBean(MongoTemplate.class).getCollection(METADATA_COLLECTION).countDocuments());
 
         var deletedFile = fileNames.get(0);
         Files.delete(Paths.get(fileNames.get(0)));
@@ -315,18 +322,18 @@ public class CliTest {
         result = clirun(cmd, "clean", "--metaURL", metaURL, "--token", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains(deletedFile));
-        Assertions.assertEquals(2, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
+        Assertions.assertEquals(2, springCtx.getBean(MongoTemplate.class).getCollection(METADATA_COLLECTION).countDocuments());
 
         result = clirun(cmd, "clean", "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--dryrun");
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains(deletedFile));
-        Assertions.assertEquals(2, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
+        Assertions.assertEquals(2, springCtx.getBean(MongoTemplate.class).getCollection(METADATA_COLLECTION).countDocuments());
 
         // file should be deleted
         result = clirun(cmd, "clean", "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--no-dryrun");
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains(deletedFile));
-        Assertions.assertEquals(0, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
+        Assertions.assertEquals(0, springCtx.getBean(MongoTemplate.class).getCollection(METADATA_COLLECTION).countDocuments());
 
         // crawl more files
         for (int i = 2; i < Math.min(32, fileNames.size()); i++) {
@@ -357,7 +364,7 @@ public class CliTest {
                 });
 
         var result2 = clirun(cmd, "clean", "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--no-dryrun");
-        Assertions.assertEquals(15, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
+        Assertions.assertEquals(15, springCtx.getBean(MongoTemplate.class).getCollection(METADATA_COLLECTION).countDocuments());
         IntStream.range(0, deletedFiles.size())
                 .forEach(i -> {
                     Assertions.assertTrue(result2.out().contains(deletedFiles.get(i)),
@@ -374,7 +381,70 @@ public class CliTest {
                         }
                     });
         }
-        deleteUsers("@clean");
+        emptyCollections();
+    }
+
+    @Test
+    void testCleanLinks() throws IOException {
+        var cmd = new Main.Cli();
+        var adminTokenFile = tempDir.resolve("admin-token.txt");
+        var userTokenFile = tempDir.resolve("user-token.txt");
+        var adminToken = "secret-admin-token";
+        var userToken = "secret-user-token";
+        Files.write(adminTokenFile, ("token=" + adminToken).getBytes());
+        Files.write(userTokenFile, ("token=" + userToken).getBytes());
+        createUser("ROLE_ADMIN", "CleanAdmin", "admin@cleanlinks", adminToken);
+        createUser("ROLE_USER", "ClearUser", "user@cleanlinks", userToken);
+
+        var testDataFile = tempDir.resolve("test-data.txt");
+        var testDataFile2 = tempDir.resolve("test-data-2.txt");
+        var testDataPath = testDataFile.toAbsolutePath();
+        var testDataPath2 = testDataFile2.toAbsolutePath();
+        var testMeta = new Metadata();
+        var testMeta2 = new Metadata();
+        var testDigest = "dummy-digest";
+        var testDigest2 = "dummy-digest-2";
+        testMeta.fileName = new HashSet<String>(Set.of(testDataPath.toString()));
+        testMeta.filePath = new HashSet<String>(Set.of(testDataPath.getParent().toString()));
+        testMeta.digestString = testDigest;
+        testMeta2.fileName = new HashSet<String>(Set.of(testDataFile2.toString()));
+        testMeta2.filePath = new HashSet<String>(Set.of(testDataPath2.getParent().toString()));
+        testMeta2.digestString = testDigest2;
+        springCtx.getBean(MongoTemplate.class).insert(testMeta, METADATA_COLLECTION);
+        springCtx.getBean(MongoTemplate.class).insert(testMeta2, METADATA_COLLECTION);
+
+        clirun(cmd, "share", testDataPath.toString(), testDataPath2.toString(), "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--email", "admin@cleanlinks", "--validFor", "day");
+
+        // users can dryrun cleanlinks
+        var result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", userTokenFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains("Deleted ShareLinks: 0"));
+
+        result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--no-dryrun");
+        Assertions.assertEquals(1, result.exitCode);
+        Assertions.assertTrue(result.err.contains("WebClientResponseException"));
+
+        // should not delete links that are not expired
+
+        result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", adminTokenFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertFalse(result.out.contains("/") && result.out.contains("@"));
+
+        // dryrun should not delete anything
+        result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--dryrun");
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertFalse(result.out.contains("/") && result.out.contains("@"));
+
+        // links should be deleted
+        springCtx.getBean(MongoTemplate.class)
+                .updateMulti(new Query(Criteria.where("expiry").gt(LocalDateTime.now())),
+                            new org.springframework.data.mongodb.core.query.Update().set("expiry", LocalDateTime.now().minus(Duration.ofDays(1))), SHARE_LINKS_COLLECTION);
+        result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--no-dryrun");
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains("Deleted ShareLinks: 2"));
+        Assertions.assertTrue(springCtx.getBean(MongoTemplate.class).getCollection(SHARE_LINKS_COLLECTION).countDocuments() == 0);
+
+        emptyCollections();
     }
 
     private static void createUser(String role, String name, String email, String token) {
@@ -383,12 +453,14 @@ public class CliTest {
                          "name", name,
                          "email", email,
                          "token", token);
-        springCtx.getBean(MongoTemplate.class).insert(new HashMap(rec), "userData");
+        springCtx.getBean(MongoTemplate.class).insert(new HashMap(rec), USER_DATA_COLLECTION);
     }
 
-    private static void deleteUsers(String keyword) {
-        var query = new Query(Criteria.where("email").regex(keyword));
-        springCtx.getBean(MongoTemplate.class).remove(query, "userData");
+    private static void emptyCollections() {
+        var query = new Query();
+        springCtx.getBean(MongoTemplate.class).remove(query, USER_DATA_COLLECTION);
+        springCtx.getBean(MongoTemplate.class).remove(query, METADATA_COLLECTION);
+        springCtx.getBean(MongoTemplate.class).remove(query, SHARE_LINKS_COLLECTION);
     }
 
     record TestResult(int exitCode, String out, String err) {}
