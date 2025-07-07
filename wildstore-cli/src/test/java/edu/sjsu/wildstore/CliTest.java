@@ -415,8 +415,18 @@ public class CliTest {
 
         clirun(cmd, "share", testDataPath.toString(), testDataPath2.toString(), "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--email", "admin@cleanlinks", "--validFor", "day");
 
+        // users can dryrun cleanlinks
+        var result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", userTokenFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains("Deleted ShareLinks: 0"));
+
+        result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--no-dryrun");
+        Assertions.assertEquals(1, result.exitCode);
+        Assertions.assertTrue(result.err.contains("WebClientResponseException"));
+
         // should not delete links that are not expired
-        var result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", adminTokenFile.toString());
+
+        result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertFalse(result.out.contains("/") && result.out.contains("@"));
 

@@ -192,9 +192,6 @@ public class ShareLinkController {
     public List<DBObject> getShareLinkList(Authentication authentication,
                                            @RequestParam(defaultValue = "100") int limit,
                                            @RequestParam(defaultValue = "0") int offset) {
-        if (authentication instanceof OAuth2AuthenticationToken oAuth2AuthenticationToken) {
-            String email = UserInfo.getUserId(oAuth2AuthenticationToken);
-        }
         Query query = new Query(Criteria.where("createdBy").is(getCurrentUserName()));
         query.limit(limit);
         query.skip(offset);
@@ -210,7 +207,7 @@ public class ShareLinkController {
         return mongoTemplate.count(query, "share-links");
     }
 
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{shareId}")
     public boolean deleteShareLink(@PathVariable String shareId) {
         try {
@@ -223,7 +220,7 @@ public class ShareLinkController {
         }
     }
 
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/delete")
     public int deleteShareLinks(@RequestBody List<String> shareId) {
         Query query = new Query(Criteria.where("_id").in(shareId));
