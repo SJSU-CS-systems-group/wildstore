@@ -203,6 +203,7 @@ public class ShareLinkController {
     public List<ShareLink> getShareLinkList(Authentication authentication,
                                             @RequestParam(defaultValue = "100") int limit,
                                             @RequestParam(defaultValue = "0") int offset) {
+        // old sharelinks are created with username in field createdBy
         Query query = new Query(new Criteria().orOperator(Criteria.where("createdBy").is(getCurrentUserEmail()),
                                                           Criteria.where("createdBy").is(getCurrentUserName())));
         query.limit(limit);
@@ -214,6 +215,7 @@ public class ShareLinkController {
     @PreAuthorize("hasRole('USER')")
     @GetMapping("/count")
     public long getShareLinkCount(Authentication authentication) {
+        // old sharelinks are created with username in field createdBy
         Query query = new Query(new Criteria().orOperator(Criteria.where("createdBy").is(getCurrentUserEmail()),
                                                           Criteria.where("createdBy").is(getCurrentUserName())));
         return mongoTemplate.count(query, "share-links");
@@ -223,6 +225,8 @@ public class ShareLinkController {
     @DeleteMapping("/{shareId}")
     public boolean deleteShareLink(@PathVariable String shareId, Authentication authentication) {
         String email = UserInfo.getUserEmail(authentication);
+        // old sharelinks are created with shareId and username in field createdBy
+        // new sharelines are created with _id and email in field createdBy
         Query query = new Query(new Criteria().andOperator(new Criteria().orOperator(Criteria.where("_id").is(shareId),
                                                                                      Criteria.where("shareId")
                                                                                              .is(shareId)),
@@ -237,6 +241,7 @@ public class ShareLinkController {
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/delete")
     public int deleteShareLinks(@RequestBody List<String> shareId) {
+        // old sharelinks are created with shareId
         Query query = new Query(new Criteria().orOperator(Criteria.where("_id").in(shareId),
                                                           Criteria.where("shareId").in(shareId)));
         return (int) mongoTemplate.remove(query, SHARE_LINKS_COLLECTION).getDeletedCount();
