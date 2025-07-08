@@ -19,15 +19,26 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.DefaultOAuth2AuthenticatedPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -189,20 +200,22 @@ public class ShareLinkController {
 
     @PreAuthorize("hasRole('USER')")
     @GetMapping("/")
-    public List<DBObject> getShareLinkList(Authentication authentication,
-                                           @RequestParam(defaultValue = "100") int limit,
-                                           @RequestParam(defaultValue = "0") int offset) {
-        Query query = new Query(Criteria.where("createdBy").is(getCurrentUserEmail()));
+    public List<ShareLink> getShareLinkList(Authentication authentication,
+                                            @RequestParam(defaultValue = "100") int limit,
+                                            @RequestParam(defaultValue = "0") int offset) {
+        Query query = new Query(new Criteria().orOperator(Criteria.where("createdBy").is(getCurrentUserEmail()),
+                                                          Criteria.where("createdBy").is(getCurrentUserName())));
         query.limit(limit);
         query.skip(offset);
-        List<DBObject> res = mongoTemplate.find(query, DBObject.class, "share-links");
+        List<ShareLink> res = mongoTemplate.find(query, ShareLink.class, "share-links");
         return res;
     }
 
     @PreAuthorize("hasRole('USER')")
     @GetMapping("/count")
     public long getShareLinkCount(Authentication authentication) {
-        Query query = new Query(Criteria.where("createdBy").is(getCurrentUserEmail()));
+        Query query = new Query(new Criteria().orOperator(Criteria.where("createdBy").is(getCurrentUserEmail()),
+                                                          Criteria.where("createdBy").is(getCurrentUserName())));
         return mongoTemplate.count(query, "share-links");
     }
 
@@ -210,15 +223,22 @@ public class ShareLinkController {
     @DeleteMapping("/{shareId}")
     public boolean deleteShareLink(@PathVariable String shareId, Authentication authentication) {
         String email = UserInfo.getUserEmail(authentication);
-        Query query = new Query(Criteria.where("shareId").is(shareId));
-        query.addCriteria(Criteria.where("createdBy").is(email));
+        Query query = new Query(new Criteria().andOperator(new Criteria().orOperator(Criteria.where("_id").is(shareId),
+                                                                                     Criteria.where("shareId")
+                                                                                             .is(shareId)),
+                                                           new Criteria().orOperator(Criteria.where("createdBy")
+                                                                                             .is(getCurrentUserEmail()),
+                                                                                     Criteria.where("createdBy")
+                                                                                             .is(getCurrentUserName()))
+        ));
         return mongoTemplate.remove(query, SHARE_LINKS_COLLECTION).getDeletedCount() > 0;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/delete")
     public int deleteShareLinks(@RequestBody List<String> shareId) {
-        Query query = new Query(Criteria.where("_id").in(shareId));
+        Query query = new Query(new Criteria().orOperator(Criteria.where("_id").in(shareId),
+                                                          Criteria.where("shareId").in(shareId)));
         return (int) mongoTemplate.remove(query, SHARE_LINKS_COLLECTION).getDeletedCount();
     }
 
@@ -283,11 +303,11 @@ public class ShareLinkController {
     private String getCurrentUserName() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth.getPrincipal() instanceof DefaultOAuth2User) {
-            return (String) ((DefaultOAuth2User) (auth.getPrincipal())).getAttribute("name");
+            return ((DefaultOAuth2User) (auth.getPrincipal())).getAttribute("name");
         } else if (auth.getPrincipal() instanceof DefaultOAuth2AuthenticatedPrincipal) {
-            return (String) ((DefaultOAuth2AuthenticatedPrincipal) (auth.getPrincipal())).getAttribute("name");
+            return ((DefaultOAuth2AuthenticatedPrincipal) (auth.getPrincipal())).getAttribute("name");
         } else {
-            return (String) ((DefaultOidcUser) (auth.getPrincipal())).getAttribute("name");
+            return ((DefaultOidcUser) (auth.getPrincipal())).getAttribute("name");
         }
     }
 
@@ -296,9 +316,9 @@ public class ShareLinkController {
         if (auth.getPrincipal() instanceof DefaultOAuth2AuthenticatedPrincipal) {
             return ((DefaultOAuth2AuthenticatedPrincipal) (auth.getPrincipal())).getAttribute("email");
         } else if (auth.getPrincipal() instanceof DefaultOAuth2User) {
-            return (String) ((DefaultOAuth2User) (auth.getPrincipal())).getAttribute("email");
+            return ((DefaultOAuth2User) (auth.getPrincipal())).getAttribute("email");
         } else {
-            return (String) ((DefaultOidcUser) (auth.getPrincipal())).getAttribute("email");
+            return ((DefaultOidcUser) (auth.getPrincipal())).getAttribute("email");
         }
     }
 
