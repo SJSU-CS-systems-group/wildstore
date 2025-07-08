@@ -26,7 +26,7 @@ class CliOptions {
     final CommandLine cmd() {
         return spec.commandLine();
     }
-    @CommandLine.Option(names = "--token", description = "Authentication token file", required = true)
+    @CommandLine.Option(names = "--tokenFile", description = "Authentication token file", required = true)
     void setTokenFile(File tokenFile) {
         try (var br = new BufferedReader(new FileReader(tokenFile))) {
             String line;
