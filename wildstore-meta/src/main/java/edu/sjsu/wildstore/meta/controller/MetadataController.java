@@ -174,6 +174,14 @@ public class MetadataController {
     }
 
     @PreAuthorize("hasRole('USER')")
+    @PostMapping("/metadata/remove")
+    public int removeFilename(@RequestParam("filename") String fileName) {
+        Query query = new Query(Criteria.where("fileName"));
+        List<DBObject> res = mongoTemplate.find(query, DBObject.class, METADATA_COLLECTION);
+        return (int) mongoTemplate.remove(query, METADATA_COLLECTION).getDeletedCount();
+    }
+
+    @PreAuthorize("hasRole('USER')")
     @GetMapping("/metadata/description")
     public Map getDescriptions() throws IOException {
         return Map.of("variables",

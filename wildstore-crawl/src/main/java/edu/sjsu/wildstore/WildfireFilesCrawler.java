@@ -270,6 +270,7 @@ public class WildfireFilesCrawler implements Runnable {
             }
             PrintData.printEnums(enumFile, metadata);
         }
+
         var res = Client.post(webClient, metadata, new ParameterizedTypeReference<Integer>() {}, httpHeaders -> {
             httpHeaders.setBearerAuth(token);
         });
