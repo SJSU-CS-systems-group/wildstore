@@ -80,7 +80,7 @@ public class ShareLinkController {
         if (!res.isEmpty()) {
             Map<String, Metadata> existingDigests = res.stream().collect(Collectors.toMap(m -> m.digestString, m -> m));
             Query linkQuery = new Query(Criteria.where("fileDigest").in(existingDigests.keySet()));
-            linkQuery.addCriteria(Criteria.where("createdBy").is(getCurrentUserName()));
+            linkQuery.addCriteria(Criteria.where("createdBy").is(getCurrentUserEmail()));
             linkQuery.addCriteria(Criteria.where("emailAddresses").all(request.get("emailAddresses")));
             linkQuery.addCriteria(Criteria.where("expiry").gt(LocalDateTime.now()));
             List<ShareLink> existing = mongoTemplate.find(linkQuery, ShareLink.class, SHARE_LINKS_COLLECTION);
@@ -122,7 +122,7 @@ public class ShareLinkController {
                     ShareLink shareLink = new ShareLink();
                     shareLink.fileDigest = digest;
                     shareLink.filePath = existingDigests.get(digest).filePath;
-                    shareLink.createdBy = getCurrentUserName();
+                    shareLink.createdBy = getCurrentUserEmail();
                     shareLink.shareId = UUID.randomUUID().toString().replace("-", "");
                     shareLink.createdAt = LocalDateTime.now();
                     shareLink.emailAddresses = new HashSet<String>((ArrayList<String>) request.get("emailAddresses"));
@@ -192,7 +192,7 @@ public class ShareLinkController {
     public List<DBObject> getShareLinkList(Authentication authentication,
                                            @RequestParam(defaultValue = "100") int limit,
                                            @RequestParam(defaultValue = "0") int offset) {
-        Query query = new Query(Criteria.where("createdBy").is(getCurrentUserName()));
+        Query query = new Query(Criteria.where("createdBy").is(getCurrentUserEmail()));
         query.limit(limit);
         query.skip(offset);
         List<DBObject> res = mongoTemplate.find(query, DBObject.class, "share-links");
@@ -201,23 +201,18 @@ public class ShareLinkController {
 
     @PreAuthorize("hasRole('USER')")
     @GetMapping("/count")
-    public long getShareLinkCount(OAuth2AuthenticationToken oAuth2AuthenticationToken) {
-        String email = UserInfo.getUserId(oAuth2AuthenticationToken);
-        Query query = new Query(Criteria.where("createdBy").is(getCurrentUserName()));
+    public long getShareLinkCount(Authentication authentication) {
+        Query query = new Query(Criteria.where("createdBy").is(getCurrentUserEmail()));
         return mongoTemplate.count(query, "share-links");
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER')")
     @DeleteMapping("/{shareId}")
-    public boolean deleteShareLink(@PathVariable String shareId) {
-        try {
-            Query query = new Query(Criteria.where("_id").is(shareId));
-            mongoTemplate.remove(query, SHARE_LINKS_COLLECTION);
-            return true;
-        } catch (Exception ex) {
-            System.out.println(ex.getMessage());
-            return false;
-        }
+    public boolean deleteShareLink(@PathVariable String shareId, Authentication authentication) {
+        String email = UserInfo.getUserEmail(authentication);
+        Query query = new Query(Criteria.where("shareId").is(shareId));
+        query.addCriteria(Criteria.where("createdBy").is(email));
+        return mongoTemplate.remove(query, SHARE_LINKS_COLLECTION).getDeletedCount() > 0;
     }
 
     @PreAuthorize("hasRole('ADMIN')")

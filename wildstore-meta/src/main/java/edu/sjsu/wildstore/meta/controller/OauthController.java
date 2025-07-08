@@ -81,7 +81,7 @@ public class OauthController {
 
     public String getOpaqueToken(OAuth2AuthenticationToken user) {
         String name = user.getPrincipal().getAttribute("name");
-        String email = UserInfo.getUserId(user);
+        String email = UserInfo.getUserEmail(user);
         Query query = new Query(Criteria.where("email").is(email));
         var opaqueTokenMap = mongoTemplate.find(query, Map.class, USER_COLLECTION);
         String opaqueToken = null;

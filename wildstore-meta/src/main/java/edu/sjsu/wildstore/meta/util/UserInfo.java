@@ -4,7 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.core.OAuth2AuthenticatedPrincipal;
 import org.springframework.stereotype.Controller;
 
 import java.util.Map;
@@ -48,12 +49,22 @@ public class UserInfo {
         return null;
     }
 
-    public static String getUserId(OAuth2AuthenticationToken user) {
+    public static String getUserEmail(Authentication user) {
         System.out.println(user.getPrincipal().getClass());
-        String email = user.getPrincipal().getAttribute("email");
+        OAuth2AuthenticatedPrincipal principal = (OAuth2AuthenticatedPrincipal) user.getPrincipal();
+        String email = principal.getAttribute("email");
         if (email == null) {
-            email = user.getPrincipal().getAttribute("login") + "@github";
+            var githubLogin = principal.getAttribute("login");
+            if (githubLogin != null) {
+                email = principal.getAttribute("login") + "@github";
+            }
         }
         return email;
+    }
+
+    public static String getUserName(Authentication user) {
+        System.out.println(user.getPrincipal().getClass());
+        OAuth2AuthenticatedPrincipal principal = (OAuth2AuthenticatedPrincipal) user.getPrincipal();
+        return principal.getAttribute("name");
     }
 }
