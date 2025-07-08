@@ -12,6 +12,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import picocli.CommandLine;
+import ucar.ma2.ArrayFloat;
+import ucar.ma2.DataType;
+import ucar.ma2.InvalidRangeException;
+import ucar.nc2.Attribute;
+import ucar.nc2.Dimension;
+import ucar.nc2.NetcdfFileWriter;
+import ucar.nc2.Variable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -20,6 +27,8 @@ import java.net.ServerSocket;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -87,7 +96,8 @@ public class CrawlTest {
     static Path tempNameDir;
 
     @Test
-    public void testCrawl() throws IOException, URISyntaxException, ExecutionException, InterruptedException {
+    public void testCrawl() throws IOException, URISyntaxException, ExecutionException, InterruptedException,
+            InvalidRangeException {
         String userToken = "secret-user-token";
         String guestToken = "secret-guest-token";
         createUser("ROLE_USER", "user", "user@crawl", userToken);
@@ -99,6 +109,18 @@ public class CrawlTest {
         Files.write(userTokenFile, ("token=" + userToken).getBytes());
         Files.write(guestTokenFile, ("token=" + guestToken).getBytes());
         Files.write(faultyTokenFile, "token=not-a-valid)-token".getBytes());
+
+        var netCDFFileName = tempDir.resolve("testData.nc");
+        NetcdfFileWriter writer = NetcdfFileWriter.createNew(NetcdfFileWriter.Version.netcdf3, netCDFFileName.toString());
+        Dimension dim = writer.addDimension(null, "dim", 3);
+        Variable var = writer.addVariable(null, "temperature", DataType.FLOAT, "dim");
+        writer.addVariableAttribute(var, new Attribute("units", "celsius"));
+        writer.create();
+        ArrayFloat.D1 data = new ArrayFloat.D1(3);
+        data.set(0, 10.0f);
+        data.set(1, 20.0f);
+        data.set(2, 30.0f);
+        writer.write(var, data);
 
         // put files into directory
         var testDataUtils = new TestDataUtils();
@@ -121,6 +143,10 @@ public class CrawlTest {
         //create a file with the directory to crawl
         var dirFile = tempNameDir.resolve("dirName.txt");
         Files.write(dirFile, tempDir.toAbsolutePath().toString().getBytes());
+
+        //create a file with test data to crawl
+        var testFile = tempNameDir.resolve("testName.txt");
+        Files.write(testFile, netCDFFileName.toAbsolutePath().toString().getBytes());
 
         // crawl method test
         WildfireFilesCrawler.crawl(fileNames.get(0), Client.getWebClient(metaURL + "/api/metadata"), userToken, 1024 * 1024, "all", false);
@@ -163,6 +189,19 @@ public class CrawlTest {
                 .filter(path -> path.toString().endsWith(".nc"))
                 .count();
         Assertions.assertTrue(result.out.contains("Crawled " + (expected - numToCrawl) + " new files"));
+
+        // should crawl files with a later lastModified date
+        var metaDataCount = springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments();
+        //Files.setLastModifiedTime(netCDFFileName, FileTime.from(Instant.now()));
+        writer.write(var, data);
+        writer.close();
+        result = clirun(WildfireFilesCrawler.class,
+                        "--metaURL", metaURL,
+                        "--tokenFile", userTokenFile.toString(), testFile.toString());
+        System.out.println(result);
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains("Crawled 1 new files"));
+        Assertions.assertEquals(metaDataCount, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
     }
 
     private static void createUser(String role, String name, String email, String token) {
