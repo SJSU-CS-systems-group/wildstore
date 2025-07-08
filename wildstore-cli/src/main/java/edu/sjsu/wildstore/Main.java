@@ -1,6 +1,5 @@
 package edu.sjsu.wildstore;
 
-import com.mongodb.DBObject;
 import edu.sjsu.wildstore.meta.controller.ShareLinkController;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.util.LinkedMultiValueMap;
@@ -11,14 +10,12 @@ import picocli.CommandLine;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -173,11 +170,11 @@ public class Main {
                                                          new ParameterizedTypeReference<List<Object>>() {});
                 List<LinkedHashMap<?, ?>> expiredLinks = shareLinks.stream()
                         .map(sl -> (LinkedHashMap<?, ?>) sl)
-                        .filter(sl -> OffsetDateTime.parse(sl.get("expiry").toString()).toLocalDateTime().isBefore(LocalDateTime.now()))
+                        .filter(sl -> LocalDateTime.parse(sl.get("expiry").toString()).isBefore(LocalDateTime.now()))
                         .collect(Collectors.toList());
                 if (!dryrun) {
                     List<String> shareIds = expiredLinks.stream()
-                            .map(sl -> sl.get("_id").toString()).toList();
+                            .map(sl -> sl.get("shareId").toString()).toList();
                     System.out.println("DELETE RESULT:" + Client.post(Client.getWebClient(co.metadataURL + "/api/share-link/delete", co.token),
                                                                       shareIds,
                                                                       new ParameterizedTypeReference<Integer>() {},
@@ -186,7 +183,7 @@ public class Main {
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
                 co.out().println("Deleted ShareLinks: " + expiredLinks.size());
                 expiredLinks.forEach(sl -> {
-                    co.out().println("File path: " + sl.get("filePath").toString() + ", Emails: " + sl.get("emailAddresses").toString() + ", Expired on: " + (OffsetDateTime.parse(sl.get("expiry").toString())).format(formatter));
+                    co.out().println("File path: " + sl.get("filePath").toString() + ", Emails: " + sl.get("emailAddresses").toString() + ", Expired on: " + (LocalDateTime.parse(sl.get("expiry").toString())).format(formatter));
                 });
                 offset += limit;
             } while (shareLinks.size() == limit);
