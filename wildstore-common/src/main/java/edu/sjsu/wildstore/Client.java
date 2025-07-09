@@ -2,8 +2,8 @@ package edu.sjsu.wildstore;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -11,7 +11,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class Client {
     public static <T> T get(WebClient webClient,
@@ -94,5 +93,15 @@ public class Client {
                 .bodyToMono(new ParameterizedTypeReference<T>() {})
                 .retry(1)
                 .block();
+    }
+
+    public static HttpStatusCode delete(WebClient webClient,
+                                              String filename) {
+        return webClient.delete()
+                .uri(filename)
+                .retrieve()
+                .toBodilessEntity()
+                .block()
+                .getStatusCode();
     }
 }
