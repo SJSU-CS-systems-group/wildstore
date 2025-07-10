@@ -149,7 +149,7 @@ public class CrawlTest {
         Files.write(testFile, netCDFFileName.toAbsolutePath().toString().getBytes());
 
         // crawl method test
-        WildfireFilesCrawler.crawl(fileNames.get(0), Client.getWebClient(metaURL + "/api/metadata"), userToken, 1024 * 1024, "all", false);
+        WildfireFilesCrawler.crawl(fileNames.get(0), Client.getWebClient(metaURL + "/api/metadata", userToken), 1024 * 1024, "all", false);
 
         // guests should not be able to crawl
         var result = clirun(WildfireFilesCrawler.class,
@@ -178,7 +178,7 @@ public class CrawlTest {
                         "--tokenFile", userTokenFile.toString(), nameFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("Successfully processed file"));
-        Assertions.assertTrue(result.out.contains("Crawled " + (numToCrawl - 1) + " new files"));
+        Assertions.assertTrue(result.out.contains((numToCrawl - 1) + " valid files found."));
 
         // should be able to crawl all files found in a directory
         result = clirun(WildfireFilesCrawler.class,
@@ -188,17 +188,15 @@ public class CrawlTest {
         var expected = Files.walk(tempDir)
                 .filter(path -> path.toString().endsWith(".nc"))
                 .count();
-        Assertions.assertTrue(result.out.contains("Crawled " + (expected - numToCrawl) + " new files"));
+        Assertions.assertTrue(result.out.contains((expected - numToCrawl) + " valid files found."));
 
         // should crawl files with a later lastModified date
         var metaDataCount = springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments();
-        //Files.setLastModifiedTime(netCDFFileName, FileTime.from(Instant.now()));
         writer.write(var, data);
         writer.close();
         result = clirun(WildfireFilesCrawler.class,
                         "--metaURL", metaURL,
                         "--tokenFile", userTokenFile.toString(), testFile.toString());
-        System.out.println(result);
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("Crawled 1 new files"));
         Assertions.assertEquals(metaDataCount, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
