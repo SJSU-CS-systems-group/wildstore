@@ -194,7 +194,6 @@ public class MetadataController {
         return (int) mongoTemplate.remove(query, METADATA_COLLECTION).getDeletedCount();
     }
 
-
     @PreAuthorize("hasRole('USER')")
     @GetMapping("/metadata/description")
     public Map getDescriptions() throws IOException {
