@@ -148,6 +148,7 @@ public class WildfireFilesCrawler implements Runnable {
                         map -> (Long) map.get("lastModified"),
                         Long::min));
 
+        out().printf("Processing files %d at a time%n", parallelism);
         ForkJoinPool customPool = new ForkJoinPool(parallelism); // set desired parallelism
 
         var poolResult = customPool.submit(() -> {
