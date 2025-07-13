@@ -23,11 +23,8 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -113,51 +110,51 @@ public class CliTest {
         var userTokenFile = tempDir.resolve("user-token.txt");
 
         // the token file doesn't even exist, so this should fail with no such file
-        var result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--token", adminTokenFile.toString());
+        var result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("No such file"));
 
         // create the token file but since it's not in the db, it should give unauthorized
         Files.write(adminTokenFile, ("token=" + token).getBytes());
-        result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--token", adminTokenFile.toString());
+        result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
         Assertions.assertEquals(1, result.exitCode);
         Assertions.assertTrue(result.err.contains("Unauthorized"), format("%s doesn't contain Unauthorized", result.err));
 
         createUser(role, name, email, token);
-        result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--token", adminTokenFile.toString());
+        result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertEquals("", result.err);
         Assertions.assertEquals(format("%s: %s %s%n", email, role, name), result.out);
 
-        result = clirun(cmd, "user", "update", "x@y.z", "--role", "user", "--metaURL", metaURL, "--token", adminTokenFile.toString());
+        result = clirun(cmd, "user", "update", "x@y.z", "--role", "user", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertEquals("", result.err);
         Assertions.assertEquals("User x@y.z updated to role ROLE_USER\n", result.out);
 
-        result = clirun(cmd, "user", "getToken", "x@y.z", "--metaURL", metaURL, "--token", adminTokenFile.toString());
+        result = clirun(cmd, "user", "getToken", "x@y.z", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertEquals("", result.err);
         var userToken = result.out.trim().split(" ")[1];
 
         Files.write(userTokenFile, ("token=" + userToken).getBytes());
-        result = clirun(cmd, "user", "getToken", "x@y.z", "--metaURL", metaURL, "--token", userTokenFile.toString());
+        result = clirun(cmd, "user", "getToken", "x@y.z", "--metaURL", metaURL, "--tokenFile", userTokenFile.toString());
         Assertions.assertEquals(1, result.exitCode);
         Assertions.assertTrue(result.err.contains("Forbidden"));
 
-        result = clirun(cmd, "user", "update", "x2@y.z", "--metaURL", metaURL, "--token", userTokenFile.toString());
+        result = clirun(cmd, "user", "update", "x2@y.z", "--metaURL", metaURL, "--tokenFile", userTokenFile.toString());
         Assertions.assertEquals(1, result.exitCode);
         Assertions.assertTrue(result.err.contains("Forbidden"));
 
-        result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--token", adminTokenFile.toString());
+        result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertEquals("", result.err);
         Assertions.assertEquals(2, result.out.split("\n").length);
 
-        result = clirun(cmd, "user", "remove", "x@y.z", "--metaURL", metaURL, "--token", adminTokenFile.toString());
+        result = clirun(cmd, "user", "remove", "x@y.z", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertEquals("", result.err);
 
-        result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--token", adminTokenFile.toString());
+        result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertEquals("", result.err);
         Assertions.assertEquals(1, result.out.split("\n").length);
@@ -198,12 +195,12 @@ public class CliTest {
         createUser("ROLE_GUEST", "ShareGuest", "guest@share", guestToken);
 
         // guests should not be able to share
-        var result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", metaURL, "--token", guestTokenFile.toString(), "--email", "guest@share");
+        var result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", metaURL, "--tokenFile", guestTokenFile.toString(), "--email", "guest@share");
         Assertions.assertEquals(1, result.exitCode);
         Assertions.assertTrue(result.err.contains("CommandLine$ExecutionException"));
 
         // users need to provide the required parameters
-        result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", metaURL, "--token", userTokenFile.toString());
+        result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", metaURL, "--tokenFile", userTokenFile.toString());
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("Missing required option"));
 
@@ -211,42 +208,42 @@ public class CliTest {
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("Missing required option"));
 
-        result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", "--token", userTokenFile.toString(), "--email", "user@share");
+        result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", "--tokenFile", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("Expected parameter for option '--metaURL'"));
 
         // users need to provide a valid file
-        result = clirun(cmd, "share", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
+        result = clirun(cmd, "share", "--metaURL", metaURL, "--tokenFile", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("Missing required parameter: '<fileNames>'"));
 
-        result = clirun(cmd, "share", "/testfile", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
+        result = clirun(cmd, "share", "/testfile", "--metaURL", metaURL, "--tokenFile", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.err.contains("Missing Files"));
 
-        result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
+        result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", metaURL, "--tokenFile", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("?filename=test-data.txt"));
 
         // metaURL needs to be valid
-        result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", "http://localhost:", "--token", userTokenFile.toString(), "--email", "user@share");
+        result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", "http://localhost:", "--tokenFile", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(1, result.exitCode);
         Assertions.assertTrue(result.err.contains("WebClientRequestException"));
 
         // token needs to be valid
-        result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", metaURL, "--token", "faulty-token", "--email", "user@share");
+        result = clirun(cmd, "share", testDataPath.toString(), "--metaURL", metaURL, "--tokenFile", "faulty-token", "--email", "user@share");
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("No such file or directory"));
 
         // sharing multiple files and checks for update in expiry time
-        result = clirun(cmd, "share", testDataPath.toString(), testDataPath2.toString(), "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share");
+        result = clirun(cmd, "share", testDataPath.toString(), testDataPath2.toString(), "--metaURL", metaURL, "--tokenFile", userTokenFile.toString(), "--email", "user@share");
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("?filename=test-data.txt") && result.out.contains("?filename=test-data-2.txt") && !result.err.contains("Missing Files"));
         Query query = new Query(Criteria.where("fileDigest").is(testDigest));
         LocalDateTime oldTime = Objects.requireNonNull(springCtx.getBean(MongoTemplate.class)
                                                                .findOne(query, ShareLink.class, SHARE_LINKS_COLLECTION)).expiry;
 
-        result = clirun(cmd, "share", testDataPath.toString(), "/testfile", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share", "--validFor", "year");
+        result = clirun(cmd, "share", testDataPath.toString(), "/testfile", "--metaURL", metaURL, "--tokenFile", userTokenFile.toString(), "--email", "user@share", "--validFor", "year");
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("?filename=test-data.txt") && result.err.contains("/testfile"));
         LocalDateTime newTime = Objects.requireNonNull(springCtx.getBean(MongoTemplate.class)
@@ -254,7 +251,7 @@ public class CliTest {
         Assertions.assertTrue(newTime.isAfter(oldTime));
 
         // make sure the expiry time stays the same after sharing with shorter validFor time
-        result = clirun(cmd, "share", testDataPath.toString(), testDataPath2.toString(), "--metaURL", metaURL, "--token", userTokenFile.toString(), "--email", "user@share", "--validFor", "day");
+        result = clirun(cmd, "share", testDataPath.toString(), testDataPath2.toString(), "--metaURL", metaURL, "--tokenFile", userTokenFile.toString(), "--email", "user@share", "--validFor", "day");
         Assertions.assertEquals(newTime, Objects.requireNonNull(springCtx.getBean(MongoTemplate.class)
                                                                .findOne(query, ShareLink.class, SHARE_LINKS_COLLECTION)).expiry);
 
@@ -308,28 +305,28 @@ public class CliTest {
         Files.delete(Paths.get(fileNames.get(1)));
 
         // users should not be able to clean
-        var result = clirun(cmd, "clean", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--no-dryrun");
+        var result = clirun(cmd, "clean", "--metaURL", metaURL, "--tokenFile", userTokenFile.toString(), "--no-dryrun");
         Assertions.assertEquals(1, result.exitCode);
         Assertions.assertTrue(result.err.contains("WebClientResponseException"));
 
         //users can dryrun clean
-        result = clirun(cmd, "clean", "--metaURL", metaURL, "--token", userTokenFile.toString());
+        result = clirun(cmd, "clean", "--metaURL", metaURL, "--tokenFile", userTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("Deleted Files"));
 
         // dryrun should not delete anything
-        result = clirun(cmd, "clean", "--metaURL", metaURL, "--token", adminTokenFile.toString());
+        result = clirun(cmd, "clean", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains(deletedFile));
         Assertions.assertEquals(2, springCtx.getBean(MongoTemplate.class).getCollection(METADATA_COLLECTION).countDocuments());
 
-        result = clirun(cmd, "clean", "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--dryrun");
+        result = clirun(cmd, "clean", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString(), "--dryrun");
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains(deletedFile));
         Assertions.assertEquals(2, springCtx.getBean(MongoTemplate.class).getCollection(METADATA_COLLECTION).countDocuments());
 
         // file should be deleted
-        result = clirun(cmd, "clean", "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--no-dryrun");
+        result = clirun(cmd, "clean", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString(), "--no-dryrun");
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains(deletedFile));
         Assertions.assertEquals(0, springCtx.getBean(MongoTemplate.class).getCollection(METADATA_COLLECTION).countDocuments());
@@ -344,7 +341,7 @@ public class CliTest {
         }
 
         // clean test with more files
-        result = clirun(cmd, "clean", "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--no-dryrun");
+        result = clirun(cmd, "clean", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString(), "--no-dryrun");
         Assertions.assertFalse(result.out().contains(".nc"));
 
         List<String> deletedFiles = new java.util.ArrayList<>();
@@ -361,7 +358,7 @@ public class CliTest {
                     }
                 });
 
-        var result2 = clirun(cmd, "clean", "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--no-dryrun");
+        var result2 = clirun(cmd, "clean", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString(), "--no-dryrun");
         Assertions.assertEquals(15, springCtx.getBean(MongoTemplate.class).getCollection(METADATA_COLLECTION).countDocuments());
         IntStream.range(0, deletedFiles.size())
                 .forEach(i -> {
@@ -411,25 +408,25 @@ public class CliTest {
         springCtx.getBean(MongoTemplate.class).insert(testMeta, METADATA_COLLECTION);
         springCtx.getBean(MongoTemplate.class).insert(testMeta2, METADATA_COLLECTION);
 
-        clirun(cmd, "share", testDataPath.toString(), testDataPath2.toString(), "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--email", "admin@cleanlinks", "--validFor", "day");
+        clirun(cmd, "share", testDataPath.toString(), testDataPath2.toString(), "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString(), "--email", "admin@cleanlinks", "--validFor", "day");
 
         // users can dryrun cleanlinks
-        var result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", userTokenFile.toString());
+        var result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--tokenFile", userTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("Deleted ShareLinks: 0"));
 
-        result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", userTokenFile.toString(), "--no-dryrun");
+        result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--tokenFile", userTokenFile.toString(), "--no-dryrun");
         Assertions.assertEquals(1, result.exitCode);
         Assertions.assertTrue(result.err.contains("WebClientResponseException"));
 
         // should not delete links that are not expired
 
-        result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", adminTokenFile.toString());
+        result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertFalse(result.out.contains("/") && result.out.contains("@"));
 
         // dryrun should not delete anything
-        result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--dryrun");
+        result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString(), "--dryrun");
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertFalse(result.out.contains("/") && result.out.contains("@"));
 
@@ -437,7 +434,7 @@ public class CliTest {
         springCtx.getBean(MongoTemplate.class)
                 .updateMulti(new Query(Criteria.where("expiry").gt(LocalDateTime.now())),
                             new org.springframework.data.mongodb.core.query.Update().set("expiry", LocalDateTime.now().minus(Duration.ofDays(1))), SHARE_LINKS_COLLECTION);
-        result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--token", adminTokenFile.toString(), "--no-dryrun");
+        result = clirun(cmd, "cleanlinks", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString(), "--no-dryrun");
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("Deleted ShareLinks: 2"));
         Assertions.assertTrue(springCtx.getBean(MongoTemplate.class).getCollection(SHARE_LINKS_COLLECTION).countDocuments() == 0);
