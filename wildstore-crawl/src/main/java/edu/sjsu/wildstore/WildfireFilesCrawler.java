@@ -294,6 +294,7 @@ public class WildfireFilesCrawler implements Runnable {
         NetcdfFileReader fileReader = new NetcdfFileReader(file);
         var metadata = fileReader.processFile(maxReadSize);
 
+        System.out.println("Crawling file: " + file);
         if (option.equals("all")) {
             PrintData.printAllData(metadata);
         } else if (option.equals("basic")) {
