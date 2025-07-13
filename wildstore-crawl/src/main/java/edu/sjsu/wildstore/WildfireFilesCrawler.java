@@ -199,16 +199,6 @@ public class WildfireFilesCrawler implements Runnable {
                         status.put(file, ex);
                         return ex;
                     }
-                }).takeWhile(exception -> {
-                    if (exception != null) {
-                        if (exception instanceof WebClientResponseException webException &&
-                                webException.getStatusCode().is4xxClientError()) {
-                            err().println("Unrecoverable authorization error: " + webException.getMessage());
-                            return false;
-                        }
-                        err().println("Error processing file: " + exception.getMessage());
-                    }
-                    return true;
                 }).toList();
             } catch (IOException e) {
                 out().println("There was an exception: " + e.getMessage());
