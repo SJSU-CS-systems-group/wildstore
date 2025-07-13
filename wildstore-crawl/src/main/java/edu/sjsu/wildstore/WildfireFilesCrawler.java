@@ -116,14 +116,14 @@ public class WildfireFilesCrawler implements Runnable {
 
         @Override
         synchronized public boolean tryAdvance(java.util.function.Consumer<? super Path> action) {
-            var path = fileQueue.removeFirst();
+            var path = fileQueue.pollFirst();
             if (path != null) {
                 action.accept(path);
                 return true;
             }
             while (true) {
                 populateFileQueue();
-                path = fileQueue.removeFirst();
+                path = fileQueue.pollFirst();
                 if (path == null && dirQueue.isEmpty()) return false;
                 if (path != null) {
                     action.accept(path);
