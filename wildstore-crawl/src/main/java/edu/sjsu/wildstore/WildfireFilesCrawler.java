@@ -72,18 +72,21 @@ public class WildfireFilesCrawler implements Runnable {
 
     static private class FileSpliterator extends java.util.Spliterators.AbstractSpliterator<Path> {
         private static final long POPULATE_QUEUE_SIZE = 1000;
-        private ConcurrentLinkedQueue<Path> dirQueue = new ConcurrentLinkedQueue<>();
-        private ConcurrentLinkedQueue<Path> fileQueue = new ConcurrentLinkedQueue<>();
+        // all split FileSpliter instances share the same queue of directories to walk
+        final private ConcurrentLinkedQueue<Path> dirQueue;
+        // each instance has its own queue of files to process
+        final private LinkedList<Path> fileQueue = new LinkedList<>();
         FileSpliterator(List<Path> pathsToWalk) {
             super(Long.MAX_VALUE, java.util.Spliterator.NONNULL);
+            // the parent creates the queue that everyone else will share
+            this.dirQueue = new ConcurrentLinkedQueue<>();
             this.dirQueue.addAll(pathsToWalk);
             populateFileQueue();
         }
 
-        private FileSpliterator(ConcurrentLinkedQueue<Path> dirQueue, ConcurrentLinkedQueue<Path> fileQueue) {
+        private FileSpliterator(ConcurrentLinkedQueue<Path> dirQueue) {
             super(Long.MAX_VALUE, java.util.Spliterator.NONNULL);
             this.dirQueue = dirQueue;
-            this.fileQueue = fileQueue;
         }
 
         private long populateFileQueue() {
@@ -103,7 +106,7 @@ public class WildfireFilesCrawler implements Runnable {
                         } else {
                             return false;
                         }
-                    }).limit(POPULATE_QUEUE_SIZE).count();
+                    }).count();
                 } catch (IOException e) {
                     System.err.println("Error listing directory: " + dir + " - " + e.getClass().getName());
                 }
@@ -113,14 +116,14 @@ public class WildfireFilesCrawler implements Runnable {
 
         @Override
         synchronized public boolean tryAdvance(java.util.function.Consumer<? super Path> action) {
-            var path = fileQueue.poll();
+            var path = fileQueue.removeFirst();
             if (path != null) {
                 action.accept(path);
                 return true;
             }
             while (true) {
                 populateFileQueue();
-                path = fileQueue.poll();
+                path = fileQueue.removeFirst();
                 if (path == null && dirQueue.isEmpty()) return false;
                 if (path != null) {
                     action.accept(path);
@@ -131,11 +134,11 @@ public class WildfireFilesCrawler implements Runnable {
 
         @Override
         synchronized public FileSpliterator trySplit() {
-            var count = populateFileQueue();
-            if (count < POPULATE_QUEUE_SIZE) {
-                return null; // Not enough files to split
+            var newSpliterator = new FileSpliterator(this.dirQueue);
+            if (newSpliterator.populateFileQueue() == 0) {
+                return null; // No files to split
             }
-            return new FileSpliterator(this.dirQueue, this.fileQueue);
+            return newSpliterator;
         }
     }
     public void run() {
