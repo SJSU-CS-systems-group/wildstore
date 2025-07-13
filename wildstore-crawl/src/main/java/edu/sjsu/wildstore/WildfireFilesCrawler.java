@@ -13,12 +13,16 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -116,12 +120,28 @@ public class WildfireFilesCrawler implements Runnable {
             var exceptions = stream.flatMap( fileName -> {
                 File file = new File(fileName);
                 if (file.isDirectory()) {
+                    var fileList = new LinkedList<String>();
                     try {
-                        return Files.walk(file.toPath()).filter(Files::isRegularFile).map(Path::toString)
-                                .filter(string -> string.endsWith(".nc"));
+                        // Use Files.walkFileTree rather than Files.walk to not stop on exceptions
+                        Files.walkFileTree(file.toPath(), new SimpleFileVisitor<>() {
+                            @Override
+                            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                                if (Files.isRegularFile(file) && file.toString().endsWith(".nc")) {
+                                    fileList.add(file.toString());
+                                }
+                                return FileVisitResult.CONTINUE;
+                            }
+
+                            @Override
+                            public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+                                err().printf("Error visiting file %s: %s%n", file, exc.getMessage());
+                                return FileVisitResult.CONTINUE;
+                            }
+                        });
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
+                    return fileList.stream();
                 } else {
                     return Stream.of(fileName);
                 }
@@ -241,6 +261,7 @@ public class WildfireFilesCrawler implements Runnable {
         CommandLine commandLine = new CommandLine(new WildfireFilesCrawler());
         commandLine.setExecutionExceptionHandler((ex, cl, pr) -> {
             System.err.println(ex.getMessage());
+            ex.printStackTrace();
             return 2;
         });
         commandLine.setParameterExceptionHandler((ex, as) -> {
