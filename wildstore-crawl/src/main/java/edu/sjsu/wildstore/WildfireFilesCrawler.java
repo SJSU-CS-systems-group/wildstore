@@ -34,6 +34,7 @@ import java.util.stream.Stream;
 
 @CommandLine.Command(name = "GET", mixinStandardHelpOptions = true)
 public class WildfireFilesCrawler implements Runnable {
+    private static final String DONE_SENTINEL = "DONE";
     @CommandLine.Option(names = "--option", defaultValue = "all", description = "Which information to print - 'all' or 'basic'")
     private String option;
     @CommandLine.Parameters(paramLabel = "<file>", description = "Path to the file containing list of NetCDF files to process", arity = "1")
@@ -69,6 +70,39 @@ public class WildfireFilesCrawler implements Runnable {
         return spec.commandLine();
     }
 
+    private class WalkerThread extends Thread {
+        private final Path pathToWalk;
+        private final LinkedBlockingQueue<String> pathNameQueue;
+
+        WalkerThread(Path pathToWalk, LinkedBlockingQueue<String> pathNameQueue) {
+            this.pathToWalk = pathToWalk;
+            this.pathNameQueue = pathNameQueue;
+        }
+        @Override
+        public void run() {
+            try {
+                Files.walkFileTree(pathToWalk, new SimpleFileVisitor<Path>() {
+                    @Override
+                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                        if (file.toFile().isFile() && file.toString().endsWith(".nc")) {
+                            pathNameQueue.offer(file.toString());
+                        }
+                        return FileVisitResult.CONTINUE;
+                    }
+
+                    @Override
+                    public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+                        err().println("Error visiting file: " + file + " - " + exc.getClass().getName());
+                        return FileVisitResult.CONTINUE;
+                    }
+                });
+            } catch (IOException e) {
+                err().println("Error walking file tree: " + e.getMessage());
+            } finally {
+                pathNameQueue.offer(DONE_SENTINEL);
+            }
+        }
+    }
     public void run() {
         var okayException = new Exception("No exception");
         Properties appProps = new Properties();
@@ -120,28 +154,16 @@ public class WildfireFilesCrawler implements Runnable {
             var exceptions = stream.flatMap( fileName -> {
                 File file = new File(fileName);
                 if (file.isDirectory()) {
-                    var fileList = new LinkedList<String>();
-                    try {
-                        // Use Files.walkFileTree rather than Files.walk to not stop on exceptions
-                        Files.walkFileTree(file.toPath(), new SimpleFileVisitor<>() {
-                            @Override
-                            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                                if (Files.isRegularFile(file) && file.toString().endsWith(".nc")) {
-                                    fileList.add(file.toString());
-                                }
-                                return FileVisitResult.CONTINUE;
-                            }
-
-                            @Override
-                            public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
-                                err().printf("Error visiting file %s: %s%n", file, exc.getMessage());
-                                return FileVisitResult.CONTINUE;
-                            }
-                        });
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    return fileList.stream();
+                    var nameQueue = new LinkedBlockingQueue<String>();
+                    new WalkerThread(file.toPath(), nameQueue).start();
+                    return Stream.generate(() -> {
+                        try {
+                            return nameQueue.take();
+                        } catch (InterruptedException e) {
+                            return DONE_SENTINEL;
+                        }
+                        // for sentinel value use == not equals!
+                    }).takeWhile(s -> s != DONE_SENTINEL);
                 } else {
                     return Stream.of(fileName);
                 }
