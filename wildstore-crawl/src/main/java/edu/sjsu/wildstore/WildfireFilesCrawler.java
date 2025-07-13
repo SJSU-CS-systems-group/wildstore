@@ -157,6 +157,7 @@ public class WildfireFilesCrawler implements Runnable {
         WebClient webClient = Client.getWebClient(metaURL + "/api/metadata", token);
         AtomicInteger filesCount = new AtomicInteger();
         AtomicInteger crawledCount = new AtomicInteger();
+        AtomicInteger existingCount = new AtomicInteger();
 
         List<Map<String, Object>> fileNames =  new ArrayList<>();
         List<Map<String, Object>> newNames;
@@ -201,6 +202,7 @@ public class WildfireFilesCrawler implements Runnable {
                     try {
                         if (fileNamesMap.containsKey(file) &&
                                 fileNamesMap.get(file) >= Files.getLastModifiedTime(Paths.get(file)).toMillis()) {
+                            existingCount.getAndIncrement();
                             return false;
                         }
                         return true;
