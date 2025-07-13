@@ -30,7 +30,7 @@ public class OauthController {
     private MongoTemplate mongoTemplate;
     public final String USER_COLLECTION = "userData";
 
-    @Value("${custom.expireAfterSeconds:2592000/}")
+    @Value("${custom.expireAfterSeconds:2592000}")
     private long expireAfterSeconds;
 
     @PreAuthorize("hasRole('GUEST')")
