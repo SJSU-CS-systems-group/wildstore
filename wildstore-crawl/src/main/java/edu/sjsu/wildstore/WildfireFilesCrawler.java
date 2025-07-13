@@ -116,9 +116,7 @@ public class WildfireFilesCrawler implements Runnable {
         String token = appProps.getProperty("token");
         Instant start = Instant.now();
         ConcurrentHashMap<String, Exception> status = new ConcurrentHashMap<>();
-        ExecutorService executorService = Executors.newFixedThreadPool(parallelism);
         WebClient webClient = Client.getWebClient(metaURL + "/api/metadata", token);
-        Semaphore semaphore = new Semaphore(parallelism);
         AtomicInteger filesCount = new AtomicInteger();
         AtomicInteger crawledCount = new AtomicInteger();
 
@@ -150,39 +148,41 @@ public class WildfireFilesCrawler implements Runnable {
                         map -> (Long) map.get("lastModified"),
                         Long::min));
 
-        try (Stream<String> stream = Files.lines(Paths.get(filesToProcessPath))) {
-            var exceptions = stream.flatMap( fileName -> {
-                File file = new File(fileName);
-                if (file.isDirectory()) {
-                    var nameQueue = new LinkedBlockingQueue<String>();
-                    new WalkerThread(file.toPath(), nameQueue).start();
-                    return Stream.generate(() -> {
-                        try {
-                            return nameQueue.take();
-                        } catch (InterruptedException e) {
-                            return DONE_SENTINEL;
-                        }
-                        // for sentinel value use == not equals!
-                    }).takeWhile(s -> s != DONE_SENTINEL);
-                } else {
-                    return Stream.of(fileName);
-                }
-            }).filter(file -> {
-                try {
-                    if (fileNamesMap.containsKey(file) && fileNamesMap.get(file) >= Files.getLastModifiedTime(Paths.get(file)).toMillis()) {
-                        return false;
+        ForkJoinPool customPool = new ForkJoinPool(parallelism); // set desired parallelism
+
+        var poolResult = customPool.submit(() -> {
+            try (Stream<String> stream = Files.lines(Paths.get(filesToProcessPath))) {
+                var exceptions = stream.flatMap(fileName -> {
+                    File file = new File(fileName);
+                    if (file.isDirectory()) {
+                        var nameQueue = new LinkedBlockingQueue<String>();
+                        new WalkerThread(file.toPath(), nameQueue).start();
+                        return Stream.generate(() -> {
+                            try {
+                                return nameQueue.take();
+                            } catch (InterruptedException e) {
+                                return DONE_SENTINEL;
+                            }
+                            // for sentinel value use == not equals!
+                        }).takeWhile(s -> s != DONE_SENTINEL);
+                    } else {
+                        return Stream.of(fileName);
                     }
-                    return true;
-                } catch (IOException e) {
-                    err().println("Error fetching fileNames or lastModified from map:" + e.getClass().getName());
-                    throw new CommandLine.ExecutionException(cmd(), "Error fetching fileNames or lastModified from map: " + e.getMessage(), e);                }
-            }).map(file -> {
-                try {
-                    semaphore.acquire();
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-                return executorService.submit(() -> {
+                }).filter(file -> {
+                    try {
+                        if (fileNamesMap.containsKey(file) &&
+                                fileNamesMap.get(file) >= Files.getLastModifiedTime(Paths.get(file)).toMillis()) {
+                            return false;
+                        }
+                        return true;
+                    } catch (IOException e) {
+                        err().println("Error fetching fileNames or lastModified from map:" + e.getClass().getName());
+                        throw new CommandLine.ExecutionException(cmd(),
+                                                                 "Error fetching fileNames or lastModified from map: " +
+                                                                         e.getMessage(),
+                                                                 e);
+                    }
+                }).parallel().map(file -> {
                     try {
                         if (crawl(file, webClient, maxReadSize, option, enumLog)) {
                             crawledCount.getAndIncrement();
@@ -193,39 +193,26 @@ public class WildfireFilesCrawler implements Runnable {
                     } catch (Exception ex) {
                         status.put(file, ex);
                         return ex;
-                    } finally {
-                        semaphore.release();
                     }
-                });
-            }).parallel().takeWhile(future -> {
-                                                        try {
-                                                            var exception = future.get();
-                                                            if (exception != null) {
-                                                                if (exception instanceof WebClientResponseException webException &&
-                                                                        webException.getStatusCode().is4xxClientError()) {
-                                                                    err().println("Unrecoverable authorization error: " + webException.getMessage());
-                                                                    return false;
-                                                                }
-                                                                err().println("Error processing file: " + future + " - " + exception.getMessage());
-                                                            }
-                                                        } catch (InterruptedException | ExecutionException e){
-                                                                return false;
-                                                        }
-                                                        return true;
-                                                    }).toList();
-        } catch (IOException e) {
-            out().println("There was an exception: " + e.getMessage());
-        } finally {
-            out().println(filesCount.get() + " valid files found.");
-            out().println("Crawled " + crawledCount.get() + " new files.");
-        }
-        try {
-            semaphore.acquire(parallelism);
-            executorService.shutdown();
-            executorService.awaitTermination(1, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+                }).takeWhile(exception -> {
+                    if (exception != null) {
+                        if (exception instanceof WebClientResponseException webException &&
+                                webException.getStatusCode().is4xxClientError()) {
+                            err().println("Unrecoverable authorization error: " + webException.getMessage());
+                            return false;
+                        }
+                        err().println("Error processing file: " + exception.getMessage());
+                    }
+                    return true;
+                }).toList();
+            } catch (IOException e) {
+                out().println("There was an exception: " + e.getMessage());
+            } finally {
+                out().println(filesCount.get() + " valid files found.");
+                out().println("Crawled " + crawledCount.get() + " new files.");
+            }
+        }).join();
+        customPool.shutdown();
         boolean exceptionFound = false;
         for(var entry : status.entrySet()) {
             if (entry.getValue() != okayException) {
