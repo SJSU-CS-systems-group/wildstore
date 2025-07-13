@@ -31,10 +31,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 @CommandLine.Command(name = "GET", mixinStandardHelpOptions = true)
 public class WildfireFilesCrawler implements Runnable {
-    private static final String DONE_SENTINEL = "DONE";
     @CommandLine.Option(names = "--option", defaultValue = "all", description = "Which information to print - 'all' or 'basic'")
     private String option;
     @CommandLine.Parameters(paramLabel = "<file>", description = "Path to the file containing list of NetCDF files to process", arity = "1")
@@ -70,41 +70,72 @@ public class WildfireFilesCrawler implements Runnable {
         return spec.commandLine();
     }
 
-    private class WalkerThread extends Thread {
-        private final Path pathToWalk;
-        private final LinkedBlockingQueue<String> pathNameQueue;
-
-        WalkerThread(Path pathToWalk, LinkedBlockingQueue<String> pathNameQueue) {
-            this.pathToWalk = pathToWalk;
-            this.pathNameQueue = pathNameQueue;
+    static private class FileSpliterator extends java.util.Spliterators.AbstractSpliterator<Path> {
+        private static final long POPULATE_QUEUE_SIZE = 1000;
+        private ConcurrentLinkedQueue<Path> dirQueue = new ConcurrentLinkedQueue<>();
+        private ConcurrentLinkedQueue<Path> fileQueue = new ConcurrentLinkedQueue<>();
+        FileSpliterator(List<Path> pathsToWalk) {
+            super(Long.MAX_VALUE, java.util.Spliterator.NONNULL);
+            this.dirQueue.addAll(pathsToWalk);
+            populateFileQueue();
         }
-        @Override
-        public void run() {
-            try {
-                Files.walkFileTree(pathToWalk, new SimpleFileVisitor<Path>() {
-                    @Override
-                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                        if (file.toFile().isFile() && file.toString().endsWith(".nc")) {
-                            try {
-                                pathNameQueue.put(file.toString());
-                            } catch (InterruptedException e) {
-                                return FileVisitResult.TERMINATE;
-                            }
-                        }
-                        return FileVisitResult.CONTINUE;
-                    }
 
-                    @Override
-                    public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
-                        err().println("Error visiting file: " + file + " - " + exc.getClass().getName());
-                        return FileVisitResult.CONTINUE;
-                    }
-                });
-            } catch (IOException e) {
-                err().println("Error walking file tree: " + e.getMessage());
-            } finally {
-                pathNameQueue.offer(DONE_SENTINEL);
+        private FileSpliterator(ConcurrentLinkedQueue<Path> dirQueue, ConcurrentLinkedQueue<Path> fileQueue) {
+            super(Long.MAX_VALUE, java.util.Spliterator.NONNULL);
+            this.dirQueue = dirQueue;
+            this.fileQueue = fileQueue;
+        }
+
+        private long populateFileQueue() {
+            long count = 0;
+            // try to get 1000 files into the fileQueue
+            while (count < POPULATE_QUEUE_SIZE && !dirQueue.isEmpty()) {
+                Path dir = dirQueue.poll();
+                if (dir == null) continue;
+                try (var stream = Files.list(dir)) {
+                    count += stream.filter(p -> {
+                        if (p.toFile().isDirectory()) {
+                            dirQueue.add(p);
+                            return false;
+                        } else if (p.toFile().isFile() && p.toString().endsWith(".nc")) {
+                            fileQueue.add(p);
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    }).limit(POPULATE_QUEUE_SIZE).count();
+                } catch (IOException e) {
+                    System.err.println("Error listing directory: " + dir + " - " + e.getClass().getName());
+                }
             }
+            return count;
+        }
+
+        @Override
+        synchronized public boolean tryAdvance(java.util.function.Consumer<? super Path> action) {
+            var path = fileQueue.poll();
+            if (path != null) {
+                action.accept(path);
+                return true;
+            }
+            while (true) {
+                populateFileQueue();
+                path = fileQueue.poll();
+                if (path == null && dirQueue.isEmpty()) return false;
+                if (path != null) {
+                    action.accept(path);
+                    return true;
+                }
+            }
+        }
+
+        @Override
+        synchronized public FileSpliterator trySplit() {
+            var count = populateFileQueue();
+            if (count < POPULATE_QUEUE_SIZE) {
+                return null; // Not enough files to split
+            }
+            return new FileSpliterator(this.dirQueue, this.fileQueue);
         }
     }
     public void run() {
@@ -152,7 +183,6 @@ public class WildfireFilesCrawler implements Runnable {
                         map -> (Long) map.get("lastModified"),
                         Long::min));
 
-        out().printf("Processing files %d at a time%n", parallelism);
         ForkJoinPool customPool = new ForkJoinPool(parallelism); // set desired parallelism
 
         var poolResult = customPool.submit(() -> {
@@ -160,16 +190,7 @@ public class WildfireFilesCrawler implements Runnable {
                 var exceptions = stream.flatMap(fileName -> {
                     File file = new File(fileName);
                     if (file.isDirectory()) {
-                        var nameQueue = new LinkedBlockingQueue<String>();
-                        new WalkerThread(file.toPath(), nameQueue).start();
-                        return Stream.generate(() -> {
-                            try {
-                                return nameQueue.take();
-                            } catch (InterruptedException e) {
-                                return DONE_SENTINEL;
-                            }
-                            // for sentinel value use == not equals!
-                        }).takeWhile(s -> s != DONE_SENTINEL);
+                         return StreamSupport.stream(new FileSpliterator(List.of(file.toPath())), true).map(Path::toString);
                     } else {
                         return Stream.of(fileName);
                     }
