@@ -85,7 +85,11 @@ public class WildfireFilesCrawler implements Runnable {
                     @Override
                     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                         if (file.toFile().isFile() && file.toString().endsWith(".nc")) {
-                            pathNameQueue.offer(file.toString());
+                            try {
+                                pathNameQueue.put(file.toString());
+                            } catch (InterruptedException e) {
+                                return FileVisitResult.TERMINATE;
+                            }
                         }
                         return FileVisitResult.CONTINUE;
                     }
@@ -169,7 +173,7 @@ public class WildfireFilesCrawler implements Runnable {
                     } else {
                         return Stream.of(fileName);
                     }
-                }).filter(file -> {
+                }).parallel().filter(file -> {
                     try {
                         if (fileNamesMap.containsKey(file) &&
                                 fileNamesMap.get(file) >= Files.getLastModifiedTime(Paths.get(file)).toMillis()) {
@@ -183,7 +187,7 @@ public class WildfireFilesCrawler implements Runnable {
                                                                          e.getMessage(),
                                                                  e);
                     }
-                }).parallel().map(file -> {
+                }).map(file -> {
                     try {
                         if (crawl(file, webClient, maxReadSize, option, enumLog)) {
                             crawledCount.getAndIncrement();
