@@ -296,8 +296,7 @@ public class CliTest {
         //crawl files
         for (int i = 0; i < Math.min(2, fileNames.size()); i++) {
             WildfireFilesCrawler.crawl(fileNames.get(i),
-                                       Client.getWebClient(metaURL + "/api/metadata"),
-                                       userToken,
+                                       Client.getWebClient(metaURL + "/api/metadata", userToken),
                                        1024 * 1024,
                                        "all",
                                        false);
@@ -338,8 +337,7 @@ public class CliTest {
         // crawl more files
         for (int i = 2; i < Math.min(32, fileNames.size()); i++) {
             WildfireFilesCrawler.crawl(fileNames.get(i),
-                                       Client.getWebClient(metaURL + "/api/metadata"),
-                                       userToken,
+                                       Client.getWebClient(metaURL + "/api/metadata", userToken),
                                        1024 * 1024,
                                        "all",
                                        false);

@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -78,8 +79,9 @@ public class WildfireFilesCrawler implements Runnable {
         Instant start = Instant.now();
         ConcurrentHashMap<String, Exception> status = new ConcurrentHashMap<>();
         ExecutorService executorService = Executors.newFixedThreadPool(parallelism);
-        WebClient webClient = Client.getWebClient(metaURL + "/api/metadata");
+        WebClient webClient = Client.getWebClient(metaURL + "/api/metadata", token);
         Semaphore semaphore = new Semaphore(parallelism);
+        AtomicInteger filesCount = new AtomicInteger();
         AtomicInteger crawledCount = new AtomicInteger();
 
         List<Map<String, Object>> fileNames =  new ArrayList<>();
@@ -140,8 +142,10 @@ public class WildfireFilesCrawler implements Runnable {
                 }
                 return executorService.submit(() -> {
                     try {
-                        crawl(file, webClient, token, maxReadSize, option, enumLog);
-                        crawledCount.getAndIncrement();
+                        if (crawl(file, webClient, maxReadSize, option, enumLog)) {
+                            crawledCount.getAndIncrement();
+                        }
+                        filesCount.getAndIncrement();
                         status.put(file, okayException);
                         return null;
                     } catch (Exception ex) {
@@ -170,6 +174,7 @@ public class WildfireFilesCrawler implements Runnable {
         } catch (IOException e) {
             out().println("There was an exception: " + e.getMessage());
         } finally {
+            out().println(filesCount.get() + " valid files found.");
             out().println("Crawled " + crawledCount.get() + " new files.");
         }
         try {
@@ -249,7 +254,7 @@ public class WildfireFilesCrawler implements Runnable {
         System.exit(commandLine.execute(args));
     }
 
-    public static void crawl(String file, WebClient webClient, String token, int maxReadSize, String option, boolean enumLog) throws
+    public static boolean crawl(String file, WebClient webClient, int maxReadSize, String option, boolean enumLog) throws
             InterruptedException, ExecutionException {
         NetcdfFileReader fileReader = new NetcdfFileReader(file);
         var metadata = fileReader.processFile(maxReadSize);
@@ -270,8 +275,8 @@ public class WildfireFilesCrawler implements Runnable {
             }
             PrintData.printEnums(enumFile, metadata);
         }
-        var res = Client.post(webClient, metadata, new ParameterizedTypeReference<Integer>() {}, httpHeaders -> {
-            httpHeaders.setBearerAuth(token);
-        });
+
+        Client.delete(webClient, file);
+        return (boolean) Client.post(webClient, metadata, new ParameterizedTypeReference<Boolean>() {});
     }
 }

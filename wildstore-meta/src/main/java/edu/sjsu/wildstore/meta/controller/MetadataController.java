@@ -116,7 +116,7 @@ public class MetadataController {
      */
     @PreAuthorize("hasRole('USER')")
     @PostMapping("/metadata")
-    public int upsertMetadata(@RequestBody Metadata metadata) throws MongoWriteException {
+    public boolean upsertMetadata(@RequestBody Metadata metadata) throws MongoWriteException {
         // Convert string date to date type to allow querying on dates
         metadata.globalAttributes.forEach(attr -> {
             if (attr.type.equals("Date")) {
@@ -142,10 +142,31 @@ public class MetadataController {
                 update.set("fileType", metadata.fileType);
             }
             mongoTemplate.updateFirst(query, update, Metadata.class);
+            return false;
         } else {
             mongoTemplate.save(metadata, METADATA_COLLECTION);
+            return true;
         }
-        return 0;
+    }
+
+    @PreAuthorize("hasRole('USER')")
+    @DeleteMapping("/metadata/{*fileName}")
+    public int removeFilename(@PathVariable String fileName) {
+        int count = 0;
+        Query query = new Query(Criteria.where("fileName").regex(".*" + fileName + ".*"));
+        List<Metadata> res = (List<Metadata>) mongoTemplate.find(query, Metadata.class, METADATA_COLLECTION);
+        for (Metadata data : res) {
+            Query remove = new Query(Criteria.where("digestString").is(data.digestString));
+            if (data.fileName.size() == 1) {
+                mongoTemplate.remove(remove, METADATA_COLLECTION);
+                count++;
+            } else {
+                Update update = new Update().set("fileName", data.fileName.remove(fileName))
+                                            .set("filePath", data.filePath.remove(fileName.substring(0, fileName.lastIndexOf('/'))));
+                mongoTemplate.updateFirst(query, update, METADATA_COLLECTION);
+            }
+        }
+        return count;
     }
 
     @PreAuthorize("hasRole('USER')")
