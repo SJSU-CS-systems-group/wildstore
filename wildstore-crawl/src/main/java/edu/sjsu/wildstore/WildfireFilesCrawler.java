@@ -197,7 +197,7 @@ public class WildfireFilesCrawler implements Runnable {
                         semaphore.release();
                     }
                 });
-            }).takeWhile(future -> {
+            }).parallel().takeWhile(future -> {
                                                         try {
                                                             var exception = future.get();
                                                             if (exception != null) {
