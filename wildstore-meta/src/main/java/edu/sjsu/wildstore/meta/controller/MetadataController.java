@@ -180,7 +180,9 @@ public class MetadataController {
         if (res.isEmpty()) {
             return List.of();
         }
-        return res.stream().map(dbObject -> {
+        return res.stream()
+                .filter(dbObject -> dbObject.get("fileName") instanceof  String && dbObject.get("lastModified") instanceof Long)
+                .map(dbObject -> {
             String fileName = (String) dbObject.get("fileName");
             Long lastModified = (Long) dbObject.get("lastModified");
             return Map.of("fileName", fileName, "lastModified", lastModified == null ? Long.MIN_VALUE : lastModified);
