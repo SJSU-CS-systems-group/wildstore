@@ -315,10 +315,13 @@ public class WildfireFilesCrawler implements Runnable {
                 if (dir == null) continue;
                 try (var stream = Files.list(dir)) {
                     count += stream.filter(p -> {
-                        if (p.toFile().isDirectory()) {
+                        if (Files.isSymbolicLink(p)) {
+                            // symbolic links can take us into cycles
+                            return false;
+                        } else if (Files.isDirectory(p)) {
                             dirQueue.add(p);
                             return false;
-                        } else if (p.toFile().isFile() && p.toString().endsWith(".nc")) {
+                        } else if (Files.isReadable(p) && p.toString().endsWith(".nc")) {
                             fileQueue.add(p);
                             return true;
                         } else {
