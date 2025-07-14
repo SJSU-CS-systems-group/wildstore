@@ -70,6 +70,10 @@ public class WildfireFilesCrawler implements Runnable {
         return spec.commandLine();
     }
 
+    /**
+     * this is our own file walker that will skip files that are not accessible, unlike Files.walk().
+     * we use a Spliterator to allow parallel processing of files.
+     */
     static private class FileSpliterator extends java.util.Spliterators.AbstractSpliterator<Path> {
         private static final long POPULATE_QUEUE_SIZE = 1000;
         // all split FileSpliter instances share the same queue of directories to walk
