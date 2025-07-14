@@ -169,7 +169,7 @@ public class WildfireFilesCrawler implements Runnable {
 
         var poolResult = customPool.submit(() -> {
             try (Stream<String> stream = Files.lines(Paths.get(filesToProcessPath))) {
-                var exceptions = stream.flatMap(fileName -> {
+                var exceptions = stream.map(fileName -> {
                     File file = new File(fileName);
                     if (file.isDirectory()) {
                         return StreamSupport.stream(new FileSpliterator(List.of(file.toPath())), true)
@@ -177,7 +177,7 @@ public class WildfireFilesCrawler implements Runnable {
                     } else {
                         return Stream.of(fileName);
                     }
-                }).parallel().filter(file -> {
+                }).reduce(Stream::concat).orElse(Stream.empty()).parallel().filter(file -> {
                     try {
                         if (fileNamesMap.containsKey(file) &&
                                 fileNamesMap.get(file) >= Files.getLastModifiedTime(Paths.get(file)).toMillis()) {
