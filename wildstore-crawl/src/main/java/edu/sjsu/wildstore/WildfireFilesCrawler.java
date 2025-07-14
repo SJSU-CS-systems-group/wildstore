@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -315,13 +316,17 @@ public class WildfireFilesCrawler implements Runnable {
                 if (dir == null) continue;
                 try (var stream = Files.list(dir)) {
                     count += stream.filter(p -> {
+                        // we don't really need the symlink check here, but it makes it clear
+                        // that we are not following symlinks and in the future if another
+                        // check is added, it will not follow symlinks
                         if (Files.isSymbolicLink(p)) {
                             // symbolic links can take us into cycles
                             return false;
-                        } else if (Files.isDirectory(p)) {
+                        } else if (Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS)) {
                             dirQueue.add(p);
                             return false;
-                        } else if (Files.isReadable(p) && p.toString().endsWith(".nc")) {
+                        } else if (Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS) &&
+                                Files.isReadable(p) && p.toString().endsWith(".nc")) {
                             fileQueue.add(p);
                             return true;
                         } else {
