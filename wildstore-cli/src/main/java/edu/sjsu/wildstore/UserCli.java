@@ -15,7 +15,7 @@ import java.util.Map;
 @Command(name = "user", description = "manage users. admin role required.", mixinStandardHelpOptions = true)
 class UserCli {
 
-    @Command(description = "List all users with their roles", mixinStandardHelpOptions = true)
+    @Command(description = "List all users with their roles")
     public void list(@Mixin CliOptions cliOptions) throws CommandLine.PicocliException {
         try {
             List<Map> users = Client.get(cliOptions.metadataURL + "/api/userlist/", cliOptions.token);
@@ -31,7 +31,7 @@ class UserCli {
         }
     }
 
-    @Command(description = "Get token for a user", mixinStandardHelpOptions = true)
+    @Command(description = "Get token for a user")
     public void getToken(@Mixin CliOptions cliOptions,
                          @Parameters(paramLabel = "email", description = "email to add/update", index = "0")
                          String email) throws CommandLine.PicocliException {
@@ -51,7 +51,7 @@ class UserCli {
         }
     }
 
-    @Command(description = "Update or Add and email with a role", mixinStandardHelpOptions = true)
+    @Command(description = "Update or Add and email with a role")
     public void update(@Parameters(paramLabel = "email", description = "email to add/update", index = "0")
                        String email,
                        @Option(names = "--role", description = "role to assign",  defaultValue =  "user") String role,
@@ -76,7 +76,7 @@ class UserCli {
         }
     }
 
-    @Command(description = "Remove a user by email", mixinStandardHelpOptions = true)
+    @Command(description = "Remove a user by email")
     public void remove(@Parameters(paramLabel = "email", description = "email to add/update", index = "0")
                        String email, @Mixin CliOptions cliOptions) {
         WebClient webClient = Client.getWebClient(cliOptions.metadataURL + "/api/userlist/" + email, cliOptions.token);
