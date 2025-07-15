@@ -39,16 +39,7 @@ public class Main {
 
     @CommandLine.Command(mixinStandardHelpOptions = true, subcommands = { UserCli.class})
     static class Cli {
-        @CommandLine.Option(names = "--xhelp", description = "show admin commands")
-        public void setXHelp(boolean xhelp) {
-            if (xhelp) {
-                var cmd = new CommandLine(new Cli());
-                cmd.getSubcommands().forEach((k,v) -> v.getCommandSpec().usageMessage().hidden(false));
-                cmd.usage(System.out);
-                System.exit(0);
-            }
-        }
-        @CommandLine.Command
+        @CommandLine.Command(mixinStandardHelpOptions = true)
         public void datasetInfo(@CommandLine.Parameters(paramLabel = "fileName") String fileName,
                                 @CommandLine.Parameters(paramLabel = "hostname") String hostname) throws
                 InterruptedException {

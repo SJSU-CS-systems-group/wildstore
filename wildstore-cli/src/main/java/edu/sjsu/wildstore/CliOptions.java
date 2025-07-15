@@ -10,6 +10,7 @@ import java.io.PrintWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+@CommandLine.Command(mixinStandardHelpOptions = true)
 class CliOptions {
 
     @CommandLine.Spec
