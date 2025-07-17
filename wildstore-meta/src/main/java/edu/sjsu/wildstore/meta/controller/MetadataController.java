@@ -181,11 +181,12 @@ public class MetadataController {
             return List.of();
         }
         return res.stream()
-                .filter(dbObject -> dbObject.get("fileName") instanceof  String && dbObject.get("lastModified") instanceof Long)
+                .filter(dbObject -> dbObject.get("fileName") instanceof String)
                 .map(dbObject -> {
             String fileName = (String) dbObject.get("fileName");
-            Long lastModified = (Long) dbObject.get("lastModified");
-            return Map.of("fileName", fileName, "lastModified", lastModified == null ? Long.MIN_VALUE : lastModified);
+            var lastModifiedObject = dbObject.get("lastModified");
+            return Map.of("fileName", fileName,
+                          "lastModified", lastModifiedObject instanceof Long ? (Long)lastModifiedObject : Long.MIN_VALUE);
         }).collect(Collectors.toList());
     }
 
