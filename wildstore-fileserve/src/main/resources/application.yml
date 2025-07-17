@@ -6,4 +6,4 @@
 server:
   port: 27778
 custom:
-  metadataServer: http://localhost:2777
+  metadataServer: http://localhost:27777
