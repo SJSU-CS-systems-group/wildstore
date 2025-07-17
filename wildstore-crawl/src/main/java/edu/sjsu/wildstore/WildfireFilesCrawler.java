@@ -62,9 +62,8 @@ public class WildfireFilesCrawler implements Runnable {
         CommandLine commandLine = new CommandLine(new WildfireFilesCrawler());
         commandLine.setExecutionExceptionHandler((ex, cl, pr) -> {
             System.err.println(ex.getMessage());
-            if (System.getenv("DEBUG") != null) {
-                ex.printStackTrace();
-            }return 2;
+            checkDebugEnv(ex);
+            return 2;
         });
         commandLine.setParameterExceptionHandler((ex, as) -> {
             var t = ex.getCause() != null ? ex.getCause() : ex;
@@ -72,12 +71,16 @@ public class WildfireFilesCrawler implements Runnable {
             if (t instanceof CommandLine.ParameterException) {
                 commandLine.usage(System.err);
             }
-            if (System.getenv("DEBUG") != null) {
-                ex.printStackTrace();
-            }
+            checkDebugEnv(ex);
             return 1;
         });
         System.exit(commandLine.execute(args));
+    }
+
+    private static void checkDebugEnv(Exception ex) {
+        if (System.getenv("DEBUG") != null) {
+            ex.printStackTrace();
+        }
     }
 
     public static boolean crawl(String file,
