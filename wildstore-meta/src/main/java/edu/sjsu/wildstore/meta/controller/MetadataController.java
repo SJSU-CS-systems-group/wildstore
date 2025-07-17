@@ -161,8 +161,8 @@ public class MetadataController {
                 mongoTemplate.remove(remove, METADATA_COLLECTION);
                 count++;
             } else {
-                Update update = new Update().set("fileName", data.fileName.remove(fileName))
-                                            .set("filePath", data.filePath.remove(fileName.substring(0, fileName.lastIndexOf('/'))));
+                Update update = new Update().pull("fileName", fileName)
+                        .pull("filePath", fileName.substring(0, fileName.lastIndexOf('/') + 1));
                 mongoTemplate.updateFirst(query, update, METADATA_COLLECTION);
             }
         }

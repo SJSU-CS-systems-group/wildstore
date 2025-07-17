@@ -178,7 +178,7 @@ public class CrawlTest {
                         "--tokenFile", userTokenFile.toString(), nameFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("Successfully processed file"));
-        Assertions.assertTrue(result.out.contains((numToCrawl-1) + " valid files found."));
+        Assertions.assertTrue(result.out.contains((numToCrawl - 1) + " valid files found."));
 
         // should be able to crawl all files found in a directory
         result = clirun(WildfireFilesCrawler.class,
