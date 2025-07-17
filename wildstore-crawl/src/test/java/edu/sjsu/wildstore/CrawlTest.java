@@ -200,6 +200,14 @@ public class CrawlTest {
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("Crawled 1 new files"));
         Assertions.assertEquals(metaDataCount, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
+
+        // shouldn't crawl new files
+        result = clirun(WildfireFilesCrawler.class,
+                        "--metaURL", metaURL,
+                        "--tokenFile", userTokenFile.toString(), dirFile.toString());
+        Assertions.assertTrue(result.out.contains("Crawled 0 new files"));
+        Assertions.assertTrue(result.out.contains("Skipped " + expected + " files already crawled."));
+
     }
 
     private static void createUser(String role, String name, String email, String token) {
