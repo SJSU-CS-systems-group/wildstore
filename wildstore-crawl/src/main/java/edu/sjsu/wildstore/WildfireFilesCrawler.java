@@ -62,13 +62,18 @@ public class WildfireFilesCrawler implements Runnable {
         CommandLine commandLine = new CommandLine(new WildfireFilesCrawler());
         commandLine.setExecutionExceptionHandler((ex, cl, pr) -> {
             System.err.println(ex.getMessage());
-            return 2;
+            if (System.getenv("DEBUG") != null) {
+                ex.printStackTrace();
+            }return 2;
         });
         commandLine.setParameterExceptionHandler((ex, as) -> {
             var t = ex.getCause() != null ? ex.getCause() : ex;
             System.err.println(t.getMessage());
             if (t instanceof CommandLine.ParameterException) {
                 commandLine.usage(System.err);
+            }
+            if (System.getenv("DEBUG") != null) {
+                ex.printStackTrace();
             }
             return 1;
         });

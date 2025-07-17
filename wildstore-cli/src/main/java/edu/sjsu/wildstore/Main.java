@@ -24,6 +24,9 @@ public class Main {
         CommandLine cmd = new CommandLine(new Cli());
         cmd.setExecutionExceptionHandler((ex, cl, pr) -> {
             System.err.println(ex.getMessage());
+            if (System.getenv("DEBUG") != null) {
+                ex.printStackTrace();
+            }
             return 2;
         });
         cmd.setParameterExceptionHandler((ex, as) -> {
@@ -31,6 +34,9 @@ public class Main {
             System.err.println(t.getMessage());
             if (t instanceof CommandLine.ParameterException) {
                 cmd.usage(System.err);
+            }
+            if (System.getenv("DEBUG") != null) {
+                ex.printStackTrace();
             }
             return 1;
         });
