@@ -162,6 +162,7 @@ public class WildfireFilesCrawler implements Runnable {
         }
 
         Map<String, Long> fileNamesMap = fileNames.stream()
+                .filter(map -> map.get("fileName") instanceof String)
                 .collect(Collectors.toMap(map -> map.get("fileName").toString(),
                                           map -> (Long) map.get("lastModified"),
                                           Long::min));
