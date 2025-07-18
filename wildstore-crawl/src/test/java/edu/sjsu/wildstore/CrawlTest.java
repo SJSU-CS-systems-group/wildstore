@@ -178,7 +178,9 @@ public class CrawlTest {
                         "--tokenFile", userTokenFile.toString(), nameFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("Successfully processed file"));
-        Assertions.assertTrue(result.out.contains((numToCrawl-1) + " valid files found."));
+        Assertions.assertTrue(result.out.contains((numToCrawl - 1) + " valid files found."));
+        Assertions.assertTrue(result.out.contains("Crawled " + (numToCrawl - 1) + " new files."));
+        Assertions.assertTrue(result.out.contains("Skipped 1 files already crawled."));
 
         // should be able to crawl all files found in a directory
         result = clirun(WildfireFilesCrawler.class,
@@ -189,16 +191,21 @@ public class CrawlTest {
                 .filter(path -> path.toString().endsWith(".nc"))
                 .count();
         Assertions.assertTrue(result.out.contains((expected - numToCrawl) + " valid files found."));
+        Assertions.assertTrue(result.out.contains("Crawled " + (expected - numToCrawl - 1) + " new files.")); // -1 because there is a duplicate file
+        Assertions.assertTrue(result.out.contains("Skipped " + numToCrawl + " files already crawled."));
 
         // should crawl files with a later lastModified date
         var metaDataCount = springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments();
         writer.write(var, data);
         writer.close();
+
         result = clirun(WildfireFilesCrawler.class,
                         "--metaURL", metaURL,
                         "--tokenFile", userTokenFile.toString(), testFile.toString());
         Assertions.assertEquals(0, result.exitCode);
-        Assertions.assertTrue(result.out.contains("Crawled 1 new files"));
+        Assertions.assertTrue(result.out.contains("1 valid files found."));
+        Assertions.assertTrue(result.out.contains("Crawled 1 new files."));
+        Assertions.assertTrue(result.out.contains("Skipped 0 files already crawled."));
         Assertions.assertEquals(metaDataCount, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
     }
 

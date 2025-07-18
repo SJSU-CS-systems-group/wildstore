@@ -117,6 +117,10 @@ public class MetadataController {
     @PreAuthorize("hasRole('USER')")
     @PostMapping("/metadata")
     public boolean upsertMetadata(@RequestBody Metadata metadata) throws MongoWriteException {
+        // if metadata with same fileName and digestString already exist, we don't need to update anything
+        if (removeFilenames(metadata.fileName.iterator().next(), metadata.digestString)) {
+                return false;
+        }
         // Convert string date to date type to allow querying on dates
         metadata.globalAttributes.forEach(attr -> {
             if (attr.type.equals("Date")) {
@@ -149,24 +153,25 @@ public class MetadataController {
         }
     }
 
-    @PreAuthorize("hasRole('USER')")
-    @DeleteMapping("/metadata/{*fileName}")
-    public int removeFilename(@PathVariable String fileName) {
-        int count = 0;
+    private boolean removeFilenames(String fileName, String digestString) {
+        var dataExist = false;
         Query query = new Query(Criteria.where("fileName").regex(".*" + fileName + ".*"));
         List<Metadata> res = (List<Metadata>) mongoTemplate.find(query, Metadata.class, METADATA_COLLECTION);
         for (Metadata data : res) {
+            if (data.digestString.equals(digestString)) {
+                dataExist = true;
+                continue;
+            }
             Query remove = new Query(Criteria.where("digestString").is(data.digestString));
             if (data.fileName.size() == 1) {
                 mongoTemplate.remove(remove, METADATA_COLLECTION);
-                count++;
             } else {
-                Update update = new Update().set("fileName", data.fileName.remove(fileName))
-                                            .set("filePath", data.filePath.remove(fileName.substring(0, fileName.lastIndexOf('/'))));
+                Update update = new Update().pull("fileName", fileName)
+                        .pull("filePath", fileName.substring(0, fileName.lastIndexOf('/') + 1));
                 mongoTemplate.updateFirst(query, update, METADATA_COLLECTION);
             }
         }
-        return count;
+        return dataExist;
     }
 
     @PreAuthorize("hasRole('USER')")

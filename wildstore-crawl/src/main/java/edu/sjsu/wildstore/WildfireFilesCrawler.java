@@ -108,7 +108,6 @@ public class WildfireFilesCrawler implements Runnable {
             PrintData.printEnums(enumFile, metadata);
         }
 
-        Client.delete(webClient, file);
         return (boolean) Client.post(webClient, metadata, new ParameterizedTypeReference<Boolean>() {});
     }
 
