@@ -118,7 +118,9 @@ public class MetadataController {
     @PostMapping("/metadata")
     public boolean upsertMetadata(@RequestBody Metadata metadata) throws MongoWriteException {
         // if metadata with same fileName and digestString already exist, we don't need to update anything
-        removeFilenames(metadata.fileName.iterator().next(), metadata.digestString);
+        if (removeFilenames(metadata.fileName.iterator().next(), metadata.digestString)) {
+                return false;
+        }
         // Convert string date to date type to allow querying on dates
         metadata.globalAttributes.forEach(attr -> {
             if (attr.type.equals("Date")) {

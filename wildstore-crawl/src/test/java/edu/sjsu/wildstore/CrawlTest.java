@@ -196,14 +196,18 @@ public class CrawlTest {
 
         // should crawl files with a later lastModified date
         var metaDataCount = springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments();
+        long originalTime = Files.getLastModifiedTime(netCDFFileName).toMillis();
         writer.write(var, data);
         writer.close();
+        long updatedTime = Files.getLastModifiedTime(netCDFFileName).toMillis();
+        Assertions.assertTrue(updatedTime > originalTime);
+
         result = clirun(WildfireFilesCrawler.class,
                         "--metaURL", metaURL,
                         "--tokenFile", userTokenFile.toString(), testFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("1 valid files found."));
-        Assertions.assertTrue(result.out.contains("Crawled 1 new files"));
+        Assertions.assertTrue(result.out.contains("Crawled 1 new files."));
         Assertions.assertTrue(result.out.contains("Skipped 0 files already crawled."));
         Assertions.assertEquals(metaDataCount, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
 
@@ -214,7 +218,7 @@ public class CrawlTest {
         System.out.println(result);
         System.out.println("Expected: " + expected);
         Assertions.assertTrue(result.out.contains("0 valid files found."));
-        Assertions.assertTrue(result.out.contains("Crawled 0 new files"));
+        Assertions.assertTrue(result.out.contains("Crawled 0 new files."));
         Assertions.assertTrue(result.out.contains("Skipped " + expected + " files already crawled."));
     }
 
