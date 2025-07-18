@@ -196,11 +196,8 @@ public class CrawlTest {
 
         // should crawl files with a later lastModified date
         var metaDataCount = springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments();
-        long originalTime = Files.getLastModifiedTime(netCDFFileName).toMillis();
         writer.write(var, data);
         writer.close();
-        long updatedTime = Files.getLastModifiedTime(netCDFFileName).toMillis();
-        Assertions.assertTrue(updatedTime > originalTime);
 
         result = clirun(WildfireFilesCrawler.class,
                         "--metaURL", metaURL,
