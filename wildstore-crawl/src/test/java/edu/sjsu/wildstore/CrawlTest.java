@@ -205,9 +205,9 @@ public class CrawlTest {
         result = clirun(WildfireFilesCrawler.class,
                         "--metaURL", metaURL,
                         "--tokenFile", userTokenFile.toString(), dirFile.toString());
+        System.out.println(result);
         Assertions.assertTrue(result.out.contains("Crawled 0 new files"));
         Assertions.assertTrue(result.out.contains("Skipped " + expected + " files already crawled."));
-
     }
 
     private static void createUser(String role, String name, String email, String token) {
