@@ -184,6 +184,7 @@ public class MetadataController {
                 .filter(dbObject -> dbObject.get("fileName") instanceof String)
                 .map(dbObject -> {
             String fileName = (String) dbObject.get("fileName");
+            if (fileName.contains("/testdata/9/9/ws_small_data-99.nc")) System.out.println("FOUND TESTFILE 99------------------------");
             var lastModifiedObject = dbObject.get("lastModified");
             return Map.of("fileName", fileName,
                           "lastModified", lastModifiedObject instanceof Long ? (Long)lastModifiedObject : Long.MIN_VALUE);
