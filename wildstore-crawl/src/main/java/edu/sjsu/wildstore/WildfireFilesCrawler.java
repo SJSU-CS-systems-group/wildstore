@@ -194,6 +194,7 @@ public class WildfireFilesCrawler implements Runnable {
                             skippedCount.getAndIncrement();
                             return false;
                         }
+                        System.out.println("Will crawl: " + file + " because " + fileNamesMap.containsKey(file));
                         return true;
                     } catch (IOException e) {
                         err().println("Error fetching fileNames or lastModified from map:" + e.getClass().getName());
