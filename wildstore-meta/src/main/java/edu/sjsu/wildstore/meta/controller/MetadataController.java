@@ -141,6 +141,7 @@ public class MetadataController {
             } else if (metadata.fileType != null) {
                 update.set("fileType", metadata.fileType);
             }
+            update.max("lastModified", metadata.lastModified);
             mongoTemplate.updateFirst(query, update, Metadata.class);
             return false;
         } else {
