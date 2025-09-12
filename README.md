@@ -44,7 +44,7 @@ Without authentication:
 
 ## To start the File server
 ```
-   java -jar wildstore-fileserve/target/wildstore-fileserve.jar --custom.metadataServer="http://127.0.0.1:<port_number>" --server.port=<share_file_port_number>
+   java -jar wildstore-fileserve/target/wildstore-fileserve.jar --custom.metadataServer=http://127.0.0.1:<port_number> --server.port=<share_file_port_number>
 ```
 
 ## To start the React dev server
