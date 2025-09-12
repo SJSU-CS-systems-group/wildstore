@@ -1,4 +1,4 @@
-## To start the MongoDB server
+## To start the MongoDB server through Terminal
 With authentication
 ```
 sudo mongod --dbpath <dbpath> --port <mongo_port_number> --auth
@@ -20,6 +20,13 @@ $ mongosh "mongodb://localhost:27017"
 })
 ```
 
+## To start the MongoDB server through MongoDB Compass
+Add a new connection with URI
+```
+mongodb://localhost:<port_number>
+```
+Click on the connect button next to the port number
+
 ## To start the Spring server on <port_number>
 1. Run
 ```
@@ -33,6 +40,11 @@ mvn package
 Without authentication:
 ```
    java -jar wildstore-meta/target/wildstore-meta.jar --spring.data.mongodb.uri=mongodb://localhost:27017/wildfire --server.port=<port_number> --custom.frontendUrl=<frontend_url> --custom.allowedCorsOrigins=<comma_separated_urls>
+```
+
+## To start the File server
+```
+   java -jar wildstore-fileserve/target/wildstore-fileserve.jar --custom.metadataServer="http://127.0.0.1:<port_number>" --server.port=<share_file_port_number>
 ```
 
 ## To start the React dev server
@@ -170,7 +182,7 @@ search "<attr/var> LIKE '<regex string>'" <hostname> --offset=0 --limit=100 --to
 java -jar wildstore-cli/target/wildstore-cli-1.0-SNAPSHOT.jar share --email=<email(s) to share with separated by comma> --metaURL=<server host:port> --tokenFile=</path/to/token.yml>
 ```
 
-## Clean
+## Clean Metadata
 DRYRUN: To print all metadata documents to be cleaned up,
 ```
 java -jar wildstore-cli/target/wildstore-cli-1.0-SNAPSHOT.jar clean --metaURL=<server host:port> --tokenFile=</path/to/token.yml>
@@ -179,7 +191,6 @@ To clean up metadata documents of files that were deleted,
 ```
 java -jar wildstore-cli/target/wildstore-cli-1.0-SNAPSHOT.jar clean --no-dryrun --metaURL=<server host:port> --tokenFile=</path/to/token.yml>
 ```
-
 
 ## Clean Share Links
 DRYRUN: To print all expired share links,
@@ -190,7 +201,6 @@ To clean up all expired share links,
 ```
 java -jar wildstore-cli/target/wildstore-cli-1.0-SNAPSHOT.jar cleanlinks --no-dryrun --metaURL=<server host:port> --tokenFile=</path/to/token.yml>
 ```
-
 
 ## Restore Collection from Backup
 To restore .json backup file to the MongoDB collection,
