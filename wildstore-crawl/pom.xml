@@ -62,12 +62,6 @@
             </exclusions>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>edu.sjsu.wildstore</groupId>
-            <artifactId>wildstore-testdata</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
     <build>
         <plugins>
