@@ -1,15 +1,15 @@
 package edu.sjsu.wildstore.meta.controller;
 
-import com.mongodb.DBObject;
 import edu.sjsu.wildstore.meta.service.UserService;
 import org.springframework.security.access.prepost.PreAuthorize;
-org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-@Service
-@RequestMapping("/api/profile")
+@RestController
+@RequestMapping("/api/user")
 public class UserController {
     UserService userService;
 
@@ -19,14 +19,29 @@ public class UserController {
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/me")
-    public Map<String, Object> getUserProfile(Authentication authentication) {
-        String email = authentication.getName();
-        List<Map> result = userService.getUser(email);
+    public Map<?, ?> getUserProfile(OAuth2AuthenticationToken auth) {
+        OAuth2User principal = auth.getPrincipal();
+        String provider = auth.getAuthorizedClientRegistrationId();
+        String email = "";
 
-        if (result == null || result.isEmpty()) {
-            throw new IllegalArgumentException("User profile not found for " + email);
+        switch (provider.toLowerCase()) {
+            case "google":
+                email = principal.getAttribute("email");
+                break;
+            case "github":
+                email = principal.getAttribute("email");
+                if (email == null) {
+                    email = principal.getAttribute("login") + "@github";
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported provider: " + provider);
         }
 
+        var result = userService.getUser(email);
+        if (result == null || result.isEmpty()) {
+            throw new IllegalArgumentException("User profile not found. email=" + email);
+        }
         return result.get(0); // first (and only) user
     }
 }

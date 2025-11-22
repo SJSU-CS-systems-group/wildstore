@@ -6,6 +6,8 @@
 server:
   port: 27777
   forward-headers-strategy: framework
+  error:
+    include-message: always
 custom:
   fileServer: "http://localhost:27778"
   frontendUrl: "http://localhost:27777"
