@@ -132,7 +132,7 @@ const Workspace = () => {
                       const cleanLabel = match ? match[1] : item; //only display the users search
 
                       return (
-                        <div id={i} key={i} className="badge gap-2 cursor-pointer">
+                        <div id={i} key={i} className="badge gap-2 cursor-pointer w-full h-full">
                           <GoX
                             size={14}
                             className="w-3.5"
