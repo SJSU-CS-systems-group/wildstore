@@ -11,7 +11,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
-    UserService userService;
+    final UserService userService;
 
     public UserController(UserService userService) {
         this.userService = userService;
