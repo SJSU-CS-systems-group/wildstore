@@ -102,7 +102,7 @@ const Workspace = () => {
         const searchTerm = event.target.value;
         if (event.key === 'Enter' && searchTerm !== "") {
             dispatch(setSearchTerm(searchTerm)) //Set global state for search term
-            const searchQuery = `(fileName = '${searchTerm}' OR digestString = '${searchTerm}')`
+            const searchQuery = `(fileName LIKE '${searchTerm}' OR digestString LIKE '${searchTerm}')`
             dispatch(addQuery(searchQuery)) //Add to the filters
 
             const searchBar = event.target; //Reset the search bar to empty
@@ -128,9 +128,8 @@ const Workspace = () => {
                 <div className='py-3 flex flex-wrap gap-1'>
                   {query &&
                     query.map((item, i) => {
-                      const match = item.match(/'([^']+)'/);
-                      const cleanLabel = match ? match[1] : item; //only display the users search
-
+                        const match = item.match(/'([^']+)'/);
+                        const cleanLabel = match ? match[1] : item; //only display the users search
                       return (
                         <div id={i} key={i} className="badge gap-2 cursor-pointer">
                           <GoX

@@ -95,7 +95,7 @@ const SearchResult = ({ metadataRecord }) => {
         <div className="card bg-base-100 shadow-xl w-0 min-w-full hover:shadow-2xl">
             <div className="card-body">
                 <h3 className="card-title text-lg hover:cursor-pointer break-all">{metadataRecord.fileName[0]}</h3>
-                <p className="break-words">{metadataRecord.filePath[0]}</p>
+                <p className="break-words">{metadataRecord.digestString}</p>
                 <div className="card-actions justify-end items-center">
                     <div><a className="link link-primary" onClick={fetchDetails}>Details</a></div>
                     <div className='grow'></div>
