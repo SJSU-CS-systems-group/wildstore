@@ -29,7 +29,7 @@ const Workspace = () => {
                 "Content-Type": "application/json",
                 "Accept": "text/html, application/json",
             },
-            body: JSON.stringify({ "searchQuery": builtQuery, "excludeFields": ["variables", "globalAttributes"], "limit": limit, "offset": offset }),
+            body: JSON.stringify({ "searchQuery": builtQuery, "excludeFields": ["globalAttributes"], "limit": limit, "offset": offset }),
             credentials: "include",
             redirect: "follow",
         });
