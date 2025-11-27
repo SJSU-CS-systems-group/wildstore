@@ -58,8 +58,7 @@ const MapController = () => {
       }
     });
 
-    const searchControl = new SearchControl({ position: 'topcenter' });
-    searchControl.setPosition('topright'); 
+    const searchControl = new SearchControl({ position: 'topright' });
     map.addControl(searchControl);
 
     return () => {
