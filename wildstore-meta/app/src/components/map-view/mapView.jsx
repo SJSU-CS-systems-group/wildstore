@@ -247,7 +247,7 @@ const MapView = () => {
   );
 
   return (
-    <div style={{ position: 'relative', height: '100vh', width: '100%' }}>
+    <div style={{ position: 'relative', height: '100%', width: '100%' }}>
       <MapContainer
         center={[0, 0]}
         zoom={2}
