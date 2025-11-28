@@ -19,7 +19,7 @@ public class UserController {
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/me")
-    public Map<?, ?> getUserProfile(OAuth2AuthenticationToken auth) {
+    public Map<String, Object> getUserProfile(OAuth2AuthenticationToken auth) {
         OAuth2User principal = auth.getPrincipal();
         String provider = auth.getAuthorizedClientRegistrationId();
         String email = "";
