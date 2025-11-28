@@ -7,7 +7,7 @@ server:
   port: 27777
   forward-headers-strategy: framework
   error:
-    include-message: always
+    include-message: on_param
 custom:
   fileServer: "http://localhost:27778"
   frontendUrl: "http://localhost:27777"
