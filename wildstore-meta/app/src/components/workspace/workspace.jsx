@@ -102,7 +102,7 @@ const Workspace = () => {
         const searchTerm = event.target.value;
         if (event.key === 'Enter' && searchTerm !== "") {
             dispatch(setSearchTerm(searchTerm)) //Set global state for search term
-            const searchQuery = `(fileName = '${searchTerm}' OR digestString = '${searchTerm}')`
+            const searchQuery = `(fileName LIKE '${searchTerm}' OR digestString LIKE '${searchTerm}')`
             dispatch(addQuery(searchQuery)) //Add to the filters
 
             const searchBar = event.target; //Reset the search bar to empty
@@ -126,13 +126,21 @@ const Workspace = () => {
                     </div>
                 </div>
                 <div className='py-3 flex flex-wrap gap-1'>
-                    {query &&
-                        query.map((item, i) =>
-                            <div id={i} key={i} className="w-full h-full badge gap-2 cursor-pointer">
-                                <GoX size={14} className="w-3.5" onClick={handleDeleteFilter} />
-                                <p className="w-full">{item}</p>
-                            </div>
-                        )}
+                  {query &&
+                    query.map((item, i) => {
+                        const match = item.match(/'([^']+)'/);
+                        const cleanLabel = match ? match[1] : item; //only display the users search
+                      return (
+                        <div id={i} key={i} className="badge gap-2 cursor-pointer w-full h-full">
+                          <GoX
+                            size={14}
+                            className="w-3.5"
+                            onClick={handleDeleteFilter}
+                          />
+                          <p className="w-full">{cleanLabel}</p>
+                        </div>
+                      );
+                    })}
                 </div>
             </div>
             <div className="h-fit">

@@ -82,16 +82,24 @@ public class CriteriaBuilder {
             case "LikeExpression": {
                 LikeExpression like = (LikeExpression) ex;
                 Column column = (Column) like.getLeftExpression();
+
+                String likePattern = (String) getPrimitiveValue(like.getRightExpression());
+
+                String regexPattern = likePattern
+                        .replace("%", ".*")
+                        .replace("_", ".");
+
                 Criteria arrayCriteria = getArrayMatchCriteria(column);
                 if (arrayCriteria != null) {
                     arrayCriteria.and(column.getColumnName())
-                            .regex((String) getPrimitiveValue(like.getRightExpression()));
+                            .regex(regexPattern);
                     return getElemMatchCriteria(column, arrayCriteria);
                 } else {
                     return Criteria.where(column.toString())
-                            .regex((String) getPrimitiveValue(like.getRightExpression()));
+                            .regex(regexPattern);
                 }
             }
+
             case "NotEqualsTo": {
                 NotEqualsTo neq = (NotEqualsTo) ex;
                 Column column = (Column) neq.getLeftExpression();
