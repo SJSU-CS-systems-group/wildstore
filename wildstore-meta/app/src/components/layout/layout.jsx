@@ -1,5 +1,4 @@
 import SideBar from '../sidebar/sidebar';
-import MapContainer from '../map-container/mapContainer';
 import Workspace from '../workspace/workspace';
 import Navbar from '../navbar/navbar';
 import { Outlet } from 'react-router-dom';
