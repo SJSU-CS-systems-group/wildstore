@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import Select from 'react-select'
 import { useState } from "react";
 import { useDispatch } from "react-redux";
@@ -33,13 +33,17 @@ const Filter = () => {
     }, [variableList])
 
 
-    let temp = { fieldName: 'VAR', varName: '', statsValue: 'stat', operator: 'op', fieldValue: '' }
-    const [components, setComponents] = useState([{ ...temp }]);
+    const nextId = useRef(1);
+    const makeComponent = () => ({
+        id: nextId.current++,
+        fieldName: 'VAR', varName: '', statsValue: 'stat', operator: 'op', fieldValue: ''
+    });
+    const [components, setComponents] = useState(() => [makeComponent()]);
     const [items, setItems] = useState([...variableList]);
 
     const handleAddComponent = (index) => {
         const newComponents = [...components];
-        newComponents.splice(index + 1, 0, { ...temp, input1: '' }); // Adding an object with multiple input fields
+        newComponents.splice(index + 1, 0, makeComponent());
         setComponents(newComponents);
     };
 
@@ -75,7 +79,7 @@ const Filter = () => {
             <div className='flex flex-col gap-4'>
                 {components.map((component, index) => (
                     <Predicate
-                        key={index}
+                        key={component.id}
                         component={component}
                         onChange={(field, value) => handleChange(index, field, value)}
                         onAdd={() => handleAddComponent(index)}

@@ -57,7 +57,7 @@ const Autocomplete = ({ items, value, onChange }) => {
           >
             {filteredItems.map((item, index) => (
               <li
-                key={index}
+                key={item.value}
                 tabIndex={index + 1}
                 onClick={(e) => {
                   setOpen(false);
