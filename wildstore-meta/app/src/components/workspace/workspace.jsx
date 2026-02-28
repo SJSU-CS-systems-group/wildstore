@@ -77,17 +77,20 @@ const Workspace = () => {
         dispatch(setDescriptions({"variables": JSON.parse(d["variables"]), "attributes": JSON.parse(d["attributes"])}));
     }
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         getData();
         getQueryCount();
         getDescriptions();
     }, [])
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         getData();
         getQueryCount();
     }, [query])
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         getData();
     }, [limit, offset])

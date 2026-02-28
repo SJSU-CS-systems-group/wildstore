@@ -30,6 +30,7 @@ function App() {
     let d = await response.text();
     dispatch(setOpaqueToken(d));
   }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     getToken();
   }, [])
