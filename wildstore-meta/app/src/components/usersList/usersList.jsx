@@ -15,7 +15,7 @@ const UsersList = () => {
             redirect: "follow",
         });
         if (response.redirected) {
-            document.location = response.url;
+            window.location.href = response.url;
         }
         let d = await response.json();
         setUsers(d);
@@ -34,7 +34,7 @@ const UsersList = () => {
             redirect: "follow",
         });
         if (response.redirected) {
-            document.location = response.url;
+            window.location.href = response.url;
         }
         let result = await response.json();
         if(result === true) {

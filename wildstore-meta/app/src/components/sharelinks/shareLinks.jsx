@@ -22,7 +22,7 @@ const ShareLinks = () => {
             redirect: "follow",
         });
         if (response.redirected) {
-            document.location = response.url;
+            window.location.href = response.url;
         }
         let d = await response.json();
         setShareLinks(d);
@@ -40,7 +40,7 @@ const ShareLinks = () => {
             redirect: "follow",
         });
         if (response.redirected) {
-            document.location = response.url;
+            window.location.href = response.url;
         }
         let d = await response.json();
         setCount(d);
@@ -74,7 +74,7 @@ const ShareLinks = () => {
             redirect: "follow",
         });
         if (response.redirected) {
-            document.location = response.url;
+            window.location.href = response.url;
         }
         let d = await response.json();
         if (d) {
