@@ -23,13 +23,13 @@ const UsersList = () => {
 
     const changeRoleTo = async (index, newRole) => {
 
-        const response = await fetch("/api/userlist/", {
+        const response = await fetch(`/api/userlist/${encodeURIComponent(users[index].email)}`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "application/json",
             },
-            body: JSON.stringify({"userEmail": users[index].email, newRole}),
+            body: JSON.stringify({"role": newRole}),
             credentials: "include",
             redirect: "follow",
         });
