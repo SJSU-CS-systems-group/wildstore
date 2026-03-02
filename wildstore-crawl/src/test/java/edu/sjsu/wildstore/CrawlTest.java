@@ -129,7 +129,7 @@ public class CrawlTest {
         // find all .nc files in the tempDir
         List<String> fileNames = List.of();
         try (Stream<Path> walk = Files.walk(tempDir)) {
-            fileNames = walk.filter(path -> path.toString().endsWith(".nc")).map(Path::toString).toList();
+            fileNames = walk.filter(path -> path.toString().endsWith(".nc")).map(Path::toString).sorted().toList();
         }
         if (fileNames.isEmpty()) {
             throw new IOException("No .nc files found in the test data directory.");
