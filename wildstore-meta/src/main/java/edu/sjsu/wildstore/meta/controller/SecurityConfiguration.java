@@ -51,7 +51,6 @@ public class SecurityConfiguration {
         http.csrf(CsrfConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(ac -> ac.requestMatchers("/error").permitAll()
-//                                .requestMatchers("/api").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> {
                     oauth2.userInfoEndpoint()
