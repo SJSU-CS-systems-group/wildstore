@@ -97,23 +97,7 @@ public class ShareLinkController {
             List<String> finalShareLinks = new ArrayList<>();
             if (!existing.isEmpty()) {
                 for (ShareLink sl : existing) {
-                    var newExpiry = sl.expiry;
-                    switch ((String) request.get("validFor")) {
-                        case "day":
-                            newExpiry = LocalDateTime.now().plusDays(1);
-                            break;
-                        case "week":
-                            newExpiry = LocalDateTime.now().plusWeeks(1);
-                            break;
-                        case "month":
-                            newExpiry = LocalDateTime.now().plusMonths(1);
-                            break;
-                        case "year":
-                            newExpiry = LocalDateTime.now().plusYears(1);
-                            break;
-                        default:
-                            break;
-                    }
+                    var newExpiry = computeExpiry((String) request.get("validFor"));
                     if (newExpiry.isAfter(sl.expiry)) {
                         sl.expiry = newExpiry;
                         mongoTemplate.save(sl, SHARE_LINKS_COLLECTION);
@@ -135,22 +119,7 @@ public class ShareLinkController {
                     shareLink.shareId = UUID.randomUUID().toString().replace("-", "");
                     shareLink.createdAt = LocalDateTime.now();
                     shareLink.emailAddresses = new HashSet<String>((ArrayList<String>) request.get("emailAddresses"));
-                    switch ((String) request.get("validFor")) {
-                        case "day":
-                            shareLink.expiry = LocalDateTime.now().plusDays(1);
-                            break;
-                        case "week":
-                            shareLink.expiry = LocalDateTime.now().plusWeeks(1);
-                            break;
-                        case "month":
-                            shareLink.expiry = LocalDateTime.now().plusMonths(1);
-                            break;
-                        case "year":
-                            shareLink.expiry = LocalDateTime.now().plusYears(1);
-                            break;
-                        default:
-                            break;
-                    }
+                    shareLink.expiry = computeExpiry((String) request.get("validFor"));
                     linksToInsert.add(shareLink);
                     var queryName = getQueryName(res, digest);
                     finalShareLinks.add(fileServerUrl + "/api/share/" + shareLink.shareId + queryName);
@@ -300,6 +269,16 @@ public class ShareLinkController {
         mongoTemplate.updateFirst(query, update, SHARE_LINKS_COLLECTION);
         logger.info("Add download history successful");
         return 0;
+    }
+
+    private LocalDateTime computeExpiry(String validFor) {
+        return switch (validFor) {
+            case "day" -> LocalDateTime.now().plusDays(1);
+            case "week" -> LocalDateTime.now().plusWeeks(1);
+            case "month" -> LocalDateTime.now().plusMonths(1);
+            case "year" -> LocalDateTime.now().plusYears(1);
+            default -> LocalDateTime.now();
+        };
     }
 
     private String getQueryName(List<Metadata> res, String fileDigest) {
