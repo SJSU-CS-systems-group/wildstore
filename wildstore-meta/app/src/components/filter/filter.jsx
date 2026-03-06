@@ -66,8 +66,8 @@ const Filter = () => {
     const initialPredicate = {
         fieldName: "VAR",
         varName: "",
-        statsValue: "",
-        operator: "",
+        statsValue: "stat",
+        operator: "op",
         fieldValue: ""
     };
 
