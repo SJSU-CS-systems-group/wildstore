@@ -63,11 +63,20 @@ const Filter = () => {
         setComponents(updatedComponents);
     };
 
+    const initialPredicate = {
+        fieldName: "VAR",
+        varName: "",
+        statsValue: "",
+        operator: "",
+        fieldValue: ""
+    };
+
     const handleSearch = async () => {
         let searchQuery = components.map((item, index) => {
             return `${item.fieldName}.${item.varName}.${item.statsValue} ${item.operator} ${item.fieldValue}`
         }).join(" AND ");
         dispatch(addQuery(searchQuery))
+        setComponents([initialPredicate]);
     }
 
     return (
@@ -82,6 +91,7 @@ const Filter = () => {
                         onDelete={() => handleDeleteComponent(index)}
                         onToggle={(toggleVal) => handleToggle(index, toggleVal)}
                         items={items}
+                        showDelete={components.length > 1}
                     />
                 ))}
             </div>

@@ -3,7 +3,7 @@ import Autocomplete from '../autocomplete/autocomplete';
 import { GoTrash, GoPlus } from 'react-icons/go';
 import { useState, useEffect, useRef } from "react";
 
-const Predicate = ({ component, onChange, onAdd, items, onToggle, onDelete }) => {
+const Predicate = ({ component, onChange, onAdd, items, onToggle, onDelete, showDelete }) => {
 
     const handleInputChange = (field, e) => {
         onChange(field, e.target.value);
@@ -61,9 +61,13 @@ const Predicate = ({ component, onChange, onAdd, items, onToggle, onDelete }) =>
             <div className="flex-none">
                 <button className="btn join-item" onClick={handleAddClick}><GoPlus /></button>
             </div>
-            <div className="flex-none">
-                <button className="btn join-item" onClick={handleDeleteClick}><GoTrash /></button>
-            </div>
+            {showDelete && (
+                <div className="flex-none">
+                    <button className="btn join-item" onClick={handleDeleteClick}>
+                        <GoTrash />
+                    </button>
+                </div>
+            )}
         </div>
     );
 }
