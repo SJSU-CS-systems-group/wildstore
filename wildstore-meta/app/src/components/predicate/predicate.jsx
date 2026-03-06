@@ -1,7 +1,6 @@
 
 import Autocomplete from '../autocomplete/autocomplete';
 import { GoTrash, GoPlus } from 'react-icons/go';
-import { useState, useEffect, useRef } from "react";
 
 const Predicate = ({ component, onChange, onAdd, items, onToggle, onDelete, showDelete }) => {
 
