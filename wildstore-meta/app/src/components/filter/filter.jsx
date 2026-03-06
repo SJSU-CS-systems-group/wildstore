@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from 'react';
-import Select from 'react-select'
 import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { addQuery } from '../../redux/filterSlice';
