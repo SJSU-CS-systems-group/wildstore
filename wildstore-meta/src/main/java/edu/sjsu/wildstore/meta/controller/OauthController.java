@@ -1,5 +1,6 @@
 package edu.sjsu.wildstore.meta.controller;
 
+import edu.sjsu.wildstore.meta.MongoCollections;
 import edu.sjsu.wildstore.meta.util.UserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,7 +29,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class OauthController {
     @Autowired
     private MongoTemplate mongoTemplate;
-    public final String USER_COLLECTION = "userData";
+    public final String USER_COLLECTION = MongoCollections.USER_DATA;
 
     @Value("${custom.expireAfterSeconds:2592000}")
     private long expireAfterSeconds;
@@ -68,7 +69,7 @@ public class OauthController {
         Query query = new Query(Criteria.where("email").is(email));
         String opaqueToken = generateToken();
         Update update = new Update().set("token", opaqueToken);
-        mongoTemplate.updateFirst(query, update, "userData");
+        mongoTemplate.updateFirst(query, update, USER_COLLECTION);
 
         return new ResponseEntity<>(opaqueToken, HttpStatus.OK);
     }

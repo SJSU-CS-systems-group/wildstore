@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import edu.sjsu.wildstore.meta.MongoCollections;
+
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -29,8 +31,8 @@ public class BackupWorker {
             return;
         }
         logger.log(Level.INFO, "ℹ️Starting backup to directory: " + backupDirectory);
-        backup("userData");
-        backup("share-links");
+        backup(MongoCollections.USER_DATA);
+        backup(MongoCollections.SHARE_LINKS);
     }
 
     private void backup(String collection) throws IOException, InterruptedException {

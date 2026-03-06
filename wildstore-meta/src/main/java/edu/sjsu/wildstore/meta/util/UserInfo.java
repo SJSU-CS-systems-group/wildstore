@@ -10,6 +10,8 @@ import org.springframework.stereotype.Controller;
 
 import java.util.Map;
 
+import static edu.sjsu.wildstore.meta.MongoCollections.USER_DATA;
+
 @Controller
 public class UserInfo {
 
@@ -20,7 +22,7 @@ public class UserInfo {
         this.mongoTemplate = mongoTemplate;
     }
 
-    public static final String USER_COLLECTION = "userData";
+    public static final String USER_COLLECTION = USER_DATA;
 
     public static boolean tokenExist(String input) {
         Query query = new Query(Criteria.where("token").is(input));

@@ -5,6 +5,7 @@ import com.mongodb.MongoWriteException;
 import edu.sjsu.wildstore.Metadata;
 import edu.sjsu.wildstore.MetadataRequest;
 import edu.sjsu.wildstore.meta.CriteriaBuilder;
+import edu.sjsu.wildstore.meta.MongoCollections;
 import net.sf.jsqlparser.JSQLParserException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,7 +34,7 @@ public class MetadataController {
     @Autowired
     private MongoTemplate mongoTemplate;
 
-    public final String METADATA_COLLECTION = "metadata";
+    public final String METADATA_COLLECTION = MongoCollections.METADATA;
 
     @Value("classpath:static/variableDescriptions.json")
     Resource variableResourceFile;
@@ -182,7 +183,7 @@ public class MetadataController {
                                                              Aggregation.limit(limit),
                                                              Aggregation.unwind("fileName"),
                                                              Aggregation.project("fileName", "lastModified"));
-        List<DBObject> res = mongoTemplate.aggregate(aggregation, "metadata", DBObject.class).getMappedResults();
+        List<DBObject> res = mongoTemplate.aggregate(aggregation, MongoCollections.METADATA, DBObject.class).getMappedResults();
         if (res.isEmpty()) {
             return List.of();
         }
