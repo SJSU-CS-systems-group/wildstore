@@ -15,7 +15,7 @@ const UsersList = () => {
             redirect: "follow",
         });
         if (response.redirected) {
-            document.location = response.url;
+            window.location.href = response.url;
         }
         let d = await response.json();
         setUsers(d);
@@ -34,7 +34,7 @@ const UsersList = () => {
             redirect: "follow",
         });
         if (response.redirected) {
-            document.location = response.url;
+            window.location.href = response.url;
         }
         let result = await response.json();
         if(result === true) {
@@ -63,7 +63,7 @@ const UsersList = () => {
               </thead>
               <tbody>
                 {users && users.map((user, index) => (
-                  <tr key={index}>
+                  <tr key={user.email}>
                     <td className="border px-4 py-2">{user.name}</td>
                     <td className="border px-4 py-2">{user.email}</td>
                     <td className="border px-4 py-2">{user.role}</td>

@@ -34,7 +34,7 @@ const Workspace = () => {
             redirect: "follow",
         });
         if (response.redirected) {
-            document.location = response.url;
+            window.location.href = response.url;
         }
         let d = await response.json();
         dispatch(setMetadata(d));
@@ -54,7 +54,7 @@ const Workspace = () => {
             redirect: "follow",
         });
         if (response.redirected) {
-            document.location = response.url;
+            window.location.href = response.url;
         }
         let d = await response.json();
         dispatch(setQueryCount(d));
@@ -71,23 +71,26 @@ const Workspace = () => {
             redirect: "follow",
         });
         if (response.redirected) {
-            document.location = response.url;
+            window.location.href = response.url;
         }
         let d = await response.json();
         dispatch(setDescriptions({"variables": JSON.parse(d["variables"]), "attributes": JSON.parse(d["attributes"])}));
     }
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         getData();
         getQueryCount();
         getDescriptions();
     }, [])
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         getData();
         getQueryCount();
     }, [query])
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         getData();
     }, [limit, offset])

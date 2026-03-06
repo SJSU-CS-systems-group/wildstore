@@ -25,11 +25,12 @@ function App() {
       redirect: "follow",
     });
     if (response.redirected) {
-      document.location = response.url;
+      window.location.href = response.url;
     }
     let d = await response.text();
     dispatch(setOpaqueToken(d));
   }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     getToken();
   }, [])

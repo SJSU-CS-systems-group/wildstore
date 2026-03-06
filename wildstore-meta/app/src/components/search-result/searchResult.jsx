@@ -31,7 +31,7 @@ const SearchResult = ({ metadataRecord }) => {
             redirect: "follow",
         });
         if (response.redirected) {
-            document.location = response.url;
+            window.location.href = response.url;
         }
         let d = await response.json();
         dispatch(setModalData({ "data": JSON.stringify(d[0]), "header": d[0].filePath[0] }));
@@ -85,7 +85,7 @@ const SearchResult = ({ metadataRecord }) => {
             redirect: "follow",
         });
         if (response.redirected) {
-            document.location = response.url;
+            window.location.href = response.url;
         }
         let d = await response.text();
         setGeneratedLink(d);

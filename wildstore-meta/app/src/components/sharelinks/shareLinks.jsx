@@ -22,7 +22,7 @@ const ShareLinks = () => {
             redirect: "follow",
         });
         if (response.redirected) {
-            document.location = response.url;
+            window.location.href = response.url;
         }
         let d = await response.json();
         setShareLinks(d);
@@ -40,7 +40,7 @@ const ShareLinks = () => {
             redirect: "follow",
         });
         if (response.redirected) {
-            document.location = response.url;
+            window.location.href = response.url;
         }
         let d = await response.json();
         setCount(d);
@@ -48,7 +48,7 @@ const ShareLinks = () => {
         const pb = []
         for (let i = 1; i <= (Math.ceil((count / pageSize))); i++) {
             pb.push(<button className={currentPage === i? "join-item btn btn-active" : "join-item btn"}
-            onClick={() =>handlePageClick(i)}>{i}</button>)
+            key={i} onClick={() =>handlePageClick(i)}>{i}</button>)
         }
         setPageButtons(pb)
     }
@@ -74,7 +74,7 @@ const ShareLinks = () => {
             redirect: "follow",
         });
         if (response.redirected) {
-            document.location = response.url;
+            window.location.href = response.url;
         }
         let d = await response.json();
         if (d) {
@@ -103,7 +103,7 @@ const ShareLinks = () => {
                             <tbody>
                                 {history.map((h, i) => {
                                     return (
-                                        <tr>
+                                        <tr key={h.downloadedBy + '-' + h.dateTime}>
                                             <th>{i + 1}</th>
                                             <td>{h.downloadedBy}</td>
                                             <td>{h.dateTime}</td>
@@ -156,7 +156,7 @@ const ShareLinks = () => {
                     </thead>
                     <tbody>
                         {shareLinks && shareLinks.map((link, index) => (
-                            <tr key={index}>
+                            <tr key={link.shareId}>
                                 <td className="border px-4 py-2">{link.shareId}</td>
                                 <td className="border px-4 py-2">{link.createdAt}</td>
                                 <td className="border px-4 py-2">{link.fileDigest}</td>

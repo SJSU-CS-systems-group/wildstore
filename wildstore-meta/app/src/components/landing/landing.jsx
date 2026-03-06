@@ -14,7 +14,7 @@ const Landing = () => {
             redirect: "follow",
         });
         if (response.redirected) {
-            document.location = response.url;
+            window.location.href = response.url;
         } else if (response.status === 200) {
             navigate("/home");
         } else {

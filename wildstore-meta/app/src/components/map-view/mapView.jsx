@@ -155,25 +155,12 @@ const MapView = () => {
   }, [metadataRecords]);
 
   const renderPopupContent = (record) => (
-    <div style={{ fontSize: '12px', fontFamily: 'monospace' }}>
-      <h3
-        style={{
-          margin: '0 0 8px 0',
-          color: '#0056b3',
-          fontSize: '14px',
-          wordBreak: 'break-all',
-        }}
-      >
+    <div className="text-xs font-mono">
+      <h3 className="m-0 mb-2 text-[#0056b3] text-sm break-all">
         📄 {record.fileName?.[0] || 'Dataset'}
       </h3>
 
-      <div
-        style={{
-          borderBottom: '1px solid #eee',
-          paddingBottom: '5px',
-          marginBottom: '5px',
-        }}
-      >
+      <div className="border-b border-[#eee] pb-1 mb-1">
         <strong>Domain:</strong> {record.domain ?? 'N/A'}
         <br />
         <strong>Size:</strong> {record.fileSize ?? 'N/A'}
@@ -181,22 +168,9 @@ const MapView = () => {
         <strong>Path:</strong> {record.filePath?.[0] || '(unknown)'}
       </div>
 
-      <div
-        style={{
-          backgroundColor: '#f9f9f9',
-          padding: '5px',
-          borderRadius: '4px',
-        }}
-      >
+      <div className="bg-[#f9f9f9] p-1 rounded">
         <strong>Variables:</strong>
-        <ul
-          style={{
-            margin: '4px 0',
-            paddingLeft: '20px',
-            color: '#444',
-            listStyleType: 'disc',
-          }}
-        >
+        <ul className="my-1 pl-5 text-[#444] list-disc">
           {(record.variables || []).slice(0, 12).map((v) => {
             const attrs = v.attributeList || [];
             const dims = (v.varDimensionList || [])
@@ -223,10 +197,10 @@ const MapView = () => {
               <li key={v.variableName}>
                 <strong>{v.variableName}</strong>
                 {dims && (
-                  <span style={{ color: '#666' }}> &nbsp;({dims})</span>
+                  <span className="text-[#666]"> &nbsp;({dims})</span>
                 )}
                 <br />
-                <span style={{ color: '#666', fontSize: '11px' }}>
+                <span className="text-[#666] text-[11px]">
                   {v.type && `type: ${v.type}`}
                   {units && ` • units: ${units}`}
                   {hasRange &&
@@ -247,11 +221,11 @@ const MapView = () => {
   );
 
   return (
-    <div style={{ position: 'relative', height: '100%', width: '100%' }}>
+    <div className="relative h-full w-full">
       <MapContainer
         center={[0, 0]}
         zoom={2}
-        style={{ height: '100%', width: '100%' }}
+        className="h-full w-full"
       >
         <TileLayer
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"

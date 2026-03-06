@@ -41,23 +41,17 @@ const Autocomplete = ({ items, value, onChange }) => {
           onBlur={() => setOpen(false)}
           placeholder="variable"
           tabIndex={0}
-          style={{ width: "inherit" }}
         />
 
         <div
-          className="dropdown-content border border-base-200 top-14 overflow-y-scroll h-40 flex-col rounded-md absolute z-50 w-max min-w-full"
-          style={{
-            backgroundColor: "white",
-            marginTop: "-8px",
-            width: "250%",
-          }}
+          className="dropdown-content border border-base-200 top-14 overflow-y-scroll h-40 flex-col rounded-md absolute z-50 bg-white -mt-2 !w-[250%]"
         >
           <ul
             className="w-full menu menu-compact last:border-b-0"
           >
             {filteredItems.map((item, index) => (
               <li
-                key={index}
+                key={item.value}
                 tabIndex={index + 1}
                 onClick={(e) => {
                   setOpen(false);
