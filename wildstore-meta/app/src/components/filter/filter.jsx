@@ -77,6 +77,7 @@ const Filter = () => {
         }).join(" AND ");
         dispatch(addQuery(searchQuery))
         setComponents([initialPredicate]);
+        setItems(variableList);
     }
 
     return (
