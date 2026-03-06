@@ -4,6 +4,7 @@ import com.mongodb.DBObject;
 import edu.sjsu.wildstore.Download;
 import edu.sjsu.wildstore.Metadata;
 import edu.sjsu.wildstore.ShareLink;
+import edu.sjsu.wildstore.meta.MongoCollections;
 import edu.sjsu.wildstore.meta.util.UserInfo;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -49,9 +50,9 @@ public class ShareLinkController {
 
     Logger logger = LoggerFactory.getLogger(ShareLinkController.class);
 
-    public final String USER_DATA_COLLECTION = "userData";
-    public final String METADATA_COLLECTION = "metadata";
-    public final String SHARE_LINKS_COLLECTION = "share-links";
+    public final String USER_DATA_COLLECTION = MongoCollections.USER_DATA;
+    public final String METADATA_COLLECTION = MongoCollections.METADATA;
+    public final String SHARE_LINKS_COLLECTION = MongoCollections.SHARE_LINKS;
 
     @Value("${custom.fileServer}")
     private String fileServerUrl;
@@ -159,7 +160,7 @@ public class ShareLinkController {
                     // Remove the fileName from the list of fileNames to share so we can return fileName as a list of files not found
                     removeFileName(fileNames, queryName.substring("?filename=".length()));
                 }
-                mongoTemplate.insert(linksToInsert, "share-links");
+                mongoTemplate.insert(linksToInsert, SHARE_LINKS_COLLECTION);
             }
             return new CreatedLinks(finalShareLinks, fileNames);
         } else {
@@ -208,7 +209,7 @@ public class ShareLinkController {
                                                           Criteria.where("createdBy").is(getCurrentUserName())));
         query.limit(limit);
         query.skip(offset);
-        List<ShareLink> res = mongoTemplate.find(query, ShareLink.class, "share-links");
+        List<ShareLink> res = mongoTemplate.find(query, ShareLink.class, SHARE_LINKS_COLLECTION);
         return res;
     }
 
@@ -218,7 +219,7 @@ public class ShareLinkController {
         // old sharelinks are created with username in field createdBy
         Query query = new Query(new Criteria().orOperator(Criteria.where("createdBy").is(getCurrentUserEmail()),
                                                           Criteria.where("createdBy").is(getCurrentUserName())));
-        return mongoTemplate.count(query, "share-links");
+        return mongoTemplate.count(query, SHARE_LINKS_COLLECTION);
     }
 
     @PreAuthorize("hasRole('USER')")
@@ -299,7 +300,7 @@ public class ShareLinkController {
         download.dateTime = LocalDateTime.now();
         download.downloadedBy = userName;
         Update update = new Update().push("downloads", download);
-        mongoTemplate.updateFirst(query, update, "share-links");
+        mongoTemplate.updateFirst(query, update, SHARE_LINKS_COLLECTION);
         logger.info("Add download history successful");
         return 0;
     }
