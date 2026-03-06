@@ -20,9 +20,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.core.DefaultOAuth2AuthenticatedPrincipal;
-import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
-import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -92,7 +89,7 @@ public class ShareLinkController {
         if (!res.isEmpty()) {
             Map<String, Metadata> existingDigests = res.stream().collect(Collectors.toMap(m -> m.digestString, m -> m));
             Query linkQuery = new Query(Criteria.where("fileDigest").in(existingDigests.keySet()));
-            linkQuery.addCriteria(Criteria.where("createdBy").is(getCurrentUserEmail()));
+            linkQuery.addCriteria(Criteria.where("createdBy").is(UserInfo.getUserEmail(SecurityContextHolder.getContext().getAuthentication())));
             linkQuery.addCriteria(Criteria.where("emailAddresses").all(request.get("emailAddresses")));
             linkQuery.addCriteria(Criteria.where("expiry").gt(LocalDateTime.now()));
             List<ShareLink> existing = mongoTemplate.find(linkQuery, ShareLink.class, SHARE_LINKS_COLLECTION);
@@ -134,7 +131,7 @@ public class ShareLinkController {
                     ShareLink shareLink = new ShareLink();
                     shareLink.fileDigest = digest;
                     shareLink.filePath = existingDigests.get(digest).filePath;
-                    shareLink.createdBy = getCurrentUserEmail();
+                    shareLink.createdBy = UserInfo.getUserEmail(SecurityContextHolder.getContext().getAuthentication());
                     shareLink.shareId = UUID.randomUUID().toString().replace("-", "");
                     shareLink.createdAt = LocalDateTime.now();
                     shareLink.emailAddresses = new HashSet<String>((ArrayList<String>) request.get("emailAddresses"));
@@ -182,14 +179,14 @@ public class ShareLinkController {
 //        List<Metadata> res = mongoTemplate.find(query, Metadata.class, METADATA_COLLECTION);
 //        if(!res.isEmpty()) {
 //            Query linkQuery = new Query(Criteria.where("fileDigest").is(res.get(0).digestString));
-//            linkQuery.addCriteria(Criteria.where("createdBy").is(getCurrentUserName()));
+//            linkQuery.addCriteria(Criteria.where("createdBy").is(UserInfo.getUserName(SecurityContextHolder.getContext().getAuthentication())));
 //            List<ShareLink> existing = mongoTemplate.find(linkQuery, ShareLink.class, SHARE_LINKS_COLLECTION);
 //            if(!existing.isEmpty()) {
 //                return fileServerUrl + "/api/share/" + existing.get(0).shareId;
 //            }
 //            ShareLink shareLink = new ShareLink();
 //            shareLink.fileDigest = res.get(0).digestString;
-//            shareLink.createdBy = getCurrentUserName();
+//            shareLink.createdBy = UserInfo.getUserName(SecurityContextHolder.getContext().getAuthentication());
 //            shareLink.shareId = UUID.randomUUID().toString().replace("-", "");
 //            shareLink.createdAt = LocalDateTime.now();
 //            mongoTemplate.insert(shareLink, "share-links");
@@ -205,8 +202,8 @@ public class ShareLinkController {
                                             @RequestParam(defaultValue = "100") int limit,
                                             @RequestParam(defaultValue = "0") int offset) {
         // old sharelinks are created with username in field createdBy
-        Query query = new Query(new Criteria().orOperator(Criteria.where("createdBy").is(getCurrentUserEmail()),
-                                                          Criteria.where("createdBy").is(getCurrentUserName())));
+        Query query = new Query(new Criteria().orOperator(Criteria.where("createdBy").is(UserInfo.getUserEmail(SecurityContextHolder.getContext().getAuthentication())),
+                                                          Criteria.where("createdBy").is(UserInfo.getUserName(SecurityContextHolder.getContext().getAuthentication()))));
         query.limit(limit);
         query.skip(offset);
         List<ShareLink> res = mongoTemplate.find(query, ShareLink.class, SHARE_LINKS_COLLECTION);
@@ -217,8 +214,8 @@ public class ShareLinkController {
     @GetMapping("/count")
     public long getShareLinkCount() {
         // old sharelinks are created with username in field createdBy
-        Query query = new Query(new Criteria().orOperator(Criteria.where("createdBy").is(getCurrentUserEmail()),
-                                                          Criteria.where("createdBy").is(getCurrentUserName())));
+        Query query = new Query(new Criteria().orOperator(Criteria.where("createdBy").is(UserInfo.getUserEmail(SecurityContextHolder.getContext().getAuthentication())),
+                                                          Criteria.where("createdBy").is(UserInfo.getUserName(SecurityContextHolder.getContext().getAuthentication()))));
         return mongoTemplate.count(query, SHARE_LINKS_COLLECTION);
     }
 
@@ -231,9 +228,9 @@ public class ShareLinkController {
                                                                                      Criteria.where("shareId")
                                                                                              .is(shareId)),
                                                            new Criteria().orOperator(Criteria.where("createdBy")
-                                                                                             .is(getCurrentUserEmail()),
+                                                                                             .is(UserInfo.getUserEmail(SecurityContextHolder.getContext().getAuthentication())),
                                                                                      Criteria.where("createdBy")
-                                                                                             .is(getCurrentUserName()))
+                                                                                             .is(UserInfo.getUserName(SecurityContextHolder.getContext().getAuthentication())))
         ));
         return mongoTemplate.remove(query, SHARE_LINKS_COLLECTION).getDeletedCount() > 0;
     }
@@ -250,7 +247,7 @@ public class ShareLinkController {
     @PreAuthorize("hasRole('GUEST')")
     @PostMapping("/verify")
     public DBObject verify(@RequestBody String shareId) {
-        String currentUserEmail = getCurrentUserEmail();
+        String currentUserEmail = UserInfo.getUserEmail(SecurityContextHolder.getContext().getAuthentication());
         System.out.println(currentUserEmail);
         Query query = new Query(Criteria.where("shareId").is(shareId));
         //query.addCriteria(Criteria.where("emailAddresses").in(currentUserEmail));
@@ -290,7 +287,7 @@ public class ShareLinkController {
             userName = (String) authList.get(0).get("name");
         } else {
             // if a token wasn't used, see if there is other authentication info
-            userName = getCurrentUserName();
+            userName = UserInfo.getUserName(SecurityContextHolder.getContext().getAuthentication());
             if (userName == null) {
                 logger.warn("User not authenticated, cannot add download history");
                 return 1;
@@ -303,28 +300,6 @@ public class ShareLinkController {
         mongoTemplate.updateFirst(query, update, SHARE_LINKS_COLLECTION);
         logger.info("Add download history successful");
         return 0;
-    }
-
-    private String getCurrentUserName() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth.getPrincipal() instanceof DefaultOAuth2User) {
-            return ((DefaultOAuth2User) (auth.getPrincipal())).getAttribute("name");
-        } else if (auth.getPrincipal() instanceof DefaultOAuth2AuthenticatedPrincipal) {
-            return ((DefaultOAuth2AuthenticatedPrincipal) (auth.getPrincipal())).getAttribute("name");
-        } else {
-            return ((DefaultOidcUser) (auth.getPrincipal())).getAttribute("name");
-        }
-    }
-
-    private String getCurrentUserEmail() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth.getPrincipal() instanceof DefaultOAuth2AuthenticatedPrincipal) {
-            return ((DefaultOAuth2AuthenticatedPrincipal) (auth.getPrincipal())).getAttribute("email");
-        } else if (auth.getPrincipal() instanceof DefaultOAuth2User) {
-            return ((DefaultOAuth2User) (auth.getPrincipal())).getAttribute("email");
-        } else {
-            return ((DefaultOidcUser) (auth.getPrincipal())).getAttribute("email");
-        }
     }
 
     private String getQueryName(List<Metadata> res, String fileDigest) {
