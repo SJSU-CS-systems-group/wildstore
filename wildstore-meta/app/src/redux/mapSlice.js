@@ -1,7 +1,8 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-    selectedRecord: {}
+    selectedRecord: null,
+    locateTimestamp: null,
 }
 
 export const mapSlice = createSlice({
@@ -10,6 +11,7 @@ export const mapSlice = createSlice({
     reducers: {
         setSelectedRecord: (state, action) => {
             state.selectedRecord = action.payload;
+            state.locateTimestamp = Date.now();
         }
     }
 });
