@@ -1,0 +1,32 @@
+services:
+  mongo:
+    image: mongo:6.0
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+
+  wildstore-meta:
+    image: ghcr.io/sjsu-cs-systems-group/wildstore/wildstore-meta:deploy
+    restart: unless-stopped
+    ports:
+      - "27777:27777"
+    env_file: .env
+    environment:
+      - spring.data.mongodb.uri=mongodb://mongo:27017/wildfire
+      - custom.fileServer=http://wildstore-fileserve:27778
+    depends_on:
+      - mongo
+
+  wildstore-fileserve:
+    image: ghcr.io/sjsu-cs-systems-group/wildstore/wildstore-fileserve:deploy
+    restart: unless-stopped
+    ports:
+      - "27778:27778"
+    env_file: .env
+    environment:
+      - custom.metadataServer=http://wildstore-meta:27777
+    depends_on:
+      - wildstore-meta
+
+volumes:
+  mongo-data:
