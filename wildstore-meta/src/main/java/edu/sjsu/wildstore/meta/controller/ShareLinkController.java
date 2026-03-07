@@ -217,7 +217,6 @@ public class ShareLinkController {
     @PostMapping("/verify")
     public DBObject verify(@RequestBody String shareId) {
         String currentUserEmail = UserInfo.getUserEmail(SecurityContextHolder.getContext().getAuthentication());
-        System.out.println(currentUserEmail);
         Query query = new Query(Criteria.where("shareId").is(shareId));
         //query.addCriteria(Criteria.where("emailAddresses").in(currentUserEmail));
         //query.addCriteria(Criteria.where("expiry").gt(LocalDateTime.now()));
