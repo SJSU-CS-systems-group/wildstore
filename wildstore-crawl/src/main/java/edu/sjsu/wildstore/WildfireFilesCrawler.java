@@ -24,6 +24,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
@@ -35,6 +36,13 @@ import java.util.stream.StreamSupport;
 
 @CommandLine.Command(name = "GET", mixinStandardHelpOptions = true)
 public class WildfireFilesCrawler implements Runnable {
+    private static final Set<String> SUPPORTED_EXTENSIONS = Set.of(
+        ".nc",           // NetCDF
+        ".hdf5", ".h5",  // HDF5
+        ".shp",          // Shapefile
+        ".tif", ".tiff", // GeoTIFF
+        ".kmz"           // KMZ
+    );
     @CommandLine.Option(names = "--metaURL", description = "Host name of the API server", required = true)
     String metaURL;
     @CommandLine.Option(names = "--log", description = "Whether to generate a log")
@@ -88,8 +96,10 @@ public class WildfireFilesCrawler implements Runnable {
                                 int maxReadSize,
                                 String option,
                                 boolean enumLog) throws InterruptedException, ExecutionException {
-        NetcdfFileReader fileReader = new NetcdfFileReader(file);
-        var metadata = fileReader.processFile(maxReadSize);
+        if (SUPPORTED_EXTENSIONS.stream().noneMatch(file::endsWith)) {return false;}
+        var metadata = file.endsWith(".nc")
+                       ? new NetcdfFileReader(file).processFile(maxReadSize)
+                       : new GenericFileReader(file).processFile();
 
         System.out.println("Crawling file: " + file);
         if (option.equals("all")) {
@@ -334,7 +344,8 @@ public class WildfireFilesCrawler implements Runnable {
                             dirQueue.add(p);
                             return false;
                         } else if (Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS) &&
-                                Files.isReadable(p) && p.toString().endsWith(".nc")) {
+                                Files.isReadable(p) &&
+                                SUPPORTED_EXTENSIONS.stream().anyMatch(p.toString()::endsWith)) {
                             fileQueue.add(p);
                             return true;
                         } else {
