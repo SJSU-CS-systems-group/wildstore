@@ -52,7 +52,6 @@ public class UserInfo {
     }
 
     public static String getUserEmail(Authentication user) {
-        System.out.println(user.getPrincipal().getClass());
         OAuth2AuthenticatedPrincipal principal = (OAuth2AuthenticatedPrincipal) user.getPrincipal();
         String email = principal.getAttribute("email");
         if (email == null) {
@@ -65,7 +64,6 @@ public class UserInfo {
     }
 
     public static String getUserName(Authentication user) {
-        System.out.println(user.getPrincipal().getClass());
         OAuth2AuthenticatedPrincipal principal = (OAuth2AuthenticatedPrincipal) user.getPrincipal();
         return principal.getAttribute("name");
     }

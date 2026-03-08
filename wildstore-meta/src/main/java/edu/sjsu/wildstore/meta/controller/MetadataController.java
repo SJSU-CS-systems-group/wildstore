@@ -72,11 +72,6 @@ public class MetadataController {
     @PreAuthorize("hasRole('USER')")
     @PostMapping("/metadata/search/count")
     public long searchCount(@RequestBody MetadataRequest request) throws JSQLParserException {
-        SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getAuthorities()
-                .forEach(ga -> System.out.println("^^^^^^^^^^^" + ga));
-        System.out.println();
         Query query = new Query();
         Criteria criteria = CriteriaBuilder.buildFromSQL(request.searchQuery);
         if (criteria != null) {

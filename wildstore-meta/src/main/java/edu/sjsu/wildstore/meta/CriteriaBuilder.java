@@ -11,6 +11,8 @@ import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
 import org.springframework.data.geo.Point;
 import org.springframework.data.mongodb.core.geo.GeoJsonPolygon;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.mongodb.core.query.Criteria;
 
 import java.text.ParseException;
@@ -20,6 +22,7 @@ import java.util.List;
 
 public class CriteriaBuilder {
 
+    private static final Logger logger = LoggerFactory.getLogger(CriteriaBuilder.class);
     public static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
     public static final String VAR_TYPE = "VAR";
     public static final String ATTRIBUTE_TYPE = "ATTR";
@@ -188,7 +191,7 @@ public class CriteriaBuilder {
                 return build(((Parenthesis) ex).getExpression());
             }
             default: {
-                System.out.println("DEFAULT" + ex.getClass());
+                logger.warn("Unhandled expression type: {}", ex.getClass());
             }
         }
         return null;
@@ -271,7 +274,7 @@ public class CriteriaBuilder {
                 return ((DoubleValue) ((SignedExpression) ex).getExpression()).getValue() * -1;
             }
             default: {
-                System.out.println("Unknown JSQLParser Value type");
+                logger.warn("Unknown JSQLParser value type: {}", ex.getClass());
                 break;
             }
         }
