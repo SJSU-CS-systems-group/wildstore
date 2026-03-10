@@ -2,6 +2,7 @@ package edu.sjsu.wildstore;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 
 public class GenericFileReader {
@@ -21,6 +22,9 @@ public class GenericFileReader {
         }
 
         Metadata metadata = new Metadata();
+        // no global attributes to extract,
+        // only records the filename, file size, last modified time, and a digest (checksum)
+        metadata.globalAttributes = List.of();
         File file = new File(filePath);
         metadata.fileName = Set.of(filePath);
         metadata.filePath = Set.of(filePath.substring(0, filePath.lastIndexOf('/') + 1));
