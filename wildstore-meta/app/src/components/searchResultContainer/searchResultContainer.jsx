@@ -1,7 +1,7 @@
 import SearchResult from '../search-result/searchResult';
 import { useSelector } from 'react-redux';
 import { useDispatch } from 'react-redux';
-import { setCurrentPage } from '../../redux/filterSlice';
+import { setCurrentPage, setLimit } from '../../redux/filterSlice';
 import { GoTriangleLeft, GoTriangleRight } from 'react-icons/go';
 
 const SearchResultContainer = ({ metadataRecords, setShowModal }) => {
@@ -10,6 +10,10 @@ const SearchResultContainer = ({ metadataRecords, setShowModal }) => {
     const currentPage = useSelector(state => state.filterReducer.currentPage);
     const pageSize = useSelector(state => state.filterReducer.limit);
     const dispatch = useDispatch();
+
+    const handleLimitChange = (e) => {
+        dispatch(setLimit(Number(e.target.value)));
+    };
     
     const pageCount = metadataRecords.length !== 0? Math.ceil(queryCount/ pageSize) : 1;
 
@@ -46,10 +50,15 @@ const SearchResultContainer = ({ metadataRecords, setShowModal }) => {
             <div className="flex flex-col gap-2">
                 {metadataRecords.map((metadataRecord, i) => <SearchResult key={metadataRecord.digestString} metadataRecord={metadataRecord} setShowModal={setShowModal} />)}
             </div>
-            <div className="flex flex-wrap self-center join">
-                {
-                    pageButtons
-                }
+            <div className="flex items-center justify-center gap-4">
+                <div className="join">
+                    {pageButtons}
+                </div>
+                <select className="select select-bordered select-sm" value={pageSize} onChange={handleLimitChange}>
+                    <option value={10}>10 / page</option>
+                    <option value={25}>25 / page</option>
+                    <option value={50}>50 / page</option>
+                </select>
             </div>
         </div>
     );

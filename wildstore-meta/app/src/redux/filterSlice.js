@@ -39,6 +39,8 @@ export const filterSlice = createSlice({
         },
         setLimit: (state, action) => {
             state.limit = action.payload;
+            state.currentPage = 1;
+            state.offset = 0;
         },
         setOffset: (state, action) => {
             state.offset = action.payload;
