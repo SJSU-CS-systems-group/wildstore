@@ -15,8 +15,6 @@ const Workspace = () => {
     const query = useSelector(state => state.filterReducer.query)
     const limit = useSelector(state => state.filterReducer.limit)
     const offset = useSelector(state => state.filterReducer.offset)
-    const search = useSelector(state => state.searchTermReducer.searchTerm)
-
     const [openSearchResults, setOpenSearchResults] = useState(true)
     const [showModal, setShowModal] = useState(false);
 

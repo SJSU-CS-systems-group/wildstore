@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 const SimpleModal = ({showModal, closeModal, content}) => {
     return (
         <div>

@@ -2,8 +2,6 @@ import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
     opaqueToken: "",
-    isAuthenticated: false,
-    darkMode: false,
 }
 
 export const userSlice = createSlice({
