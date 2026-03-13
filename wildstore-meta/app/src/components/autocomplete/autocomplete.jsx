@@ -30,7 +30,7 @@ const Autocomplete = ({ items, value, onChange, onOpenChange}) => {
     <div className="join-item">
       <div
         ref={ref}
-        className={classNames("dropdown w-full relative z-[1000]", { "dropdown-open": open })}
+        className={classNames("dropdown w-full relative", { "dropdown-open": open })}
       >
         <input
           type="text"
