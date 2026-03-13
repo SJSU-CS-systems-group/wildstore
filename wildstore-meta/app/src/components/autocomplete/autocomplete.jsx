@@ -1,11 +1,19 @@
 import { useRef, memo, useState } from "react";
 import classNames from "classnames";
+import TooltipPortal from '../tooltip-portal/TooltipPortal';
 
-const Autocomplete = ({ items, value, onChange }) => {
+const Autocomplete = ({ items, value, onChange, onOpenChange}) => {
   const ref = useRef(null);
   const [open, setOpen] = useState(false);
   const [filteredItems, setFilteredItems] = useState([...items]);
-
+  const handleOpen = () => {
+    setOpen(true);
+    onOpenChange?.(true);
+  };
+  const handleClose = () => {
+    setOpen(false);
+    onOpenChange?.(false);
+  };
   const filter = (e) => {
     const varName = e.target.value;
     if (varName) {
@@ -22,7 +30,7 @@ const Autocomplete = ({ items, value, onChange }) => {
     <div className="join-item">
       <div
         ref={ref}
-        className={classNames("dropdown w-full relative z-30", { "dropdown-open": open })}
+        className={classNames("dropdown w-full relative z-50", { "dropdown-open": open })}
       >
         <input
           type="text"
@@ -31,20 +39,20 @@ const Autocomplete = ({ items, value, onChange }) => {
           onChange={(e) => {
             onChange(e);
             filter(e);
-            setOpen(true);
+            handleOpen()
           }}
           onFocus={(e) => {
             onChange(e);
             filter(e);
-            setOpen(true);
+            handleOpen()
           }}
-          onBlur={() => setOpen(false)}
+          onBlur={() => handleClose()}
           placeholder="variable"
           tabIndex={0}
         />
 
         <div
-          className="dropdown-content border border-base-200 top-14 overflow-y-scroll h-40 flex-col rounded-md absolute z-50 bg-white -mt-2 !w-[250%]"
+          className="dropdown-content border border-base-200 top-14 overflow-y-scroll h-40 flex-col rounded-md absolute z-50 bg-white -mt-2 !w-[150%]"
         >
           <ul
             className="w-full menu menu-compact last:border-b-0"
@@ -54,19 +62,17 @@ const Autocomplete = ({ items, value, onChange }) => {
                 key={item.value}
                 tabIndex={index + 1}
                 onClick={(e) => {
-                  setOpen(false);
+                  handleClose();
                   onChange(e);
                   filter(e);
                 }}
                 className="border-b border-b-base-content/10 w-full"
               >
-                <button
-                  className="before:z-5000 before:content-[attr(data-tip)] tooltip tooltip-right"
-                  data-tip={item.value}
-                  value={item.label}
-                >
-                  {item.label}
-                </button>
+                <TooltipPortal content={item.value}>
+                  <button>
+                    {item.label}
+                  </button>
+                </TooltipPortal>
               </li>
             ))}
           </ul>
