@@ -30,7 +30,7 @@ const Autocomplete = ({ items, value, onChange, onOpenChange}) => {
     <div className="join-item">
       <div
         ref={ref}
-        className={classNames("dropdown w-full relative z-50", { "dropdown-open": open })}
+        className={classNames("dropdown w-full relative z-[1000]", { "dropdown-open": open })}
       >
         <input
           type="text"
@@ -52,7 +52,7 @@ const Autocomplete = ({ items, value, onChange, onOpenChange}) => {
         />
 
         <div
-          className="dropdown-content border border-base-200 top-14 overflow-y-scroll h-40 flex-col rounded-md absolute z-50 bg-white -mt-2 !w-[150%]"
+          className="dropdown-content border border-base-200 top-14 overflow-y-scroll h-40 flex-col rounded-md absolute z-[1000] bg-white -mt-2 !w-[150%]"
         >
           <ul
             className="w-full menu menu-compact last:border-b-0"
@@ -61,10 +61,11 @@ const Autocomplete = ({ items, value, onChange, onOpenChange}) => {
               <li
                 key={item.value}
                 tabIndex={index + 1}
-                onClick={(e) => {
+                onMouseDown={(e) => {
+                  e.preventDefault();
                   handleClose();
-                  onChange(e);
-                  filter(e);
+                  onChange({ target: { value: item.label } });
+                  filter({ target: { value: item.label } });
                 }}
                 className="border-b border-b-base-content/10 w-full"
               >
