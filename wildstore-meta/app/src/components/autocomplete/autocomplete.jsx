@@ -2,17 +2,15 @@ import { useRef, memo, useState } from "react";
 import classNames from "classnames";
 import TooltipPortal from '../tooltip-portal/TooltipPortal';
 
-const Autocomplete = ({ items, value, onChange, onOpenChange}) => {
+const Autocomplete = ({ items, value, onChange }) => {
   const ref = useRef(null);
   const [open, setOpen] = useState(false);
   const [filteredItems, setFilteredItems] = useState([...items]);
   const handleOpen = () => {
     setOpen(true);
-    onOpenChange?.(true);
   };
   const handleClose = () => {
     setOpen(false);
-    onOpenChange?.(false);
   };
   const filter = (e) => {
     const varName = e.target.value;
