@@ -39,12 +39,12 @@ const Autocomplete = ({ items, value, onChange, onOpenChange}) => {
           onChange={(e) => {
             onChange(e);
             filter(e);
-            handleOpen()
+            handleOpen();
           }}
           onFocus={(e) => {
             onChange(e);
             filter(e);
-            handleOpen()
+            handleOpen();
           }}
           onBlur={() => handleClose()}
           placeholder="variable"
