@@ -11,15 +11,15 @@ services:
       context: .
       target: meta
     ports:
-      - "27777:27777"
+      - "8080:8080"
+    volumes:
+      - ./oauth.yml:/app/oauth.yml:ro
     environment:
+      - spring.config.additional-location=file:/app/oauth.yml
+      - server.port=8080
       - spring.data.mongodb.uri=mongodb://mongo:27017/wildfire
       - custom.fileServer=http://wildstore-fileserve:27778
-      - custom.frontendUrl=http://localhost:27777
-      - spring.security.oauth2.client.registration.google.client-id=${GOOGLE_CLIENT_ID:-placeholder}
-      - spring.security.oauth2.client.registration.google.client-secret=${GOOGLE_CLIENT_SECRET:-placeholder}
-      - spring.security.oauth2.client.registration.github.client-id=${GITHUB_CLIENT_ID:-placeholder}
-      - spring.security.oauth2.client.registration.github.client-secret=${GITHUB_CLIENT_SECRET:-placeholder}
+      - custom.frontendUrl=http://localhost:8080
     depends_on:
       - mongo
 
@@ -30,7 +30,7 @@ services:
     ports:
       - "27778:27778"
     environment:
-      - custom.metadataServer=http://wildstore-meta:27777
+      - custom.metadataServer=http://wildstore-meta:8080
     depends_on:
       - wildstore-meta
 

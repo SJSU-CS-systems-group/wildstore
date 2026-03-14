@@ -97,6 +97,7 @@ jobs:
       - name: Start meta container
         run: |
           docker run -d --name meta --network host \
+            -e server.port=8080 \
             -e spring.data.mongodb.uri=mongodb://localhost:27017/wildfire \
             -e spring.security.oauth2.client.registration.google.client-id=unused \
             -e spring.security.oauth2.client.registration.google.client-secret=unused \
@@ -107,14 +108,13 @@ jobs:
       - name: Start fileserve container
         run: |
           docker run -d --name fileserve --network host \
-            -e custom.metadataServer=http://localhost:27777 \
-            -e server.port=27778 \
+            -e custom.metadataServer=http://localhost:8080 \
             "${{ env.FILESERVE_IMAGE }}:${{ github.sha }}"
 
       - name: Wait for meta health
         run: |
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:27777/actuator/health; then
+            if curl -sf http://localhost:8080/actuator/health; then
               echo ""
               echo "meta is healthy"
               exit 0

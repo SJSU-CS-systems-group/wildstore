@@ -20,9 +20,9 @@ RUN groupadd -r wildstore && useradd -r -g wildstore wildstore
 WORKDIR /app
 COPY --from=build /src/wildstore-meta/target/wildstore-meta-server.jar app.jar
 USER wildstore
-EXPOSE 27777
+EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD curl -f http://localhost:27777/actuator/health || exit 1
+  CMD curl -f http://localhost:8080/actuator/health || exit 1
 ENTRYPOINT ["java", "-jar", "app.jar"]
 
 # Stage 2b: File server

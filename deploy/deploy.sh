@@ -44,7 +44,7 @@ docker compose -f "$COMPOSE_FILE" up -d
 echo "Waiting for services to become healthy..."
 HEALTHY=false
 for i in $(seq 1 30); do
-  META_OK=$(curl -sf http://localhost:27777/actuator/health || true)
+  META_OK=$(curl -sf http://localhost:8080/actuator/health || true)
   FS_OK=$(curl -sf http://localhost:27778/actuator/health || true)
   if echo "$META_OK" | grep -q '"UP"' && echo "$FS_OK" | grep -q '"UP"'; then
     HEALTHY=true
