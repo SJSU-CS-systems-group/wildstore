@@ -69,6 +69,33 @@ const MapController = () => {
   return null;
 };
 
+const LocateHandler = ({ setSelectedId }) => {
+  const map = useMap();
+  const selectedRecord = useSelector((state) => state.mapReducer.selectedRecord);
+  const locateTimestamp = useSelector((state) => state.mapReducer.locateTimestamp);
+
+  useEffect(() => {
+    if (!selectedRecord?.digestString) return;
+
+    const vars = selectedRecord.variables || [];
+    const latVar = vars.find((v) => v.variableName === 'latitude' || v.variableName === 'XLAT');
+    const lonVar = vars.find((v) => v.variableName === 'longitude' || v.variableName === 'XLONG');
+    if (!latVar || !lonVar) return;
+
+    const latMin = parseFloat(latVar.minValue);
+    const latMax = parseFloat(latVar.maxValue);
+    const lonMin = parseFloat(lonVar.minValue);
+    const lonMax = parseFloat(lonVar.maxValue);
+    if (!isFinite(latMin) || !isFinite(latMax) || !isFinite(lonMin) || !isFinite(lonMax)) return;
+
+    const bounds = L.latLngBounds([latMin, lonMin], [latMax, lonMax]);
+    map.flyToBounds(bounds, { padding: [50, 50], maxZoom: 10 });
+    setSelectedId(selectedRecord.digestString);
+  }, [locateTimestamp, map, setSelectedId]);
+
+  return null;
+};
+
 const MapView = () => {
   const [selectedId, setSelectedId] = useState(null); // Which square has its popup open
 
@@ -266,6 +293,7 @@ const MapView = () => {
           );
         })}
         <MapController />
+        <LocateHandler setSelectedId={setSelectedId} />
       </MapContainer>
     </div>
   );

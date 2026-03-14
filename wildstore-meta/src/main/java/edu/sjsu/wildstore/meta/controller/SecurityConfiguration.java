@@ -93,11 +93,11 @@ public class SecurityConfiguration {
         OpaqueTokenIntrospector introspectionClient = token -> {
             Map userInfo = UserInfo.getUser(token);
             if (userInfo != null) {
+                Map<String, Object> attrs = new HashMap<>();
+                attrs.put("name", userInfo.get("name"));
+                attrs.put("email", userInfo.get("email"));
                 return new DefaultOAuth2AuthenticatedPrincipal("user",
-                                                               Map.of("name",
-                                                                      userInfo.get("name"),
-                                                                      "email",
-                                                                      userInfo.get("email")),
+                                                               attrs,
                                                                List.of(new SimpleGrantedAuthority((String) userInfo.get(
                                                                        "role"))));
             } else {

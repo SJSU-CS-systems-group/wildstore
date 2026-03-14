@@ -15,7 +15,7 @@ const Modal = () => {
 
     return (
         <div>
-            <dialog id="my_modal_3" className={showModal? "modal modal-open": "modal"}>
+            <dialog id="detail-modal" className={showModal? "modal modal-open": "modal"}>
                 <div className="modal-box w-11/12 max-w-5xl">
                     <form method="dialog">
                         {/* if there is a button in form, it will close the modal */}

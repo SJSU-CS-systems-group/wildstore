@@ -134,37 +134,6 @@ public class ShareLinkController {
         }
     }
 
-//    @PreAuthorize("hasRole('USER')")
-//    @PostMapping("/create")
-//    public String createFromWildcard(@RequestBody String filePath) {
-//        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-//        Query linkQuery = new Query(Criteria.where("filePath").is(filePath));
-//        List<ShareLink> existing = mongoTemplate.find(linkQuery, ShareLink.class, SHARE_LINKS_COLLECTION);
-//        if(!existing.isEmpty()) {
-//            return fileServerUrl + "/api/share/" + existing.get(0).shareId;
-//        }
-//
-//        String regex = WildcardToRegex.wildcardToRegex(filePath);
-//        List<Metadata> res = mongoTemplate.find(query, Metadata.class, METADATA_COLLECTION);
-//        if(!res.isEmpty()) {
-//            Query linkQuery = new Query(Criteria.where("fileDigest").is(res.get(0).digestString));
-//            linkQuery.addCriteria(Criteria.where("createdBy").is(UserInfo.getUserName(SecurityContextHolder.getContext().getAuthentication())));
-//            List<ShareLink> existing = mongoTemplate.find(linkQuery, ShareLink.class, SHARE_LINKS_COLLECTION);
-//            if(!existing.isEmpty()) {
-//                return fileServerUrl + "/api/share/" + existing.get(0).shareId;
-//            }
-//            ShareLink shareLink = new ShareLink();
-//            shareLink.fileDigest = res.get(0).digestString;
-//            shareLink.createdBy = UserInfo.getUserName(SecurityContextHolder.getContext().getAuthentication());
-//            shareLink.shareId = UUID.randomUUID().toString().replace("-", "");
-//            shareLink.createdAt = LocalDateTime.now();
-//            mongoTemplate.insert(shareLink, "share-links");
-//            return fileServerUrl + "/api/share/" + shareLink.shareId;
-//        } else {
-//            return "FILE_NOT_FOUND";
-//        }
-//    }
-
     @PreAuthorize("hasRole('USER')")
     @GetMapping("/")
     public List<ShareLink> getShareLinkList(Authentication authentication,
@@ -217,7 +186,6 @@ public class ShareLinkController {
     @PostMapping("/verify")
     public DBObject verify(@RequestBody String shareId) {
         String currentUserEmail = UserInfo.getUserEmail(SecurityContextHolder.getContext().getAuthentication());
-        System.out.println(currentUserEmail);
         Query query = new Query(Criteria.where("shareId").is(shareId));
         //query.addCriteria(Criteria.where("emailAddresses").in(currentUserEmail));
         //query.addCriteria(Criteria.where("expiry").gt(LocalDateTime.now()));

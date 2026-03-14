@@ -57,7 +57,7 @@ const ShareModal = ({ digestString, showModal, closeModal, generateShareLink, ge
 
     return (
         <>
-            <dialog id="my_modal_3" className={showModal ? "modal modal-open" : "modal"}>
+            <dialog id="share-modal" className={showModal ? "modal modal-open" : "modal"}>
                 <div className="modal-box w-11/12 max-w-5xl">
                     <form method="dialog">
                         <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onClick={closeModal}>✕</button>

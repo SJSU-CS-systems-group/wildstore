@@ -45,28 +45,20 @@ const SearchResult = ({ metadataRecord }) => {
     const token = useSelector(state => state.userReducer.opaqueToken)
 
     const download = async () => {
-        // const response = await fetch("/api/file/" + metadataRecord.digestString, {
-        //     method: 'GET',
-        //     headers: new Headers({
-        //         'Authorization': 'Bearer ' + token
-        //     }),
-        // });
-        // if (response.redirected) {
-            const fileResponse = await fetch("/api/file/" + metadataRecord.digestString, {
-                method: 'GET',
-                headers: new Headers({
-                    'Authorization': 'Bearer ' + token
-                }),
-            });
-            const blob = await fileResponse.blob();
-            var url = window.URL.createObjectURL(blob);
-            var a = document.createElement('a');
-            a.href = url;
-            a.download = metadataRecord.fileName[0].split("/").pop().split("\\").pop();
-            document.body.appendChild(a); // we need to append the element to the dom -> otherwise it will not work in firefox
-            a.click();
-            a.remove();  //afterwards we remove the element again  
-        // }
+        const fileResponse = await fetch("/api/file/" + metadataRecord.digestString, {
+            method: 'GET',
+            headers: new Headers({
+                'Authorization': 'Bearer ' + token
+            }),
+        });
+        const blob = await fileResponse.blob();
+        var url = window.URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = metadataRecord.fileName[0].split("/").pop().split("\\").pop();
+        document.body.appendChild(a); // we need to append the element to the dom -> otherwise it will not work in firefox
+        a.click();
+        a.remove();  //afterwards we remove the element again
     }
 
     const generateShareLink = async (emailAddresses, validFor) => {
