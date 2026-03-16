@@ -3,6 +3,7 @@ wildstore-common/target/
 wildstore-crawl/target/
 wildstore-fileserve/target/
 wildstore-meta/target/
+wildstore-relationalDb/target/
 wildstore-testdata/target/
 wildstore-testdata/src/main/resources/testdata/
 .idea/
