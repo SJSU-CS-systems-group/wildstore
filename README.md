@@ -50,19 +50,11 @@ Without authentication:
 ## To start the React dev server
 1. Make sure to pass the `--custom.frontendUrl` argument as the react dev server url when starting the spring server or specify it in the properties.yml.
 2. Make sure to pass the `--custom.allowedCorsOrigins` argument as a comma-separated list of origin URLs (`--custom.allowedCorsOrigins=http://localhost:3000`) to the spring server or specify it in the properties.yml.
-3. Create a .env file under `wildstore-meta/app` with the following contents and the Google Maps API key.
-
-4. Run the following commands
+3. Run the following commands
 ```
 cd ./wildstore-meta/app
 npm install
 npm start
-```
-
-
-Sample .env file
-```
-REACT_APP_GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY'
 ```
 
 you are going to need to setup the OAuth2 credentials for Google and GitHub.
@@ -125,36 +117,36 @@ java -jar wildstore-cli/target/wildstore-cli-1.0-SNAPSHOT.jar search <search que
 1. Query NetCDF variables using `VAR.` prefix followed by the variable name followed by a `.` and the aggregated value: `minValue` or `maxValue` or `average`.
 2. Other available query fields for variables include: `varDimensionList`, `attributeList` and `type`.
 ```
-java -jar wildstore-cli/target/wildstore-cli-1.0-SNAPSHOT.jar search "VAR.RAINC.minValue < 5" --metaURL=http://localhost:8080 --tokenFile=/Users/username/Documents/token.yml
+java -jar wildstore-cli/target/wildstore-cli-1.0-SNAPSHOT.jar search "VAR.RAINC.minValue < 5" --metaURL=http://localhost:27777 --tokenFile=/Users/username/Documents/token.yml
 ```
 
 ### Example 2 - Query Attributes
 1. Query NetCDF attributes using `ATTR.` prefix followed by the attribute name followed by a `.` and `value` or `type`.
 ```
-java -jar wildstore-cli/target/wildstore-cli-1.0-SNAPSHOT.jar search "ATTR.ISURBAN.value = 1" --metaURL=http://localhost:8080 --tokenFile=/Users/username/Documents/token.yml
+java -jar wildstore-cli/target/wildstore-cli-1.0-SNAPSHOT.jar search "ATTR.ISURBAN.value = 1" --metaURL=http://localhost:27777 --tokenFile=/Users/username/Documents/token.yml
 ```
 
 ### Example 3 - Query based on Time
 Use `TIMESTAMP'yyyy-MM-dd HH:mm:ss'` to query date values.
 ```
-java -jar wildstore-cli/target/wildstore-cli-1.0-SNAPSHOT.jar search "ATTR.StartDate.value >= TIMESTAMP'2019-06-21 00:00:00'" --metaURL=http://localhost:8080 --tokenFile=/Users/username/Documents/token.yml
+java -jar wildstore-cli/target/wildstore-cli-1.0-SNAPSHOT.jar search "ATTR.StartDate.value >= TIMESTAMP'2019-06-21 00:00:00'" --metaURL=http://localhost:27777 --tokenFile=/Users/username/Documents/token.yml
 ```
 
 ### Example 4 - Query based on Location
 Use `LOCATION` with the `IN` operator to query files within a polygon. Specify the polygon coordinates (double) as a list of tuples within parenthesis.
 ```
-java -jar wildstore-cli/target/wildstore-cli-1.0-SNAPSHOT.jar search "LOCATION IN ((0.0,0.0), (0.0,10.0), (20.0,20.0))" --metaURL=http://localhost:8080 --tokenFile=/Users/username/Documents/token.yml
+java -jar wildstore-cli/target/wildstore-cli-1.0-SNAPSHOT.jar search "LOCATION IN ((0.0,0.0), (0.0,10.0), (20.0,20.0))" --metaURL=http://localhost:27777 --tokenFile=/Users/username/Documents/token.yml
 ```
 
 ### Example 5 - Query based on Wind
 Query the following VARIABLES: `NorthWind`, `EastWind`, `SouthWind`, `WestWind`, `NorthEastWind`, `SouthEastWind`, `SouthWestWind`, `NorthWestWind`
 ```
-java -jar wildstore-cli/target/wildstore-cli-1.0-SNAPSHOT.jar search "VAR.NorthEastWind > 100.0" --metaURL=http://localhost:8080 --tokenFile=/Users/username/Documents/token.yml
+java -jar wildstore-cli/target/wildstore-cli-1.0-SNAPSHOT.jar search "VAR.NorthEastWind > 100.0" --metaURL=http://localhost:27777 --tokenFile=/Users/username/Documents/token.yml
 ```
 
 ### Example 6
 ```
-java -jar wildstore-cli/target/wildstore-cli-1.0-SNAPSHOT.jar search "LOCATION IN ((0.0,0.0), (0.0,10.0), (20.0,20.0)) AND ATTR.ISURBAN.value IN (1,2,3) AND (VAR.FMOIST.minValue >= 10 OR VAR.RH_FIRE.maxValue < 20.0) AND VAR.SouthEastWind.average > 10.0" --metaURL=http://localhost:8080 --tokenFile=/Users/username/Documents/token.yml
+java -jar wildstore-cli/target/wildstore-cli-1.0-SNAPSHOT.jar search "LOCATION IN ((0.0,0.0), (0.0,10.0), (20.0,20.0)) AND ATTR.ISURBAN.value IN (1,2,3) AND (VAR.FMOIST.minValue >= 10 OR VAR.RH_FIRE.maxValue < 20.0) AND VAR.SouthEastWind.average > 10.0" --metaURL=http://localhost:27777 --tokenFile=/Users/username/Documents/token.yml
 ```
 
 ### Example 7
