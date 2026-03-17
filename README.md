@@ -27,7 +27,7 @@ mongodb://localhost:<port_number>
 ```
 Click on the connect button next to the port number
 
-## To start the Spring server on <port_number>
+## To start the Spring server on port 27777
 1. Run
 ```
 mvn package
@@ -35,16 +35,16 @@ mvn package
 2. Run the generated jar \
    If using database authentication:
 ```
-   java -jar wildstore-meta/target/wildstore-meta.jar --spring.data.mongodb.uri=mongodb://username:password@localhost:27017/wildfire?authSource=admin --server.port=<port_number> --custom.frontendUrl=<frontend_url> --custom.allowedCorsOrigins=<comma_separated_urls>
+   java -jar wildstore-meta/target/wildstore-meta-server.jar --spring.data.mongodb.uri=mongodb://username:password@localhost:27017/wildfire?authSource=admin --server.port=27777 --custom.frontendUrl=<frontend_url> --custom.allowedCorsOrigins=<comma_separated_urls>
 ```
 Without authentication:
 ```
-   java -jar wildstore-meta/target/wildstore-meta.jar --spring.data.mongodb.uri=mongodb://localhost:27017/wildfire --server.port=<port_number> --custom.frontendUrl=<frontend_url> --custom.allowedCorsOrigins=<comma_separated_urls>
+   java -jar wildstore-meta/target/wildstore-meta-server.jar --spring.data.mongodb.uri=mongodb://localhost:27017/wildfire --server.port=27777 --custom.frontendUrl=<frontend_url> --custom.allowedCorsOrigins=<comma_separated_urls>
 ```
 
 ## To start the File server
 ```
-   java -jar wildstore-fileserve/target/wildstore-fileserve.jar --custom.metadataServer=http://127.0.0.1:<port_number> --server.port=<share_file_port_number>
+   java -jar wildstore-fileserve/target/wildstore-fileserve.jar --custom.metadataServer=http://127.0.0.1:27777 --server.port=27778
 ```
 
 ## To start the React dev server
@@ -100,7 +100,7 @@ To load the frontend and backend together on the same port, run `mvn package` an
 
 ## Running the crawler
 ```
-java -jar wildstore-crawl/target/wildstore-crawl-1.0-SNAPSHOT.jar --metaURL=<server host:port> --tokenFile=</path/to/token.yml> <"all" or "basic"> <path to file with NetCDF filenames or directory containing NetCDF files>
+java -jar wildstore-crawl/target/wildstore-crawler.jar --metaURL=<server host:port> --tokenFile=</path/to/token.yml> <"all" or "basic"> <path to file with NetCDF filenames or directory containing NetCDF files>
 ```
 
 ## Running the CLI
