@@ -1,3 +1,10 @@
+## Prerequisites
+Before running Wildstore, install the following:
+- **Java 17 JDK**: required to build and run the backend ([download](https://www.oracle.com/java/technologies/downloads>
+- **Apache Maven**: required to build the project ([download](https://maven.apache.org/download.cgi))
+- **MongoDB 6.0**: must be running before starting any server ([download](https://www.mongodb.com/try/download/communit>
+- **Node.js / npm**: only needed for frontend development mode; the full build (`mvn package`) downloads them automatic>
+
 ## To start the MongoDB server through Terminal
 With authentication
 ```
