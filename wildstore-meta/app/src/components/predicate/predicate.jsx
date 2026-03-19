@@ -17,7 +17,7 @@ const Predicate = ({ component, onChange, onAdd, items, onToggle, onDelete, show
     };
 
     return (
-        <div className="join">
+      <div className="flex flex-wrap lg:flex-nowrap items-center gap-3 w-full">
             <div className="flex-none">
                 <button className="btn join-item" 
                   onClick={(e) => {
@@ -27,7 +27,7 @@ const Predicate = ({ component, onChange, onAdd, items, onToggle, onDelete, show
                 </button>
             </div>
             <div className="flex-auto w-36">
-                <Autocomplete value={component.varName} 
+                <Autocomplete value={component.varName}
                   onChange={(e) => handleInputChange('varName', e)}
                   items={items} />
             </div>

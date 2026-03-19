@@ -144,16 +144,16 @@ const Workspace = () => {
                     })}
                 </div>
             </div>
-            <div className="h-fit">
-                <div className="collapse collapse-arrow rounded-none">
+            <div>
+                <div className="collapse collapse-arrow rounded-none !overflow-visible">
                     <input type="checkbox" defaultChecked />
-                    <div className="collapse-title text-xl font-medium">
+                    <div className="collapse-title text-xl font-medium !overflow-visible">
                         <div className='flex gap-4 items-center'>
                             <GoFilter size={20} />
                             Filters
                         </div>
                     </div>
-                    <div className="collapse-content">
+                    <div className="collapse-content !overflow-visible">
                         <Filter />
                     </div>
                 </div>

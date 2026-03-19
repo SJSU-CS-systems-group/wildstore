@@ -72,7 +72,7 @@ const Filter = () => {
     }
 
     return (
-        <div className="flex flex-col content-between flex-wrap">
+        <div className="flex flex-col justify-between flex-wrap">
             <div className='flex flex-col gap-4'>
                 {components.map((component, index) => (
                     <Predicate
