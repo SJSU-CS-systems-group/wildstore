@@ -5,16 +5,19 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-public class GenericFileReader {
-    private String filePath;
-    private DigestingRandomAccessFile randomAccessFile;
-    public DigestingRandomAccessFile getRandomAccessFile() {
-        return randomAccessFile;
+public class BasicFileReader implements FileReader {
+    private final String filePath;
+
+    public BasicFileReader(String filePath) {
+        this.filePath = filePath;
     }
 
-    public GenericFileReader(String filePath) {this.filePath = filePath;}
+    @Override
+    public void processFileContents(Metadata metadata, int maxReadSize) {}
 
-    public Metadata processFile() {
+    @Override
+    public Metadata processMetadata() {
+        DigestingRandomAccessFile randomAccessFile;
         try {
             randomAccessFile = new DigestingRandomAccessFile(filePath);
         } catch (IOException e) {
@@ -22,8 +25,6 @@ public class GenericFileReader {
         }
 
         Metadata metadata = new Metadata();
-        // no global attributes to extract,
-        // only records the filename, file size, last modified time, and a digest (checksum)
         metadata.globalAttributes = List.of();
         File file = new File(filePath);
         metadata.fileName = Set.of(filePath);
@@ -34,7 +35,6 @@ public class GenericFileReader {
             metadata.digestString = randomAccessFile.getDigestString(true);
         } catch (IOException e) {
             metadata.digestString = null;
-            System.out.println("No digest was found for this file.");
             throw new RuntimeException(e);
         }
 

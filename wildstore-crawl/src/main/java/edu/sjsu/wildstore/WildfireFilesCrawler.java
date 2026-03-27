@@ -24,9 +24,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Function;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,12 +36,14 @@ import java.util.stream.StreamSupport;
 
 @CommandLine.Command(name = "GET", mixinStandardHelpOptions = true)
 public class WildfireFilesCrawler implements Runnable {
-    private static final Set<String> SUPPORTED_EXTENSIONS = Set.of(
-        ".nc",           // NetCDF
-        ".hdf5", ".h5",  // HDF5
-        ".shp",          // Shapefile
-        ".tif", ".tiff", // GeoTIFF
-        ".kmz"           // KMZ
+    private static final Map<String, Function<String, FileReader>> FILE_READERS = Map.of(
+        ".nc",   NetcdfFileReader::new,
+        ".hdf5", BasicFileReader::new,
+        ".h5",   BasicFileReader::new,
+        ".shp",  BasicFileReader::new,
+        ".tif",  BasicFileReader::new,
+        ".tiff", BasicFileReader::new,
+        ".kmz",  BasicFileReader::new
     );
     @CommandLine.Option(names = "--metaURL", description = "Host name of the API server", required = true)
     String metaURL;
@@ -96,10 +98,13 @@ public class WildfireFilesCrawler implements Runnable {
                                 int maxReadSize,
                                 String option,
                                 boolean enumLog) throws InterruptedException, ExecutionException {
-        if (SUPPORTED_EXTENSIONS.stream().noneMatch(file::endsWith)) {return false;}
-        var metadata = file.endsWith(".nc")
-                       ? new NetcdfFileReader(file).processFile(maxReadSize)
-                       : new GenericFileReader(file).processFile();
+        var supportedFile = FILE_READERS.entrySet().stream()
+                .filter(e -> file.endsWith(e.getKey()))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse(null);
+        if (supportedFile == null) {return false;}
+        var metadata = supportedFile.apply(file).processFile(maxReadSize);
 
         System.out.println("Crawling file: " + file);
         if (option.equals("all")) {
@@ -345,7 +350,7 @@ public class WildfireFilesCrawler implements Runnable {
                             return false;
                         } else if (Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS) &&
                                 Files.isReadable(p) &&
-                                SUPPORTED_EXTENSIONS.stream().anyMatch(p.toString()::endsWith)) {
+                                FILE_READERS.keySet().stream().anyMatch(p.toString()::endsWith)) {
                             fileQueue.add(p);
                             return true;
                         } else {

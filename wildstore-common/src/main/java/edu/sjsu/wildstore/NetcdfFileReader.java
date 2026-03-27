@@ -22,7 +22,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class NetcdfFileReader {
+public class NetcdfFileReader implements FileReader {
     private final String netcdfFilepath;
     private long maxReadSize = 1000000000;
     private static final int ENUM_THRESHOLD = 20;
@@ -36,8 +36,8 @@ public class NetcdfFileReader {
         this.netcdfFilepath = netcdfFilepath;
     }
 
-    public Metadata processFile(int maxReadSize) {
-        // Try and read the contents of the netCDF file
+    @Override
+    public Metadata processMetadata() {
         try {
             var method = NetcdfFile.class.getDeclaredMethod("open", RandomAccessFile.class, String.class, CancelTask.class, Object.class);
             method.setAccessible(true);
@@ -48,9 +48,7 @@ public class NetcdfFileReader {
             throw new RuntimeException(e);
         }
 
-        this.maxReadSize = maxReadSize;
         Metadata metadata = new Metadata();
-        String fileNameStr = netcdfFilepath.substring(netcdfFilepath.lastIndexOf('/') + 1);
         metadata.fileName = Set.of(netcdfFilepath);
         metadata.filePath = Set.of(netcdfFilepath.substring(0, netcdfFilepath.lastIndexOf('/') + 1));
 
@@ -59,8 +57,15 @@ public class NetcdfFileReader {
         metadata.fileSize = file.length();
         metadata.lastModified = file.lastModified();
 
-        metadata.globalAttributes = readGlobalAttributes();
+        return metadata;
+    }
 
+    @Override
+    public void processFileContents(Metadata metadata, int maxReadSize) {
+        this.maxReadSize = maxReadSize;
+        String fileNameStr = netcdfFilepath.substring(netcdfFilepath.lastIndexOf('/') + 1);
+
+        metadata.globalAttributes = readGlobalAttributes();
         metadata.variables = readVariables();
 
         //Special processing @Todo: Find a more efficient way to do this
@@ -151,8 +156,6 @@ public class NetcdfFileReader {
             System.out.println("No digest was found for this file.");
             throw new RuntimeException(e);
         }
-
-        return metadata;
     }
 
     public List<WildfireAttribute> readGlobalAttributes() {
