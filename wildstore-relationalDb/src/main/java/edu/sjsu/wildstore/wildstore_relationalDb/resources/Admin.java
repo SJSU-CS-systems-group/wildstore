@@ -1,21 +1,20 @@
 package edu.sjsu.wildstore.wildstore_relationalDb;
 
-import jakarta.persistence.Convert;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
 
 @Entity
-public class User {
+public class Admin {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    private String first_name; 
-
-    private String last_name; 
-
-    @Convert(converter = UserEmailConverter.class)
-    private String email; 
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name="user_id", referencedColumnName="id")
+    private User user;
 }

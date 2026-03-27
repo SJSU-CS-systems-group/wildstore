@@ -7,7 +7,8 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 
 @Entity
 public class FileNode {
@@ -21,6 +22,10 @@ public class FileNode {
 
     @Enumerated(EnumType.STRING)
     private FileType file_type; 
+
+    @ManyToOne
+    @JoinColumn(name="file_node_id", referencedColumnName="id")
+    private FileNode parent;
 
     @Convert(converter = FileDigestConverter.class)
     private String digest;
