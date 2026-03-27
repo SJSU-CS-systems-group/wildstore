@@ -220,15 +220,15 @@ public class CrawlTest {
     }
 
     @Test
-    public void testGenericCrawl() throws IOException {
+    public void testBasicCrawl() throws IOException {
         String userToken = "secret-user-token";
         createUser("ROLE_USER", "user", "user@crawl", userToken);
 
         var userTokenFile = tempDir.resolve("user-token.txt");
         Files.write(userTokenFile, ("token=" + userToken).getBytes());
 
-        // Create generic test files (HDF5, shapefiles, GeoTIFFs, KMZ) in tempNameDir
-        var genericDir = tempNameDir.resolve("generic-data");
+        // Create basic test files (HDF5, shapefiles, GeoTIFFs, KMZ) in tempNameDir
+        var genericDir = tempNameDir.resolve("basic-data");
         Files.createDirectories(genericDir);
 
         var hdf5File  = genericDir.resolve("testData.h5");
@@ -257,7 +257,7 @@ public class CrawlTest {
         var singleFile = tempNameDir.resolve("genericSingleFile.txt");
         Files.write(singleFile, hdf5File.toAbsolutePath().toString().getBytes());
 
-        // user should be able to crawl generic files
+        // user should be able to crawl basic files
         var result = clirun(WildfireFilesCrawler.class,
                         "--metaURL", metaURL,
                         "--tokenFile", userTokenFile.toString(), nameFile.toString());
@@ -278,11 +278,11 @@ public class CrawlTest {
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertTrue(result.out.contains("0 valid files found."));
         Assertions.assertTrue(result.out.contains("Crawled 0 new files."));
-        // all 6 generic files skipped, .txt not counted at all
+        // all 6 basic files skipped, .txt not counted at all
         System.out.println("Test skipping: " +result.out);
         Assertions.assertTrue(result.out.contains("Skipped " + numToCrawl + " files already crawled."));
 
-        // should re-crawl a generic file with a later lastModified date
+        // should re-crawl a basic file with a later lastModified date
         var metaDataCount = springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments();
         Files.write(hdf5File, "updated hdf5 content".getBytes());
         Files.setLastModifiedTime(hdf5File, FileTime.from(Instant.now().plusSeconds(2)));
