@@ -1,5 +1,6 @@
 package edu.sjsu.wildstore.wildstore_relationalDb;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -12,10 +13,19 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    private String first_name; 
+    private String firstName; 
 
-    private String last_name; 
+    private String lastName; 
 
+    @Column(unique = true, nullable = false)
     @Convert(converter = UserEmailConverter.class)
     private String email; 
+
+    protected User() {}
+
+    public User(String email, String firstName, String lastName) {
+      this.email = email;
+      this.firstName = firstName;
+      this.lastName = lastName;
+    }
 }
