@@ -18,9 +18,9 @@ public class FileDigestConverter implements AttributeConverter<String, String> {
     }
 
     @Override
-    public String convertToEntityAttribute(String encrypted_digest) {
+    public String convertToEntityAttribute(String encryptedDigest) {
       try {
-        return EncryptionUtils.decryptString(encrypted_digest, KEY);
+        return EncryptionUtils.decryptString(encryptedDigest, KEY);
       } catch (Exception e) {
         throw new RuntimeException(e);
       }

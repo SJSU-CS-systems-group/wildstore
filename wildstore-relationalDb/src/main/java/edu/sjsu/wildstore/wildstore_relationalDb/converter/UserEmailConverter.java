@@ -18,9 +18,9 @@ public class UserEmailConverter implements AttributeConverter<String, String> {
     }
 
     @Override
-    public String convertToEntityAttribute(String encrypted_email) {
+    public String convertToEntityAttribute(String encryptedEmail) {
       try {
-        return EncryptionUtils.decryptString(encrypted_email, KEY);
+        return EncryptionUtils.decryptString(encryptedEmail, KEY);
       } catch (Exception e) {
         throw new RuntimeException(e);
       }

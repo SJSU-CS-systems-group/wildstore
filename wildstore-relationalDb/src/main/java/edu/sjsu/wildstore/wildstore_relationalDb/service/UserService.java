@@ -22,11 +22,10 @@ public class UserService {
 
         if (existingUser.isPresent()) {
             return existingUser.get();
-        } else {
-            // If not found, create a new instance
-            User user = new User(email, firstName, lastName, UserRole.EXTERNAL); // Assuming a constructor or setters
-            return userRepository.save(user); // Save the new entity
-        }
+        } 
+        // If not found, create a new instance
+        User user = new User(email, firstName, lastName, UserRole.EXTERNAL); // Assuming a constructor or setters
+        return userRepository.save(user); // Save the new entity
     }
 
     @Transactional
