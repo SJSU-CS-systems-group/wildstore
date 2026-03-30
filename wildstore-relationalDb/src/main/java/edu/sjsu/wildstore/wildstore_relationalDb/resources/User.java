@@ -30,9 +30,14 @@ public class User {
 
     protected User() {}
 
-    public User(String email, String firstName, String lastName) {
+    public User(String email, String firstName, String lastName, UserRole userRole) {
       this.email = email;
       this.firstName = firstName;
       this.lastName = lastName;
+      this.userRole = userRole;
+    }
+
+    public void setUserRole(UserRole userRole) {
+      this.userRole = userRole;
     }
 }

@@ -24,9 +24,23 @@ public class UserService {
             return existingUser.get();
         } else {
             // If not found, create a new instance
-            User user = new User(email, firstName, lastName); // Assuming a constructor or setters
+            User user = new User(email, firstName, lastName, UserRole.EXTERNAL); // Assuming a constructor or setters
             return userRepository.save(user); // Save the new entity
         }
+    }
+
+    @Transactional
+    public User findOrCreateInternal(String email, String firstName, String lastName) {
+      User user = findOrCreate(email, firstName, lastName);
+      user.setUserRole(UserRole.INTERNAL);
+      return userRepository.save(user); // Save the new entity
+    }
+
+    @Transactional
+    public User findOrCreateAdmin(String email, String firstName, String lastName) {
+      User user = findOrCreate(email, firstName, lastName);
+      user.setUserRole(UserRole.ADMIN);
+      return userRepository.save(user); // Save the new entity
     }
 
     public boolean isAdmin(Long userId) {
