@@ -28,4 +28,8 @@ public class UserService {
             return userRepository.save(user); // Save the new entity
         }
     }
+
+    public boolean isAdmin(Long userId) {
+      return userRepository.existsByIdAndUserRole(userId, UserRole.ADMIN);
+    }
 }

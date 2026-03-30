@@ -14,14 +14,14 @@ import jakarta.persistence.ManyToOne;
 public class FileNode {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
     private String file_name; 
 
     private long size; 
 
     @Enumerated(EnumType.STRING)
-    private FileType file_type; 
+    private FileType fileType; 
 
     @ManyToOne
     @JoinColumn(name="file_node_id", referencedColumnName="id")
