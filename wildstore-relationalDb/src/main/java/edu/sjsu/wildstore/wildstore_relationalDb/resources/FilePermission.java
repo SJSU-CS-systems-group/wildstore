@@ -14,15 +14,15 @@ public class FilePermission {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    //@OneToOne(cascade = CascadeType.ALL)
-    //@JoinColumn(name="user_id", referencedColumnName="id")
-    //private User admin; 
-    //
-    //@OneToOne(cascade = CascadeType.ALL)
-    //@JoinColumn(name="user_id", referencedColumnName="id")
-    //private User user;
-    //
-    //@OneToOne(cascade = CascadeType.ALL)
-    //@JoinColumn(name="file_node_id", referencedColumnName="id")
-    //private FileNode fileNode;
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name="admin_id", referencedColumnName="id")
+    private User admin; 
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name="user_id", referencedColumnName="id")
+    private User user;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name="file_node_id", referencedColumnName="id")
+    private FileNode fileNode;
 }
