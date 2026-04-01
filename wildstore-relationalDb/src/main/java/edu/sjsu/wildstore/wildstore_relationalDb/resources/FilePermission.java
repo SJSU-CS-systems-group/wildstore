@@ -25,4 +25,10 @@ public class FilePermission {
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name="file_node_id", referencedColumnName="id")
     private FileNode fileNode;
+
+    public FilePermission(User admin, User user, FileNode fileNode) {
+      this.admin = admin;
+      this.user = user;
+      this.fileNode = fileNode;
+    }
 }

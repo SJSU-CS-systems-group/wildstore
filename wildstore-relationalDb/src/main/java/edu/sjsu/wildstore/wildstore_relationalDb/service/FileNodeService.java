@@ -37,4 +37,8 @@ public class FileNodeService {
         FileNode fileNode = new FileNode(fileName, size, fileType, parent.get(), digest);
         return fileNodeRepository.save(fileNode); // Save the new entity
     }
+
+    public Optional<FileNode> findById(Long fileNodeId) {
+        return fileNodeRepository.findById(fileNodeId);
+    }
 }

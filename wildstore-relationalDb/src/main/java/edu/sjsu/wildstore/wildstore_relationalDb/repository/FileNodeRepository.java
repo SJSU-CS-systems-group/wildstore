@@ -9,4 +9,6 @@ public interface FileNodeRepository extends JpaRepository<FileNode, Long> {
   Optional<FileNode> findById(Long fileNodeId);
 
   Optional<FileNode> findByIdAndFileType(Long fileNodeId, FileType fileType);
+
+  boolean existsById(Long fileNodeId);
 }

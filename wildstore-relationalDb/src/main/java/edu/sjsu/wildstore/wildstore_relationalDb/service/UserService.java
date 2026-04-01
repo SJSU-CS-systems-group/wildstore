@@ -15,6 +15,12 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
+    public User findOrCreate(String email) {
+      String firstName = "";
+      String lastName = "";
+      return findOrCreate(email, firstName, lastName);
+    }
+
     @Transactional
     public User findOrCreate(String email, String firstName, String lastName) {
         // Check if the entity already exists
@@ -35,6 +41,12 @@ public class UserService {
       return userRepository.save(user); // Save the new entity
     }
 
+    public User findOrCreateAdmin(String email) {
+      String firstName = "";
+      String lastName = "";
+      return findOrCreateAdmin(email, firstName, lastName);
+    }
+
     @Transactional
     public User findOrCreateAdmin(String email, String firstName, String lastName) {
       User user = findOrCreate(email, firstName, lastName);
@@ -44,5 +56,9 @@ public class UserService {
 
     public boolean isAdmin(Long userId) {
       return userRepository.existsByIdAndUserRole(userId, UserRole.ADMIN);
+    }
+
+    public Optional<User> getAdmin(Long adminId) {
+      return userRepository.findByIdAndUserRole(adminId, UserRole.ADMIN);
     }
 }
