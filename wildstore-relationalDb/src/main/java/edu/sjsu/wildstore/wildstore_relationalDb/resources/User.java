@@ -1,5 +1,6 @@
 package edu.sjsu.wildstore.wildstore_relationalDb;
 
+import java.util.List;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
@@ -9,6 +10,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 
 @Entity
@@ -27,6 +29,12 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     private UserRole userRole;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE)
+    private List<FilePermission> userPermissions;
+
+    @OneToMany(mappedBy = "admin", cascade = CascadeType.REMOVE)
+    private List<FilePermission> grantedPermissions;
 
     protected User() {}
 

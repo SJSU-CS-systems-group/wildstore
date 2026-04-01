@@ -41,4 +41,12 @@ public class FileNodeService {
     public Optional<FileNode> findById(Long fileNodeId) {
         return fileNodeRepository.findById(fileNodeId);
     }
+
+    //public List<FileNode> fileNodeChildrenUserCanAccess(Long parentId, Long userId) {
+    //    Optional<FileNode> parent = fileNodeRepository.findByIdAndFileType(parentId, FileType.DIRECTORY);
+    //    if (!parent.isPresent()) {
+    //      String message = "Parent FileNode with id " + parentId + " either doesn't exist or is not a directory.";
+    //      throw new ParentDoesNotExistException(message); 
+    //    }
+    //}
 }

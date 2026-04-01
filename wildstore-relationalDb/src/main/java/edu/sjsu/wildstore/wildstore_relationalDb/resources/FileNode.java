@@ -1,5 +1,7 @@
 package edu.sjsu.wildstore.wildstore_relationalDb;
 
+import java.util.List;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,6 +12,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 
 @Entity
 public class FileNode {
@@ -28,6 +31,9 @@ public class FileNode {
     @ManyToOne
     @JoinColumn(name="file_node_id", referencedColumnName="id")
     private FileNode parent;
+
+    @OneToMany(mappedBy = "fileNode", cascade = CascadeType.REMOVE)
+    private List<FilePermission> filePermissions;
 
     @Column(unique = true, nullable = false)
     @Convert(converter = FileDigestConverter.class)
