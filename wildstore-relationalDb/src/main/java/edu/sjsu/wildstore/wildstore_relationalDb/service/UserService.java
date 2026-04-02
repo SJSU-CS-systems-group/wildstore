@@ -58,7 +58,11 @@ public class UserService {
       return userRepository.existsByIdAndUserRole(userId, UserRole.ADMIN);
     }
 
-    public Optional<User> getAdmin(Long adminId) {
+    public Optional<User> getAdminById(Long adminId) {
       return userRepository.findByIdAndUserRole(adminId, UserRole.ADMIN);
+    }
+
+    public Optional<User> getUserById(Long userId) {
+      return userRepository.findById(userId);
     }
 }

@@ -1,5 +1,6 @@
 package edu.sjsu.wildstore.wildstore_relationalDb;
 
+import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -8,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class FileNodeService {
     private final FileNodeRepository fileNodeRepository;
+    private final UserService userService;
 
     public class ParentDoesNotExistException extends Exception {
       public ParentDoesNotExistException(String message) {
@@ -15,9 +17,16 @@ public class FileNodeService {
       }
     }
 
+    public class UserDoesNotExistException extends Exception {
+      public UserDoesNotExistException(String message) {
+        super(message);
+      }
+    }
+
     @Autowired
-    public FileNodeService(FileNodeRepository fileNodeRepository) {
+    public FileNodeService(FileNodeRepository fileNodeRepository, UserService userService) {
         this.fileNodeRepository = fileNodeRepository;
+        this.userService = userService;
     }
 
     @Transactional
@@ -42,11 +51,17 @@ public class FileNodeService {
         return fileNodeRepository.findById(fileNodeId);
     }
 
-    //public List<FileNode> fileNodeChildrenUserCanAccess(Long parentId, Long userId) {
-    //    Optional<FileNode> parent = fileNodeRepository.findByIdAndFileType(parentId, FileType.DIRECTORY);
-    //    if (!parent.isPresent()) {
-    //      String message = "Parent FileNode with id " + parentId + " either doesn't exist or is not a directory.";
-    //      throw new ParentDoesNotExistException(message); 
-    //    }
-    //}
+    public List<FileNode> fileNodeChildrenUserCanAccess(Long parentId, Long userId) throws Exception {
+        Optional<FileNode> parent = fileNodeRepository.findByIdAndFileType(parentId, FileType.DIRECTORY);
+        if (!parent.isPresent()) {
+          String message = "Parent FileNode with id " + parentId + " either doesn't exist or is not a directory.";
+          throw new ParentDoesNotExistException(message); 
+        }
+        Optional<User> user = userService.getUserById(userId);
+        if (!user.isPresent()) {
+          String message = "User with id " + userId + " does not exist.";
+          throw new UserDoesNotExistException(message); 
+        }
+        return fileNodeRepository.findByParentIdAndUserFilePermission(parent.get(), user.get());
+    }
 }

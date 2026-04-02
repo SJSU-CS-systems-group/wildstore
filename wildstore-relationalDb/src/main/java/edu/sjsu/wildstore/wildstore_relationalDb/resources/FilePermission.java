@@ -16,15 +16,15 @@ public class FilePermission {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name="admin_id", referencedColumnName="id")
+    @JoinColumn(name="adminId", referencedColumnName="id")
     private User admin; 
 
     @ManyToOne
-    @JoinColumn(name="user_id", referencedColumnName="id")
+    @JoinColumn(name="userId", referencedColumnName="id")
     private User user;
 
     @ManyToOne
-    @JoinColumn(name="file_node_id", referencedColumnName="id")
+    @JoinColumn(name="fileNodeId", referencedColumnName="id")
     private FileNode fileNode;
 
     public FilePermission(User admin, User user, FileNode fileNode) {

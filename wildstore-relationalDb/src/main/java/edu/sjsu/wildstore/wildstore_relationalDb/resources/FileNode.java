@@ -29,7 +29,7 @@ public class FileNode {
     private FileType fileType; 
 
     @ManyToOne
-    @JoinColumn(name="file_node_id", referencedColumnName="id")
+    @JoinColumn(name="parentId", referencedColumnName="id")
     private FileNode parent;
 
     @OneToMany(mappedBy = "fileNode", cascade = CascadeType.REMOVE)
