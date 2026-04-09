@@ -1,6 +1,4 @@
-# CLAUDE.md - Wildstore Project Guide
-
-## Project Overview
+# Project Overview
 
 Wildstore is a scientific data management system for NetCDF files. It provides metadata extraction, search, file sharing, and a web UI with map-based geospatial visualization. Built at SJSU as a multi-module Java/React application.
 
