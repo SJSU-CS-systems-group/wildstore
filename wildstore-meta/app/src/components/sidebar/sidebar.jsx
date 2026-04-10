@@ -1,6 +1,8 @@
-import { GoHome, GoShareAndroid, GoPerson } from 'react-icons/go';
-import SideBarIcon from '../sidebar-icon/sidebarIcon';
+import { FaFolder } from 'react-icons/fa';
+import { GoHome, GoPerson, GoShareAndroid } from 'react-icons/go';
 import { Link } from "react-router-dom";
+import SideBarIcon from '../sidebar-icon/sidebarIcon';
+
 const SideBar = () => {
     return (
         <div>
@@ -12,6 +14,9 @@ const SideBar = () => {
             </Link>
             <Link to={"/home/users"}>
                 <SideBarIcon icon={<GoPerson size="28" />} />
+            </Link>
+            <Link to="/files?file_id=0" aria-label="Open files">
+                <SideBarIcon icon={<FaFolder size="28" />} />
             </Link>
         </div>
     );

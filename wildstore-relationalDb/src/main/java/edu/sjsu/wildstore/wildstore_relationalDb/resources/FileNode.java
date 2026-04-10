@@ -1,4 +1,4 @@
-package edu.sjsu.wildstore.wildstore_relationalDb;
+package edu.sjsu.wildstore.wildstore_relationalDb.resources;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record FileNode(

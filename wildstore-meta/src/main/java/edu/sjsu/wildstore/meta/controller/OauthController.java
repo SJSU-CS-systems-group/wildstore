@@ -34,8 +34,20 @@ public class OauthController {
     @Value("${custom.expireAfterSeconds:2592000}")
     private long expireAfterSeconds;
 
-    @PreAuthorize("hasRole('GUEST')")
-    @RequestMapping(value = { "/", "/token", "/forbidden", "/home" })
+        @PreAuthorize("hasRole('GUEST')")
+        @RequestMapping(value = {
+            "/",
+            "/token",
+            "/forbidden",
+            "/home",
+            "/home/**",
+            "/users",
+            "/file-contents",
+            "/files",
+            "/files/**",
+            "/filescontents",
+            "/filescontents/**"
+        })
 
     public String index() {return "index.html";}
 
