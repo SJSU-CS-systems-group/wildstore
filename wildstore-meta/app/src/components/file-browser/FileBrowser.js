@@ -19,7 +19,7 @@ const FileBrowser = ({ mode = 'download' }) => {
   const [generatedLink, setGeneratedLink] = useState('');
   const [pendingShareDigests, setPendingShareDigests] = useState([]);
 
-  const fileId = searchParams.get('file_id') || searchParams.get('file_contents') || '0';
+  const fileId = searchParams.get('file_id') || '0';
 
   useEffect(() => {
     fetchFiles(fileId);
