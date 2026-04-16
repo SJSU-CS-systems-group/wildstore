@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OauthController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">wildstore-meta</a> &gt; <a href="index.source.html" class="el_package">edu.sjsu.wildstore.meta.controller</a> &gt; <span class="el_source">OauthController.java</span></div><h1>OauthController.java</h1><pre class="source lang-java linenums">package edu.sjsu.wildstore.meta.controller;
+
+import edu.sjsu.wildstore.meta.MongoCollections;
+import edu.sjsu.wildstore.meta.util.UserInfo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import java.security.Principal;
+import java.time.Instant;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
+
+@Controller
+<span class="fc" id="L29">public class OauthController {</span>
+    @Autowired
+    private MongoTemplate mongoTemplate;
+<span class="fc" id="L32">    public final String USER_COLLECTION = MongoCollections.USER_DATA;</span>
+
+    @Value(&quot;${custom.expireAfterSeconds:2592000}&quot;)
+    private long expireAfterSeconds;
+
+    @PreAuthorize(&quot;hasRole('GUEST')&quot;)
+    @RequestMapping(value = { &quot;/&quot;, &quot;/token&quot;, &quot;/forbidden&quot;, &quot;/home&quot; })
+
+<span class="nc" id="L40">    public String index() {return &quot;index.html&quot;;}</span>
+
+    @PreAuthorize(&quot;hasRole('GUEST')&quot;)
+    @GetMapping(&quot;/api/oauth/user&quot;)
+    public ResponseEntity&lt;String&gt; user(OAuth2User user) {
+<span class="nc" id="L45">        Map details = user.getAttributes();</span>
+<span class="nc" id="L46">        var name = details.get(&quot;login&quot;);</span>
+<span class="nc" id="L47">        return new ResponseEntity&lt;&gt;(name.toString(), HttpStatus.OK);</span>
+    }
+
+    @GetMapping(&quot;/api/oauth/userInfo&quot;)
+    public ResponseEntity&lt;String&gt; info(Principal user) {
+<span class="nc" id="L52">        return new ResponseEntity&lt;&gt;(user.toString(), HttpStatus.OK);</span>
+    }
+
+    @PreAuthorize(&quot;hasRole('GUEST')&quot;)
+    @GetMapping(&quot;/api/oauth/token&quot;)
+    public ResponseEntity&lt;String&gt; token(OAuth2AuthenticationToken user) {
+<span class="nc" id="L58">        String opaqueToken = getOpaqueToken(user);</span>
+<span class="nc" id="L59">        return new ResponseEntity&lt;&gt;(opaqueToken, HttpStatus.OK);</span>
+    }
+
+    @PreAuthorize(&quot;hasRole('GUEST')&quot;)
+    @GetMapping(&quot;/api/oauth/token/regenerate&quot;)
+    public ResponseEntity&lt;String&gt; tokenRegenerate(OAuth2AuthenticationToken user) {
+<span class="nc" id="L65">        String email = user.getPrincipal().getAttribute(&quot;email&quot;);</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">        if (email == null) {</span>
+<span class="nc" id="L67">            email = user.getPrincipal().getAttribute(&quot;login&quot;) + &quot;@github&quot;;</span>
+        }
+<span class="nc" id="L69">        Query query = new Query(Criteria.where(&quot;email&quot;).is(email));</span>
+<span class="nc" id="L70">        String opaqueToken = generateToken();</span>
+<span class="nc" id="L71">        Update update = new Update().set(&quot;token&quot;, opaqueToken);</span>
+<span class="nc" id="L72">        mongoTemplate.updateFirst(query, update, USER_COLLECTION);</span>
+
+<span class="nc" id="L74">        return new ResponseEntity&lt;&gt;(opaqueToken, HttpStatus.OK);</span>
+    }
+
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    @GetMapping(&quot;/api/oauth/checkAccess&quot;)
+    public ResponseEntity&lt;Boolean&gt; checkAccess() {
+<span class="nc" id="L80">        return new ResponseEntity&lt;&gt;(true, HttpStatus.OK);</span>
+    }
+
+    public String getOpaqueToken(OAuth2AuthenticationToken user) {
+<span class="nc" id="L84">        String name = user.getPrincipal().getAttribute(&quot;name&quot;);</span>
+<span class="nc" id="L85">        String email = UserInfo.getUserEmail(user);</span>
+<span class="nc" id="L86">        Query query = new Query(Criteria.where(&quot;email&quot;).is(email));</span>
+<span class="nc" id="L87">        var opaqueTokenMap = mongoTemplate.find(query, Map.class, USER_COLLECTION);</span>
+<span class="nc" id="L88">        String opaqueToken = null;</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">        if (!opaqueTokenMap.isEmpty()) {</span>
+<span class="nc" id="L90">            opaqueToken = (String) opaqueTokenMap.get(0).get(&quot;token&quot;);</span>
+        } else {
+<span class="nc" id="L92">            opaqueToken = generateToken();</span>
+<span class="nc" id="L93">            Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L94">            map.put(&quot;name&quot;, name);</span>
+<span class="nc" id="L95">            map.put(&quot;email&quot;, email);</span>
+<span class="nc" id="L96">            map.put(&quot;token&quot;, opaqueToken);</span>
+<span class="nc" id="L97">            map.put(&quot;expiry&quot;, Instant.now().plusSeconds(expireAfterSeconds));</span>
+<span class="nc" id="L98">            map.put(&quot;role&quot;, &quot;ROLE_GUEST&quot;);</span>
+<span class="nc" id="L99">            mongoTemplate.insert(map, USER_COLLECTION);</span>
+        }
+<span class="nc" id="L101">        return opaqueToken;</span>
+    }
+
+    public static String generateToken() {
+<span class="fc" id="L105">        Random random = ThreadLocalRandom.current();</span>
+<span class="fc" id="L106">        byte[] randomBytes = new byte[32];</span>
+<span class="fc" id="L107">        random.nextBytes(randomBytes);</span>
+<span class="fc" id="L108">        String opaqueToken = Base64.getUrlEncoder().encodeToString(randomBytes);</span>
+<span class="fc" id="L109">        return opaqueToken;</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

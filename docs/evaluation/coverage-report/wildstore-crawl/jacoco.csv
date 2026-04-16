@@ -1,0 +1,6 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+wildstore-crawl,edu.sjsu.wildstore,WildfireFilesCrawler.new ParameterizedTypeReference() {...},0,3,0,0,0,1,0,1,0,1
+wildstore-crawl,edu.sjsu.wildstore,WildfireFilesCrawler,297,457,29,21,72,100,26,21,6,16
+wildstore-crawl,edu.sjsu.wildstore,WildfireFilesCrawler.new ParameterizedTypeReference() {...},6,0,0,0,1,0,1,0,1,0
+wildstore-crawl,edu.sjsu.wildstore,WildfireFilesCrawler.FileSpliterator,21,160,10,16,7,39,9,10,0,6
+wildstore-crawl,edu.sjsu.wildstore,WildfireFilesCrawler.new ParameterizedTypeReference() {...},0,6,0,0,0,1,0,1,0,1

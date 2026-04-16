@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CriteriaBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">wildstore-meta</a> &gt; <a href="index.source.html" class="el_package">edu.sjsu.wildstore.meta</a> &gt; <span class="el_source">CriteriaBuilder.java</span></div><h1>CriteriaBuilder.java</h1><pre class="source lang-java linenums">package edu.sjsu.wildstore.meta;
+
+import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.expression.*;
+import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
+import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
+import net.sf.jsqlparser.expression.operators.relational.*;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.Select;
+import org.springframework.data.geo.Point;
+import org.springframework.data.mongodb.core.geo.GeoJsonPolygon;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.mongodb.core.query.Criteria;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
+
+<span class="nc" id="L23">public class CriteriaBuilder {</span>
+
+<span class="fc" id="L25">    private static final Logger logger = LoggerFactory.getLogger(CriteriaBuilder.class);</span>
+    public static final String DATE_FORMAT = &quot;yyyy-MM-dd HH:mm:ss&quot;;
+    public static final String VAR_TYPE = &quot;VAR&quot;;
+    public static final String ATTRIBUTE_TYPE = &quot;ATTR&quot;;
+    public static final String LOCATION_TYPE = &quot;LOCATION&quot;;
+    public static final String SQL_PREFIX = &quot;SELECT * FROM metadata WHERE &quot;;
+    public static final String VARIABLE_NAME_FIELD = &quot;variableName&quot;;
+    public static final String VARIABLES_ARRAY_FIELD = &quot;variables&quot;;
+    public static final String ATTRIBUTE_NAME_FIELD = &quot;attributeName&quot;;
+    public static final String ATTRIBUTES_ARRAY_FIELD = &quot;globalAttributes&quot;;
+    public static final String LOCATION_FIELD = &quot;location&quot;;
+
+    /**
+     * @param query WHERE clause of an SQL query
+     * @return MongoDB Criteria
+     * @throws JSQLParserException
+     */
+    public static Criteria buildFromSQL(String query) throws JSQLParserException {
+<span class="fc bfc" id="L43" title="All 2 branches covered.">        if (query.isEmpty()) {</span>
+<span class="fc" id="L44">            return null;</span>
+        }
+        // Set SELECT clause for parsing
+<span class="fc" id="L47">        query = SQL_PREFIX + query;</span>
+<span class="fc" id="L48">        PlainSelect select = (PlainSelect) ((Select) CCJSqlParserUtil.parse(query)).getSelectBody();</span>
+<span class="fc" id="L49">        return build(select.getWhere());</span>
+    }
+
+    /**
+     * Builds Criteria recursively
+     *
+     * @param ex a JSQLParser expression
+     * @return a MongoDB Criteria representing the SQL query
+     */
+    private static Criteria build(Expression ex) {
+<span class="pc bpc" id="L59" title="3 of 12 branches missed.">        switch (ex.getClass().getSimpleName()) {</span>
+            case &quot;AndExpression&quot;: {
+<span class="fc" id="L61">                Criteria criteriaLeft = build(((AndExpression) ex).getLeftExpression());</span>
+<span class="fc" id="L62">                Criteria criteriaRight = build(((AndExpression) ex).getRightExpression());</span>
+<span class="fc" id="L63">                Criteria criteria = new Criteria();</span>
+<span class="fc" id="L64">                criteria.andOperator(criteriaLeft, criteriaRight);</span>
+<span class="fc" id="L65">                return criteria;</span>
+            }
+            case &quot;OrExpression&quot;: {
+<span class="fc" id="L68">                Criteria criteriaLeft = build(((OrExpression) ex).getLeftExpression());</span>
+<span class="fc" id="L69">                Criteria criteriaRight = build(((OrExpression) ex).getRightExpression());</span>
+<span class="fc" id="L70">                Criteria criteria = new Criteria();</span>
+<span class="fc" id="L71">                criteria.orOperator(criteriaLeft, criteriaRight);</span>
+<span class="fc" id="L72">                return criteria;</span>
+            }
+            case &quot;EqualsTo&quot;: {
+<span class="fc" id="L75">                EqualsTo eq = (EqualsTo) ex;</span>
+<span class="fc" id="L76">                Column column = (Column) eq.getLeftExpression();</span>
+<span class="fc" id="L77">                Criteria arrayCriteria = getArrayMatchCriteria(column);</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">                if (arrayCriteria != null) {</span>
+<span class="fc" id="L79">                    arrayCriteria.and(column.getColumnName()).is(getPrimitiveValue(eq.getRightExpression()));</span>
+<span class="fc" id="L80">                    return getElemMatchCriteria(column, arrayCriteria);</span>
+                } else {
+<span class="fc" id="L82">                    return Criteria.where(column.toString()).is(getPrimitiveValue(eq.getRightExpression()));</span>
+                }
+            }
+            case &quot;LikeExpression&quot;: {
+<span class="fc" id="L86">                LikeExpression like = (LikeExpression) ex;</span>
+<span class="fc" id="L87">                Column column = (Column) like.getLeftExpression();</span>
+
+<span class="fc" id="L89">                String likePattern = (String) getPrimitiveValue(like.getRightExpression());</span>
+
+<span class="fc" id="L91">                String regexPattern = likePattern</span>
+<span class="fc" id="L92">                        .replace(&quot;%&quot;, &quot;.*&quot;)</span>
+<span class="fc" id="L93">                        .replace(&quot;_&quot;, &quot;.&quot;);</span>
+
+<span class="fc" id="L95">                Criteria arrayCriteria = getArrayMatchCriteria(column);</span>
+<span class="pc bpc" id="L96" title="1 of 2 branches missed.">                if (arrayCriteria != null) {</span>
+<span class="nc" id="L97">                    arrayCriteria.and(column.getColumnName())</span>
+<span class="nc" id="L98">                            .regex(regexPattern);</span>
+<span class="nc" id="L99">                    return getElemMatchCriteria(column, arrayCriteria);</span>
+                } else {
+<span class="fc" id="L101">                    return Criteria.where(column.toString())</span>
+<span class="fc" id="L102">                            .regex(regexPattern);</span>
+                }
+            }
+
+            case &quot;NotEqualsTo&quot;: {
+<span class="fc" id="L107">                NotEqualsTo neq = (NotEqualsTo) ex;</span>
+<span class="fc" id="L108">                Column column = (Column) neq.getLeftExpression();</span>
+<span class="fc" id="L109">                Criteria arrayCriteria = getArrayMatchCriteria(column);</span>
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">                if (arrayCriteria != null) {</span>
+<span class="nc" id="L111">                    arrayCriteria.and(column.getColumnName()).ne(getPrimitiveValue(neq.getRightExpression()));</span>
+<span class="nc" id="L112">                    return getElemMatchCriteria(column, arrayCriteria);</span>
+                } else {
+<span class="fc" id="L114">                    return Criteria.where(column.toString()).ne(getPrimitiveValue(neq.getRightExpression()));</span>
+                }
+            }
+            case &quot;GreaterThan&quot;: {
+<span class="fc" id="L118">                GreaterThan gt = (GreaterThan) ex;</span>
+<span class="fc" id="L119">                Column column = (Column) gt.getLeftExpression();</span>
+<span class="fc" id="L120">                Criteria arrayCriteria = getArrayMatchCriteria(column);</span>
+<span class="pc bpc" id="L121" title="1 of 2 branches missed.">                if (arrayCriteria != null) {</span>
+<span class="nc" id="L122">                    arrayCriteria.and(column.getColumnName()).gt(getPrimitiveValue(gt.getRightExpression()));</span>
+<span class="nc" id="L123">                    return getElemMatchCriteria(column, arrayCriteria);</span>
+                } else {
+<span class="fc" id="L125">                    return Criteria.where(column.toString()).gt(getPrimitiveValue(gt.getRightExpression()));</span>
+                }
+            }
+            case &quot;GreaterThanEquals&quot;: {
+<span class="fc" id="L129">                GreaterThanEquals gte = (GreaterThanEquals) ex;</span>
+<span class="fc" id="L130">                Column column = (Column) gte.getLeftExpression();</span>
+<span class="fc" id="L131">                Criteria arrayCriteria = getArrayMatchCriteria(column);</span>
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">                if (arrayCriteria != null) {</span>
+<span class="nc" id="L133">                    arrayCriteria.and(column.getColumnName()).gte(getPrimitiveValue(gte.getRightExpression()));</span>
+<span class="nc" id="L134">                    return getElemMatchCriteria(column, arrayCriteria);</span>
+                } else {
+<span class="fc" id="L136">                    return Criteria.where(column.toString()).gte(getPrimitiveValue(gte.getRightExpression()));</span>
+                }
+            }
+            case &quot;MinorThan&quot;: {
+<span class="fc" id="L140">                MinorThan mt = (MinorThan) ex;</span>
+<span class="fc" id="L141">                Column column = (Column) mt.getLeftExpression();</span>
+<span class="fc" id="L142">                Criteria arrayCriteria = getArrayMatchCriteria(column);</span>
+<span class="pc bpc" id="L143" title="1 of 2 branches missed.">                if (arrayCriteria != null) {</span>
+<span class="nc" id="L144">                    arrayCriteria.and(column.getColumnName()).lt(getPrimitiveValue(mt.getRightExpression()));</span>
+<span class="nc" id="L145">                    return getElemMatchCriteria(column, arrayCriteria);</span>
+                } else {
+<span class="fc" id="L147">                    return Criteria.where(column.toString()).lt(getPrimitiveValue(mt.getRightExpression()));</span>
+                }
+            }
+            case &quot;MinorThanEquals&quot;: {
+<span class="fc" id="L151">                MinorThanEquals mte = (MinorThanEquals) ex;</span>
+<span class="fc" id="L152">                Column column = (Column) mte.getLeftExpression();</span>
+<span class="fc" id="L153">                Criteria arrayCriteria = getArrayMatchCriteria(column);</span>
+<span class="pc bpc" id="L154" title="1 of 2 branches missed.">                if (arrayCriteria != null) {</span>
+<span class="nc" id="L155">                    arrayCriteria.and(column.getColumnName()).lte(getPrimitiveValue(mte.getRightExpression()));</span>
+<span class="nc" id="L156">                    return getElemMatchCriteria(column, arrayCriteria);</span>
+                } else {
+<span class="fc" id="L158">                    return Criteria.where(column.toString()).lte(getPrimitiveValue(mte.getRightExpression()));</span>
+                }
+            }
+            case &quot;InExpression&quot;: {
+<span class="nc" id="L162">                InExpression in = (InExpression) ex;</span>
+<span class="nc" id="L163">                Column column = (Column) in.getLeftExpression();</span>
+<span class="nc bnc" id="L164" title="All 2 branches missed.">                if (column.getColumnName().equals(LOCATION_TYPE)) {</span>
+<span class="nc" id="L165">                    List&lt;Point&gt; polygonPoints = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">                    for (var item : ((ExpressionList) in.getRightItemsList()).getExpressions()) {</span>
+<span class="nc" id="L167">                        ArrayList&lt;Double&gt; pt = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">                        for (var coordinate : ((RowConstructor) item).getExprList().getExpressions()) {</span>
+<span class="nc" id="L169">                            pt.add((Double) getPrimitiveValue(coordinate));</span>
+<span class="nc" id="L170">                        }</span>
+<span class="nc" id="L171">                        polygonPoints.add(new Point(pt.get(1), pt.get(0)));</span>
+<span class="nc" id="L172">                    }</span>
+<span class="nc" id="L173">                    polygonPoints.add(polygonPoints.get(0));</span>
+<span class="nc" id="L174">                    GeoJsonPolygon polygon = new GeoJsonPolygon(polygonPoints);</span>
+<span class="nc" id="L175">                    return (Criteria.where(LOCATION_FIELD).intersects(polygon));</span>
+                } else {
+<span class="nc" id="L177">                    Criteria arrayCriteria = getArrayMatchCriteria(column);</span>
+<span class="nc" id="L178">                    List&lt;Object&gt; inListItems = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">                    for (var item : ((ExpressionList) in.getRightItemsList()).getExpressions()) {</span>
+<span class="nc" id="L180">                        inListItems.add(getPrimitiveValue(item));</span>
+<span class="nc" id="L181">                    }</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">                    if (arrayCriteria != null) {</span>
+<span class="nc" id="L183">                        arrayCriteria.and(column.getColumnName()).in(inListItems);</span>
+<span class="nc" id="L184">                        return getElemMatchCriteria(column, arrayCriteria);</span>
+                    } else {
+<span class="nc" id="L186">                        return Criteria.where(column.toString()).in(inListItems);</span>
+                    }
+                }
+            }
+            case &quot;Parenthesis&quot;: {
+<span class="nc" id="L191">                return build(((Parenthesis) ex).getExpression());</span>
+            }
+            default: {
+<span class="nc" id="L194">                logger.warn(&quot;Unhandled expression type: {}&quot;, ex.getClass());</span>
+            }
+        }
+<span class="nc" id="L197">        return null;</span>
+    }
+
+    /**
+     * Returns a Criteria for an Array (variables, globalAttributes)
+     * Schema name is used to identify variables or globalAttributes array.
+     * Table name is used to identify a particular variable or global attribute name.
+     *
+     * @param column JSQLParser column
+     * @return A Criteria that simply matches the variableName or attributeName fields with the requested value
+     */
+    private static Criteria getArrayMatchCriteria(Column column) {
+<span class="pc bpc" id="L209" title="1 of 4 branches missed.">        if (column.getTable() != null &amp;&amp; column.getTable().getSchemaName() != null) {</span>
+<span class="pc bpc" id="L210" title="1 of 3 branches missed.">            switch (column.getTable().getSchemaName()) {</span>
+                case VAR_TYPE: {
+<span class="fc" id="L212">                    return Criteria.where(VARIABLE_NAME_FIELD).is(column.getTable().getName());</span>
+                }
+                case ATTRIBUTE_TYPE: {
+<span class="fc" id="L215">                    return Criteria.where(ATTRIBUTE_NAME_FIELD).is(column.getTable().getName());</span>
+                }
+                default: {
+<span class="nc" id="L218">                    return null;</span>
+                }
+            }
+        }
+<span class="fc" id="L222">        return null;</span>
+    }
+
+    /**
+     * @param column       JSQLParser Column
+     * @param elemCriteria the criteria that needs to be wrapped up in an elemMatch operator
+     * @return Criteria with elemMatch operator
+     */
+    private static Criteria getElemMatchCriteria(Column column, Criteria elemCriteria) {
+<span class="pc bpc" id="L231" title="2 of 4 branches missed.">        if (column.getTable() != null &amp;&amp; column.getTable().getSchemaName() != null) {</span>
+<span class="pc bpc" id="L232" title="1 of 3 branches missed.">            switch (column.getTable().getSchemaName()) {</span>
+                case VAR_TYPE: {
+<span class="fc" id="L234">                    return Criteria.where(VARIABLES_ARRAY_FIELD).elemMatch(elemCriteria);</span>
+                }
+                case ATTRIBUTE_TYPE: {
+<span class="fc" id="L237">                    return Criteria.where(ATTRIBUTES_ARRAY_FIELD).elemMatch(elemCriteria);</span>
+                }
+                default: {
+<span class="nc" id="L240">                    return null;</span>
+                }
+            }
+        }
+<span class="nc" id="L244">        return null;</span>
+    }
+
+    /**
+     * Converts JSQLParser values to Java values
+     *
+     * @param ex JSQLParser expression
+     * @return A java representation of the queried value
+     */
+    private static Object getPrimitiveValue(Expression ex) {
+<span class="pc bpc" id="L254" title="4 of 6 branches missed.">        switch (ex.getClass().getSimpleName()) {</span>
+            case &quot;LongValue&quot;: {
+<span class="fc" id="L256">                return (long) ((LongValue) ex).getValue();</span>
+            }
+            case &quot;DoubleValue&quot;: {
+<span class="nc" id="L259">                return (double) ((DoubleValue) ex).getValue();</span>
+            }
+            case &quot;DateTimeLiteralExpression&quot;: {
+<span class="nc" id="L262">                SimpleDateFormat isoFormat = new SimpleDateFormat(DATE_FORMAT);</span>
+                try {
+<span class="nc" id="L264">                    String datetime = ((DateTimeLiteralExpression) ex).getValue();</span>
+<span class="nc" id="L265">                    return isoFormat.parse(datetime.substring(1, datetime.length() - 1));</span>
+<span class="nc" id="L266">                } catch (ParseException e) {</span>
+<span class="nc" id="L267">                    throw new RuntimeException(e);</span>
+                }
+            }
+            case &quot;StringValue&quot;: {
+<span class="fc" id="L271">                return ((StringValue) ex).getValue();</span>
+            }
+            case &quot;SignedExpression&quot;: {
+<span class="nc" id="L274">                return ((DoubleValue) ((SignedExpression) ex).getExpression()).getValue() * -1;</span>
+            }
+            default: {
+<span class="nc" id="L277">                logger.warn(&quot;Unknown JSQLParser value type: {}&quot;, ex.getClass());</span>
+                break;
+            }
+        }
+<span class="nc" id="L281">        return 0.0;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

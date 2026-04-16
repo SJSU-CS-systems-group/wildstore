@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UsersController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">wildstore-meta</a> &gt; <a href="index.source.html" class="el_package">edu.sjsu.wildstore.meta.controller</a> &gt; <span class="el_source">UsersController.java</span></div><h1>UsersController.java</h1><pre class="source lang-java linenums">package edu.sjsu.wildstore.meta.controller;
+
+import com.mongodb.DBObject;
+import edu.sjsu.wildstore.meta.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+
+import static edu.sjsu.wildstore.meta.controller.OauthController.generateToken;
+
+@RestController
+@RequestMapping(&quot;/api/userlist&quot;)
+public class UsersController {
+    
+    UserService userService;
+    
+<span class="fc" id="L24">    public UsersController(UserService userService) {</span>
+<span class="fc" id="L25">        this.userService = userService;</span>
+<span class="fc" id="L26">    }</span>
+
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @GetMapping(&quot;/&quot;)
+    public List&lt;Map&gt; getUserList() {
+<span class="nc" id="L31">        return userService.getUserList();</span>
+    }
+
+
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @DeleteMapping(&quot;/{email}&quot;)
+    public boolean deleteUser(@PathVariable String email) {
+<span class="nc" id="L38">        return userService.deleteUser(email);</span>
+    }
+
+
+
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @GetMapping(&quot;/{email}&quot;)
+    public List&lt;Map&gt; getUser(@PathVariable String email) {
+<span class="nc" id="L46">        return userService.getUser(email);</span>
+    }
+
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @PostMapping(&quot;/{email}&quot;)
+    public boolean updateUserRole(@RequestBody Map&lt;String, String&gt; request, @PathVariable String email) {
+<span class="nc" id="L52">        var role = request.get(&quot;role&quot;);</span>
+
+<span class="nc bnc" id="L54" title="All 2 branches missed.">        if (role == null) {</span>
+<span class="nc" id="L55">            throw new IllegalArgumentException(&quot;Missing role in request&quot;);</span>
+        }
+<span class="nc bnc" id="L57" title="All 2 branches missed.">        if (!SecurityConfiguration.ROLES.contains(role)) {</span>
+<span class="nc" id="L58">            throw new IllegalArgumentException(role + &quot; is not one of &quot; + String.join(&quot;,&quot;, SecurityConfiguration.ROLES));</span>
+        }
+<span class="nc" id="L60">        return userService.updateUserRole(email, role);</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

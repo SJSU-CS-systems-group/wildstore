@@ -1,0 +1,21 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+wildstore-common,edu.sjsu.wildstore,Metadata,0,3,0,0,0,1,0,1,0,1
+wildstore-common,edu.sjsu.wildstore,GeoJsonPolygonSerializer,60,0,4,0,14,0,4,0,2,0
+wildstore-common,edu.sjsu.wildstore,Client,138,0,0,0,56,0,12,0,12,0
+wildstore-common,edu.sjsu.wildstore,DigestingRandomAccessFile,58,159,5,11,15,37,7,10,3,6
+wildstore-common,edu.sjsu.wildstore,NetcdfFileReader,922,1446,112,80,147,252,77,37,4,14
+wildstore-common,edu.sjsu.wildstore,WildfireVariable.VarDimension,0,9,0,0,0,1,0,1,0,1
+wildstore-common,edu.sjsu.wildstore,GeoJsonPolygonDeserializer,50,0,2,0,11,0,4,0,3,0
+wildstore-common,edu.sjsu.wildstore,ShareLink,3,0,0,0,1,0,1,0,1,0
+wildstore-common,edu.sjsu.wildstore,BasicFileReader,76,0,0,0,21,0,3,0,3,0
+wildstore-common,edu.sjsu.wildstore,DigestingRandomAccessFile.new WritableByteChannel() {...},32,0,0,0,8,0,4,0,4,0
+wildstore-common,edu.sjsu.wildstore,Download,3,0,0,0,1,0,1,0,1,0
+wildstore-common,edu.sjsu.wildstore,MetadataRequest,9,0,0,0,3,0,1,0,1,0
+wildstore-common,edu.sjsu.wildstore,Client.new ParameterizedTypeReference() {...},3,0,0,0,1,0,1,0,1,0
+wildstore-common,edu.sjsu.wildstore,Client.new ParameterizedTypeReference() {...},3,0,0,0,1,0,1,0,1,0
+wildstore-common,edu.sjsu.wildstore,PrintData,330,0,34,0,67,0,21,0,4,0
+wildstore-common,edu.sjsu.wildstore,WildfireVariable,0,3,0,0,0,1,0,1,0,1
+wildstore-common,edu.sjsu.wildstore,WildfireAttribute,0,3,0,0,0,1,0,1,0,1
+wildstore-common,edu.sjsu.wildstore,FileReader,0,9,0,0,0,3,0,1,0,1
+wildstore-common,edu.sjsu.wildstore,DigestingRandomAccessFile.DigestingWritableByteChannel,45,0,0,0,11,0,4,0,4,0
+wildstore-common,edu.sjsu.wildstore,Dataset,3,0,0,0,1,0,1,0,1,0
