@@ -25,6 +25,7 @@ import java.nio.charset.Charset;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @RestController
@@ -100,7 +101,7 @@ public class MetadataController {
     @PreAuthorize("hasRole('USER')")
     @GetMapping("/metadata")
     public List<DBObject> getFileMetadata(@RequestParam("filename") String fileName) {
-        Query query = new Query(Criteria.where("fileName").regex(".*" + fileName + ".*"));
+        Query query = new Query(Criteria.where("fileName").regex(".*" + Pattern.quote(fileName) + ".*"));
         List<DBObject> res = mongoTemplate.find(query, DBObject.class, METADATA_COLLECTION);
         return res;
     }
@@ -114,7 +115,7 @@ public class MetadataController {
     @PostMapping("/metadata")
     public boolean upsertMetadata(@RequestBody Metadata metadata) throws MongoWriteException {
         // if metadata with same fileName and digestString already exist, we don't need to update anything
-        if (removeFilenames(metadata.fileName.iterator().next(), metadata.digestString)) {
+        if (!metadata.fileName.isEmpty() && removeFilenames(metadata.fileName.iterator().next(), metadata.digestString)) {
                 return false;
         }
         // Convert string date to date type to allow querying on dates
@@ -152,7 +153,7 @@ public class MetadataController {
 
     private boolean removeFilenames(String fileName, String digestString) {
         var dataExist = false;
-        Query query = new Query(Criteria.where("fileName").regex(".*" + fileName + ".*"));
+        Query query = new Query(Criteria.where("fileName").regex(".*" + Pattern.quote(fileName) + ".*"));
         List<Metadata> res = (List<Metadata>) mongoTemplate.find(query, Metadata.class, METADATA_COLLECTION);
         for (Metadata data : res) {
             if (data.digestString.equals(digestString)) {
