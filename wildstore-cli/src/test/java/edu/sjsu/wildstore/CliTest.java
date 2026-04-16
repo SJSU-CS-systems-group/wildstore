@@ -114,6 +114,13 @@ public class CliTest {
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("No such file"));
 
+        // token file exists but has no token, return "No token found"
+        var emptyTokenFile = tempDir.resolve("empty-token.txt");
+        Files.write(emptyTokenFile, "somekey=somevalue".getBytes());
+        result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--tokenFile", emptyTokenFile.toString());
+        Assertions.assertEquals(2, result.exitCode);
+        Assertions.assertTrue(result.err.contains("No token found"));
+
         // create the token file but since it's not in the db, it should give unauthorized
         Files.write(adminTokenFile, ("token=" + token).getBytes());
         result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
@@ -125,6 +132,11 @@ public class CliTest {
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertEquals("", result.err);
         Assertions.assertEquals(format("%s: %s %s%n", email, role, name), result.out);
+
+        // metaURL ends with trailing slash, split and pass metaURL + /, command still succeeds
+        result = clirun(cmd, "user", "list", "--metaURL", metaURL + "/", "--tokenFile", adminTokenFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains(email));
 
         result = clirun(cmd, "user", "getToken", "ghost@example.com", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
         Assertions.assertEquals(1, result.exitCode);
