@@ -523,6 +523,63 @@ public class CliTest {
     }
 
     @Test
+    void testDatasetInfo() throws IOException {
+        var cmd = new Main.Cli();
+
+        // missing both required params
+        var result = clirun(cmd, "datasetInfo");
+        Assertions.assertEquals(2, result.exitCode);
+        Assertions.assertTrue(result.err.contains("Missing required parameter"));
+
+        // missing hostname param
+        result = clirun(cmd, "datasetInfo", "somefile.nc");
+        Assertions.assertEquals(2, result.exitCode);
+        Assertions.assertTrue(result.err.contains("Missing required parameter"));
+
+        // dead server → connection error
+        var deadSocket = new ServerSocket(0);
+        var deadPort = deadSocket.getLocalPort();
+        deadSocket.close();
+        var sysOut = new ByteArrayOutputStream();
+        var originalOut = System.out;
+        System.setOut(new PrintStream(sysOut));
+        try {
+            result = clirun(cmd, "datasetInfo", "somefile.nc", "http://localhost:" + deadPort);
+        } finally {
+            System.setOut(originalOut);
+        }
+        Assertions.assertEquals(1, result.exitCode);
+
+        // valid server but no auth token → 401 Unauthorized
+        sysOut.reset();
+        System.setOut(new PrintStream(sysOut));
+        try {
+            result = clirun(cmd, "datasetInfo", "somefile.nc", metaURL);
+        } finally {
+            System.setOut(originalOut);
+        }
+        Assertions.assertEquals(1, result.exitCode);
+    }
+
+    @Test
+    void testCheckDebugEnv() throws Exception {
+        var checkDebugEnv = Main.class.getDeclaredMethod("checkDebugEnv", Exception.class);
+        checkDebugEnv.setAccessible(true);
+        var ex = new RuntimeException("test error for checkDebugEnv");
+        var originalErr = System.err;
+        var capturedErr = new ByteArrayOutputStream();
+
+        // DEBUG not set, then method runs without printing anything
+        System.setErr(new PrintStream(capturedErr));
+        try {
+            checkDebugEnv.invoke(null, ex);
+        } finally {
+            System.setErr(originalErr);
+        }
+        Assertions.assertTrue(capturedErr.toString().isEmpty());
+    }
+
+    @Test
     void testCleanLinks() throws IOException {
         var cmd = new Main.Cli();
         var adminTokenFile = tempDir.resolve("admin-token.txt");
