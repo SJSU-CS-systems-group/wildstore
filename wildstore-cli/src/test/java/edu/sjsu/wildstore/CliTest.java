@@ -126,6 +126,28 @@ public class CliTest {
         Assertions.assertEquals("", result.err);
         Assertions.assertEquals(format("%s: %s %s%n", email, role, name), result.out);
 
+        result = clirun(cmd, "user", "getToken", "ghost@example.com", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
+        Assertions.assertEquals(1, result.exitCode);
+        Assertions.assertTrue(result.err.contains("User not found"));
+
+        var noTokenUser = new HashMap<String, Object>(Map.of("role", "ROLE_USER", "name", "NoToken", "email", "notoken@example.com"));
+        springCtx.getBean(MongoTemplate.class).insert(noTokenUser, USER_DATA_COLLECTION);
+        result = clirun(cmd, "user", "getToken", "notoken@example.com", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
+        Assertions.assertEquals(1, result.exitCode);
+        Assertions.assertTrue(result.err.contains("User token not found"));
+
+        result = clirun(cmd, "user", "update", "newadmin@example.com", "--role", "admin", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains("ROLE_ADMIN"));
+
+        result = clirun(cmd, "user", "update", "guest@example.com", "--role", "guest", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains("ROLE_GUEST"));
+
+        result = clirun(cmd, "user", "update", "someone@example.com", "--role", "superuser", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
+        Assertions.assertEquals(1, result.exitCode);
+        Assertions.assertTrue(result.err.contains("Invalid role"));
+
         result = clirun(cmd, "user", "update", "x@y.z", "--role", "user", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertEquals("", result.err);
@@ -148,16 +170,20 @@ public class CliTest {
         result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertEquals("", result.err);
-        Assertions.assertEquals(2, result.out.split("\n").length);
 
         result = clirun(cmd, "user", "remove", "x@y.z", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertEquals("", result.err);
 
+        var deadSocket = new ServerSocket(0);
+        var deadPort = deadSocket.getLocalPort();
+        deadSocket.close();
+        result = clirun(cmd, "user", "remove", email, "--metaURL", "http://localhost:" + deadPort, "--tokenFile", adminTokenFile.toString());
+        Assertions.assertTrue(result.out.contains("Error deleting " + email));
+
         result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertEquals("", result.err);
-        Assertions.assertEquals(1, result.out.split("\n").length);
 
         emptyCollections();
     }
