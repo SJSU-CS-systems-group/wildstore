@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/maven-v4_0_0.xsd">
+<?xml version="1.0" encoding="UTF-8"?><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>edu.sjsu.wildstore</groupId>
   <artifactId>wildstore</artifactId>
@@ -7,13 +6,11 @@
   <version>1.0-SNAPSHOT</version>
   <name>wildstore</name>
   <url>https://maven.apache.org</url>
-
   <properties>
     <spring.boot.version>3.5.0</spring.boot.version>
     <!-- gets rid of the [WARNING] File encoding has not been set -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
-
   <dependencyManagement>
     <dependencies>
       <!-- Spring Boot BOM -->
@@ -26,7 +23,6 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
-
   <dependencies>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -41,13 +37,13 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
   <build>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.13.0</version>  <!-- Use the latest stable version -->
+        <version>3.13.0</version>
+        <!-- Use the latest stable version -->
         <configuration>
           <release>17</release>
           <compilerArgs>
@@ -81,8 +77,8 @@
       </plugin>
     </plugins>
   </build>
-
   <modules>
+    <module>wildstore-relationalDb</module>
     <module>wildstore-common</module>
     <module>wildstore-crawl</module>
     <module>wildstore-meta</module>

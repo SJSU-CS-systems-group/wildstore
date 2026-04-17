@@ -35,14 +35,26 @@ public class OauthController {
     private long expireAfterSeconds;
 
     @PreAuthorize("hasRole('GUEST')")
-    @RequestMapping(value = { "/", "/token", "/forbidden", "/home" })
+    @RequestMapping(value = {
+            "/",
+            "/token",
+            "/forbidden",
+            "/home",
+            "/home/**",
+            "/users",
+            "/file-contents",
+            "/files",
+            "/files/**",
+            "/filescontents",
+            "/filescontents/**"
+    })
 
     public String index() {return "index.html";}
 
     @PreAuthorize("hasRole('GUEST')")
     @GetMapping("/api/oauth/user")
     public ResponseEntity<String> user(OAuth2User user) {
-        Map details = user.getAttributes();
+        Map<String, Object> details = user.getAttributes();
         var name = details.get("login");
         return new ResponseEntity<>(name.toString(), HttpStatus.OK);
     }
