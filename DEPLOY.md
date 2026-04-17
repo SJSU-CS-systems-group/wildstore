@@ -2,7 +2,7 @@
 
 ## CD Pipeline Overview
 
-The CD pipeline follows a **GitHub → Canary → Release** strategy:
+The CD pipeline follows a **Build → Smoke Test → Release** strategy:
 
 ```
 Push to main
@@ -11,17 +11,17 @@ Push to main
 [build-and-push]         Build Docker images, push to GHCR, create GitHub pre-release
     │
     ▼
-[canary-health-check]    Start containers in CI, curl /actuator/health
+[smoke-test]             Start containers in CI, curl /actuator/health
     │
     ▼
 [promote-release]        Tag images as :latest, promote pre-release to full release
 ```
 
-1. **Build and push**: On evfery merge to `main`, GitHub Actions builds Docker images for `wildstore-meta` and `wildstore-fileserve`, pushes them to GitHub Container Registry (GHCR), and creates a GitHub **pre-release** (canary).
+1. **Build and push**: On every merge to `main`, GitHub Actions builds Docker images for `wildstore-meta` and `wildstore-fileserve`, pushes them to GitHub Container Registry (GHCR), and creates a GitHub **pre-release**.
 
-2. **Canary health check**: A fresh Ubuntu VM spins up MongoDB and both app containers. It curls `/actuator/health` on each service in a retry loop (up to 60 seconds). If both return `{"status":"UP"}`, the canary passes. The VM is destroyed after — nothing stays running.
+2. **Smoke test**: A fresh Ubuntu VM spins up MongoDB and both app containers. It curls `/actuator/health` on each service in a retry loop (up to 60 seconds). If both return `{"status":"UP"}`, the smoke test passes. The VM is destroyed after — nothing stays running.
 
-3. **Promote release**: If the canary passes, the images are re-tagged as `:latest` and the GitHub pre-release is promoted to a full release.
+3. **Promote release**: If the smoke test passes, the images are re-tagged as `:latest` and the GitHub pre-release is promoted to a full release.
 
 ### Production deploys
 
@@ -66,7 +66,7 @@ spring:
 Both services include Spring Boot Actuator, which exposes a `/actuator/health` endpoint that returns `{"status":"UP"}`. It is used by:
 
 - The Dockerfile `HEALTHCHECK` (Docker monitors container health, visible in `docker ps`)
-- The CD workflow canary check
+- The CD workflow smoke test
 - The production deploy script
 
 ## Running Locally with Docker

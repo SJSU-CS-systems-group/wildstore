@@ -1,4 +1,4 @@
-name: CD – Canary Release
+name: CD – Build, Verify & Release
 
 on:
   push:
@@ -47,7 +47,7 @@ jobs:
           push: true
           tags: |
             ${{ env.META_IMAGE }}:${{ github.sha }}
-            ${{ env.META_IMAGE }}:canary
+            ${{ env.META_IMAGE }}:staging
           cache-from: type=gha,scope=meta
           cache-to: type=gha,mode=max,scope=meta
 
@@ -59,7 +59,7 @@ jobs:
           push: true
           tags: |
             ${{ env.FILESERVE_IMAGE }}:${{ github.sha }}
-            ${{ env.FILESERVE_IMAGE }}:canary
+            ${{ env.FILESERVE_IMAGE }}:staging
           cache-from: type=gha,scope=fileserve
           cache-to: type=gha,mode=max,scope=fileserve
 
@@ -70,10 +70,10 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           gh release create "v${VERSION}" \
             --title "v${VERSION}" \
-            --notes "Canary release from ${GITHUB_SHA::7}. Awaiting health checks." \
+            --notes "Pre-release from ${GITHUB_SHA::7}. Awaiting smoke test." \
             --prerelease
 
-  canary-health-check:
+  smoke-test:
     runs-on: ubuntu-latest
     needs: build-and-push
     services:
@@ -143,7 +143,7 @@ jobs:
 
   promote-release:
     runs-on: ubuntu-latest
-    needs: [build-and-push, canary-health-check]
+    needs: [build-and-push, smoke-test]
     steps:
       - uses: actions/checkout@v4
 
