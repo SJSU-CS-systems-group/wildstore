@@ -48,6 +48,7 @@ jobs:
           tags: |
             ${{ env.META_IMAGE }}:${{ github.sha }}
             ${{ env.META_IMAGE }}:staging
+            ${{ env.META_IMAGE }}:v${{ steps.version.outputs.version }}
           cache-from: type=gha,scope=meta
           cache-to: type=gha,mode=max,scope=meta
 
@@ -60,6 +61,7 @@ jobs:
           tags: |
             ${{ env.FILESERVE_IMAGE }}:${{ github.sha }}
             ${{ env.FILESERVE_IMAGE }}:staging
+            ${{ env.FILESERVE_IMAGE }}:v${{ steps.version.outputs.version }}
           cache-from: type=gha,scope=fileserve
           cache-to: type=gha,mode=max,scope=fileserve
 
@@ -141,9 +143,10 @@ jobs:
           docker logs fileserve
           exit 1
 
-  promote-release:
+  promote-to-prod:
     runs-on: ubuntu-latest
     needs: [build-and-push, smoke-test]
+    environment: production
     steps:
       - uses: actions/checkout@v4
 

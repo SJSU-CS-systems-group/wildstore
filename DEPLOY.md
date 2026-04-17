@@ -2,7 +2,7 @@
 
 ## CD Pipeline Overview
 
-The CD pipeline follows a **Build → Smoke Test → Release** strategy:
+The CD pipeline follows a **Build → Smoke Test → Staging → Production** strategy:
 
 ```
 Push to main
@@ -12,20 +12,53 @@ Push to main
     │
     ▼
 [smoke-test]             Start containers in CI, curl /actuator/health
-    │
+    │                        (pre-release stays — staging server picks it up via cron)
     ▼
-[promote-release]        Tag images as :latest, promote pre-release to full release
+[promote-to-prod]        Manual approval in GitHub UI, then tag images as :latest,
+                         promote pre-release to full release
 ```
 
 1. **Build and push**: On every merge to `main`, GitHub Actions builds Docker images for `wildstore-meta` and `wildstore-fileserve`, pushes them to GitHub Container Registry (GHCR), and creates a GitHub **pre-release**.
 
 2. **Smoke test**: A fresh Ubuntu VM spins up MongoDB and both app containers. It curls `/actuator/health` on each service in a retry loop (up to 60 seconds). If both return `{"status":"UP"}`, the smoke test passes. The VM is destroyed after — nothing stays running.
 
-3. **Promote release**: If the smoke test passes, the images are re-tagged as `:latest` and the GitHub pre-release is promoted to a full release.
+3. **Staging deploy**: A cron job on the staging server runs `deploy/deploy-staging.sh`. The script checks the GitHub Releases API for the latest pre-release. If one exists, it pulls the images, restarts the staging containers, and verifies health. This lets you verify changes in a prod-like environment before promoting to production.
+
+4. **Promote to production**: After verifying on staging, a team member approves the `promote-to-prod` job via the GitHub Actions UI (the job uses the `production` environment which requires manual approval). Once approved, the images are re-tagged as `:latest` and the GitHub pre-release is promoted to a full release.
+
+### Staging deploys
+
+A cron job on the staging server runs `deploy/deploy-staging.sh` on a schedule (e.g., every 15 minutes or nightly). The script fetches the latest **pre-release** from GitHub. Staging runs on different ports than production so both can coexist on the same machine:
+
+| Service | Staging | Production |
+|---------|---------|------------|
+| Meta    | 8081    | 8080       |
+| Fileserve | 27779 | 27778      |
+| MongoDB volume | `mongo-data-staging` | `mongo-data` |
+
+Setup:
+
+```bash
+# Install jq (required by deploy-staging.sh)
+sudo apt-get install -y jq
+
+# Add cron entry (example: every 15 minutes)
+crontab -e
+# */15 * * * * /path/to/deploy/deploy-staging.sh >> /var/log/wildstore-staging.log 2>&1
+```
 
 ### Production deploys
 
 A cron job on the production server runs `deploy/deploy.sh` nightly. The script checks the GitHub Releases API for a new full (non-prerelease) release. If one exists, it pulls the new images, restarts the containers, and verifies health. If the health check fails, it does **not** update the marker file, so it retries the next night.
+
+### Configuring the GitHub production environment
+
+The `promote-to-prod` workflow job uses `environment: production`, which gates deployment behind manual approval. To set this up:
+
+1. Go to **Settings → Environments → New environment**
+2. Name it `production`
+3. Check **Required reviewers** and add one or more team members
+4. Save
 
 ## Port Configuration
 
