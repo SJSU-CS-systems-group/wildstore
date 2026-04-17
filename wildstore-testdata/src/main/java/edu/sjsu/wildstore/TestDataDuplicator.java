@@ -15,7 +15,7 @@ public class TestDataDuplicator implements Runnable {
     @CommandLine.Option(names="--count", description="Number of times to duplicate the file", defaultValue = "100",
     showDefaultValue = CommandLine.Help.Visibility.ALWAYS)
     int count;
-    public final static int MAX_COUNT = 24*60; // 24 hours in minutes
+    public static final int MAX_COUNT = 24*60; // 24 hours in minutes
 
     @Override
     public void run() {

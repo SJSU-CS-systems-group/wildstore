@@ -98,8 +98,9 @@ public class NetcdfFileReader implements FileReader {
         Variable nfuel_cat = netcdfFile.findVariable("NFUEL_CAT");
         if (fire_area != null && nfuel_cat != null) {
             WildfireVariable nfuel_burnt = findNFUEL_CAT_BURNT(fire_area, nfuel_cat);
-            if(nfuel_burnt.elementMap.size() > 0)
+            if(nfuel_burnt.elementMap.size() > 0) {
                 metadata.variables.add(nfuel_burnt);
+            }
         }
         //Time
         Variable times = netcdfFile.findVariable("Times");
@@ -501,10 +502,12 @@ public class NetcdfFileReader implements FileReader {
             uIndex++;
             vIndex++;
 
-            if((i + 1) % (west_east_dim) == 0) //Skip the last element of each row
+            if((i + 1) % (west_east_dim) == 0) { //Skip the last element of each row
                 uIndex++;
-            if((i + 1) % (west_east_dim*south_north_dim) == 0) //Skip the last row of each rectangle
+            }
+            if((i + 1) % (west_east_dim*south_north_dim) == 0) { //Skip the last row of each rectangle
                 vIndex += west_east_dim;
+            }
         }
 
         String[] stringWindDir = {"NorthWind", "NorthEastWind", "EastWind", "SouthEastWind", "SouthWind", "SouthWestWind", "WestWind", "NorthWestWind"};
@@ -522,8 +525,9 @@ public class NetcdfFileReader implements FileReader {
             temp.attributeList = new ArrayList<>();
             temp.varDimensionList = new ArrayList<>();
 
-            if(windSpeedMin[i]!=Integer.MAX_VALUE && windSpeedMax[i]!=0 && !Float.isNaN(temp.average))
+            if(windSpeedMin[i]!=Integer.MAX_VALUE && windSpeedMax[i]!=0 && !Float.isNaN(temp.average)) {
                 windSpeeds.add(temp);
+            }
         }
         return windSpeeds;
     }
@@ -586,8 +590,9 @@ public class NetcdfFileReader implements FileReader {
             date.attributeName = dateName[i];
             date.type = "Date";
             date.value = dateValue;
-            if (!year.equals("0000"))
+            if (!year.equals("0000")) {
                 dates.add(date);
+            }
         }
 
         return dates;
