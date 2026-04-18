@@ -147,10 +147,12 @@ public class Main {
                                     parameters,
                                     new ParameterizedTypeReference<>() {});
                 List<String> deletedFiles = result.stream().map(i -> i.get("fileName").toString()).filter(item -> !Files.exists(Paths.get(item))).toList();
-                if (!dryrun) System.out.println("DELETE RESULT:" + Client.post(webClient,
-                                                                  deletedFiles,
-                                                                  new ParameterizedTypeReference<Integer>() {},
-                                                                  httpHeaders -> httpHeaders.setBearerAuth(co.token)));
+                if (!dryrun) {
+                    System.out.println("DELETE RESULT:" + Client.post(webClient,
+                                                                      deletedFiles,
+                                                                      new ParameterizedTypeReference<Integer>() {},
+                                                                      httpHeaders -> httpHeaders.setBearerAuth(co.token)));
+                }
                 co.out().println("Deleted Files: " + String.join("\n", deletedFiles));
                 offset += limit;
             } while (result.size() == offset);

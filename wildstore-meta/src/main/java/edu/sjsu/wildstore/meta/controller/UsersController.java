@@ -1,19 +1,11 @@
 package edu.sjsu.wildstore.meta.controller;
 
-import com.mongodb.DBObject;
 import edu.sjsu.wildstore.meta.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-
-import static edu.sjsu.wildstore.meta.controller.OauthController.generateToken;
 
 @RestController
 @RequestMapping("/api/userlist")

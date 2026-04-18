@@ -311,12 +311,12 @@ public class WildfireFilesCrawler implements Runnable {
      * this is our own file walker that will skip files that are not accessible, unlike Files.walk().
      * we use a Spliterator to allow parallel processing of files.
      */
-    static private class FileSpliterator extends java.util.Spliterators.AbstractSpliterator<Path> {
+    private static class FileSpliterator extends java.util.Spliterators.AbstractSpliterator<Path> {
         private static final long POPULATE_QUEUE_SIZE = 1000;
         // all FileSpliterator instances share the same queue of directories to walk
-        final private ConcurrentLinkedQueue<Path> dirQueue;
+        private final ConcurrentLinkedQueue<Path> dirQueue;
         // each instance has its own queue of files to process
-        final private LinkedList<Path> fileQueue = new LinkedList<>();
+        private final LinkedList<Path> fileQueue = new LinkedList<>();
 
         FileSpliterator(List<Path> pathsToWalk) {
             super(Long.MAX_VALUE, java.util.Spliterator.NONNULL);
@@ -365,7 +365,7 @@ public class WildfireFilesCrawler implements Runnable {
         }
 
         @Override
-        synchronized public boolean tryAdvance(java.util.function.Consumer<? super Path> action) {
+        public synchronized boolean tryAdvance(java.util.function.Consumer<? super Path> action) {
             var path = fileQueue.pollFirst();
             if (path != null) {
                 action.accept(path);
@@ -383,7 +383,7 @@ public class WildfireFilesCrawler implements Runnable {
         }
 
         @Override
-        synchronized public FileSpliterator trySplit() {
+        public synchronized FileSpliterator trySplit() {
             var newSpliterator = new FileSpliterator(this.dirQueue);
             if (newSpliterator.populateFileQueue() == 0) {
                 return null; // No files to split
