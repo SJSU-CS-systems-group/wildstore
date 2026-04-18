@@ -3,6 +3,18 @@
 Results are automatically appended here by `load_test.sh`.
 Each run block records the configuration used and a per-phase summary table.
 
+## Test Machine
+
+| Component | Spec |
+|-----------|------|
+| **CPU** | 12th Gen Intel Core i7-1260P — 8 cores / 16 threads |
+| **RAM** | 7.6 GB (WSL2 allocation) |
+| **Disk** | 1 TB virtual disk (`/dev/sdd`), ~949 GB free |
+| **OS** | Ubuntu 24.04.3 LTS (Noble Numbat) on WSL2 |
+| **Kernel** | Linux 6.6.87.2-microsoft-standard-WSL2 |
+| **Java** | OpenJDK 17.0.18 (Ubuntu build) |
+| **MongoDB** | v8.0.15 (tcmalloc-google allocator) |
+
 ---
 
 ## Run: 2026-04-17 15:42:08  *(example — replace with real run)*
