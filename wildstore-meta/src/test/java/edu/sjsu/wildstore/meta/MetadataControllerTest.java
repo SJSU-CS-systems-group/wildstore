@@ -118,4 +118,25 @@ public class MetadataControllerTest {
                         .content(objectMapper.writeValueAsString(metadata)))
                 .andExpect(status().isOk());
     }
+
+    /**
+     * Regression test: upserting a Metadata object with a null fileName field
+     * (i.e. the field is absent from the JSON body) must not throw NullPointerException.
+     */
+    @Test
+    public void testUpsertWithNullFileNameReturnsOk() throws Exception {
+        Metadata metadata = new Metadata();
+        // fileName intentionally left null
+        metadata.filePath = new HashSet<>();
+        metadata.digestString = "cafebabe";
+        metadata.globalAttributes = new ArrayList<>();
+        metadata.variables = new ArrayList<>();
+        metadata.lastModified = System.currentTimeMillis();
+
+        mockMvc.perform(post("/api/metadata")
+                        .header("Authorization", "Bearer " + bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(metadata)))
+                .andExpect(status().isOk());
+    }
 }
