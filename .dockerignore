@@ -1,0 +1,10 @@
+.git
+**/target
+**/node_modules
+oauth.yml
+token.txt
+.env
+deploy/.env
+.idea
+.settings
+*.iml

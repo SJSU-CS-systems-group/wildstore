@@ -1,0 +1,38 @@
+services:
+  mongo:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  wildstore-meta:
+    build:
+      context: .
+      target: meta
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./oauth.yml:/app/oauth.yml:ro
+    environment:
+      - spring.config.additional-location=file:/app/oauth.yml
+      - server.port=8080
+      - spring.data.mongodb.uri=mongodb://mongo:27017/wildfire
+      - custom.fileServer=http://wildstore-fileserve:27778
+      - custom.frontendUrl=http://localhost:8080
+    depends_on:
+      - mongo
+
+  wildstore-fileserve:
+    build:
+      context: .
+      target: fileserve
+    ports:
+      - "27778:27778"
+    environment:
+      - custom.metadataServer=http://wildstore-meta:8080
+    depends_on:
+      - wildstore-meta
+
+volumes:
+  mongo-data:

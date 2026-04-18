@@ -1,0 +1,38 @@
+name: wildstore-staging
+
+services:
+  mongo:
+    image: mongo:6.0
+    restart: unless-stopped
+    volumes:
+      - mongo-data-staging:/data/db
+
+  wildstore-meta:
+    image: ghcr.io/sjsu-cs-systems-group/wildstore/wildstore-meta:staging-deploy
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./oauth.yml:/app/oauth.yml:ro
+    environment:
+      - spring.config.additional-location=file:/app/oauth.yml
+      - server.port=8081
+      - spring.data.mongodb.uri=mongodb://mongo:27017/wildfire
+      - custom.fileServer=http://wildstore-fileserve:27779
+      - custom.frontendUrl=http://localhost:8081
+    depends_on:
+      - mongo
+
+  wildstore-fileserve:
+    image: ghcr.io/sjsu-cs-systems-group/wildstore/wildstore-fileserve:staging-deploy
+    restart: unless-stopped
+    ports:
+      - "27779:27779"
+    environment:
+      - server.port=27779
+      - custom.metadataServer=http://wildstore-meta:8081
+    depends_on:
+      - wildstore-meta
+
+volumes:
+  mongo-data-staging:

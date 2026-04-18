@@ -13,3 +13,5 @@ oauth.yml
 
 enumVarList.txt
 DatasetCreation.log
+.env
+deploy/.env

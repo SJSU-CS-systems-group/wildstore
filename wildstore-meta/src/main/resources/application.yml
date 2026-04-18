@@ -13,6 +13,14 @@ custom:
   frontendUrl: "http://localhost:27777"
   expireAfterSeconds: 292000
   allowedCorsOrigins: "https://localhost"
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
 spring:
   data:
     mongodb:

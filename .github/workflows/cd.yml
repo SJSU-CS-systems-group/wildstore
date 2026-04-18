@@ -1,0 +1,176 @@
+name: CD – Build, Verify & Release
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: cd-pipeline
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  META_IMAGE: ghcr.io/${{ github.repository }}/wildstore-meta
+  FILESERVE_IMAGE: ghcr.io/${{ github.repository }}/wildstore-fileserve
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set version
+        id: version
+        run: echo "version=$(date +%Y%m%d)-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push meta image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: meta
+          push: true
+          tags: |
+            ${{ env.META_IMAGE }}:${{ github.sha }}
+            ${{ env.META_IMAGE }}:staging
+            ${{ env.META_IMAGE }}:v${{ steps.version.outputs.version }}
+          cache-from: type=gha,scope=meta
+          cache-to: type=gha,mode=max,scope=meta
+
+      - name: Build and push fileserve image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: fileserve
+          push: true
+          tags: |
+            ${{ env.FILESERVE_IMAGE }}:${{ github.sha }}
+            ${{ env.FILESERVE_IMAGE }}:staging
+            ${{ env.FILESERVE_IMAGE }}:v${{ steps.version.outputs.version }}
+          cache-from: type=gha,scope=fileserve
+          cache-to: type=gha,mode=max,scope=fileserve
+
+      - name: Create GitHub pre-release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
+            --notes "Pre-release from ${GITHUB_SHA::7}. Awaiting smoke test." \
+            --prerelease
+
+  smoke-test:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    services:
+      mongo:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd="mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Start meta container
+        run: |
+          docker run -d --name meta --network host \
+            -e server.port=8080 \
+            -e spring.data.mongodb.uri=mongodb://localhost:27017/wildfire \
+            -e spring.security.oauth2.client.registration.google.client-id=unused \
+            -e spring.security.oauth2.client.registration.google.client-secret=unused \
+            -e spring.security.oauth2.client.registration.github.client-id=unused \
+            -e spring.security.oauth2.client.registration.github.client-secret=unused \
+            "${{ env.META_IMAGE }}:${{ github.sha }}"
+
+      - name: Start fileserve container
+        run: |
+          docker run -d --name fileserve --network host \
+            -e custom.metadataServer=http://localhost:8080 \
+            "${{ env.FILESERVE_IMAGE }}:${{ github.sha }}"
+
+      - name: Wait for meta health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8080/actuator/health; then
+              echo ""
+              echo "meta is healthy"
+              exit 0
+            fi
+            echo "attempt $i/30 – waiting for meta..."
+            sleep 2
+          done
+          echo "meta failed health check"
+          docker logs meta
+          exit 1
+
+      - name: Wait for fileserve health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:27778/actuator/health; then
+              echo ""
+              echo "fileserve is healthy"
+              exit 0
+            fi
+            echo "attempt $i/30 – waiting for fileserve..."
+            sleep 2
+          done
+          echo "fileserve failed health check"
+          docker logs fileserve
+          exit 1
+
+  promote-to-prod:
+    runs-on: ubuntu-latest
+    needs: [build-and-push, smoke-test]
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Re-tag images as latest and versioned
+        env:
+          VERSION: ${{ needs.build-and-push.outputs.version }}
+        run: |
+          for IMAGE in "${{ env.META_IMAGE }}" "${{ env.FILESERVE_IMAGE }}"; do
+            docker pull "${IMAGE}:${{ github.sha }}"
+            docker tag  "${IMAGE}:${{ github.sha }}" "${IMAGE}:latest"
+            docker tag  "${IMAGE}:${{ github.sha }}" "${IMAGE}:v${VERSION}"
+            docker push "${IMAGE}:latest"
+            docker push "${IMAGE}:v${VERSION}"
+          done
+
+      - name: Promote pre-release to full release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.build-and-push.outputs.version }}
+        run: gh release edit "v${VERSION}" --prerelease=false

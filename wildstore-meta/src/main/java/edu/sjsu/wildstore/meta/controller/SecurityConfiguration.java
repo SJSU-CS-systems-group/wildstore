@@ -50,7 +50,7 @@ public class SecurityConfiguration {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(CsrfConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .authorizeHttpRequests(ac -> ac.requestMatchers("/error").permitAll()
+                .authorizeHttpRequests(ac -> ac.requestMatchers("/error", "/actuator/health").permitAll()
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> {
                     oauth2.userInfoEndpoint()
