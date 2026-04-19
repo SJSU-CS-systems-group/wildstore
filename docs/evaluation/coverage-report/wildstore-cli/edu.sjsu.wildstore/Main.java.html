@@ -147,52 +147,54 @@ import java.util.stream.Collectors;
                                     parameters,
 <span class="fc" id="L148">                                    new ParameterizedTypeReference&lt;&gt;() {});</span>
 <span class="fc bfc" id="L149" title="All 2 branches covered.">                List&lt;String&gt; deletedFiles = result.stream().map(i -&gt; i.get(&quot;fileName&quot;).toString()).filter(item -&gt; !Files.exists(Paths.get(item))).toList();</span>
-<span class="fc bfc" id="L150" title="All 2 branches covered.">                if (!dryrun) System.out.println(&quot;DELETE RESULT:&quot; + Client.post(webClient,</span>
-                                                                  deletedFiles,
-<span class="fc" id="L152">                                                                  new ParameterizedTypeReference&lt;Integer&gt;() {},</span>
-<span class="fc" id="L153">                                                                  httpHeaders -&gt; httpHeaders.setBearerAuth(co.token)));</span>
-<span class="fc" id="L154">                co.out().println(&quot;Deleted Files: &quot; + String.join(&quot;\n&quot;, deletedFiles));</span>
-<span class="fc" id="L155">                offset += limit;</span>
-<span class="pc bpc" id="L156" title="1 of 2 branches missed.">            } while (result.size() == offset);</span>
-<span class="fc bfc" id="L157" title="All 2 branches covered.">            if (dryrun) System.out.println(&quot;DRYRUN: NO FILES WERE DELETED.&quot;);</span>
-<span class="fc" id="L158">        }</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">                if (!dryrun) {</span>
+<span class="fc" id="L151">                    System.out.println(&quot;DELETE RESULT:&quot; + Client.post(webClient,</span>
+                                                                      deletedFiles,
+<span class="fc" id="L153">                                                                      new ParameterizedTypeReference&lt;Integer&gt;() {},</span>
+<span class="fc" id="L154">                                                                      httpHeaders -&gt; httpHeaders.setBearerAuth(co.token)));</span>
+                }
+<span class="fc" id="L156">                co.out().println(&quot;Deleted Files: &quot; + String.join(&quot;\n&quot;, deletedFiles));</span>
+<span class="fc" id="L157">                offset += limit;</span>
+<span class="pc bpc" id="L158" title="1 of 2 branches missed.">            } while (result.size() == offset);</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">            if (dryrun) System.out.println(&quot;DRYRUN: NO FILES WERE DELETED.&quot;);</span>
+<span class="fc" id="L160">        }</span>
 
         @CommandLine.Command
         public void cleanlinks(@CommandLine.Mixin CliOptions co,
                                @CommandLine.Option(names = &quot;--no&quot; + &quot;-dryrun&quot;, negatable = true, defaultValue = &quot;true&quot;) boolean dryrun) throws
                 ExecutionException, InterruptedException {
 
-<span class="fc" id="L165">            List&lt;Object&gt; shareLinks = new ArrayList&lt;&gt;();</span>
-<span class="fc" id="L166">            LinkedMultiValueMap&lt;String, String&gt; parameters = new LinkedMultiValueMap&lt;String, String&gt;();</span>
-<span class="fc" id="L167">            int limit = 10000;</span>
-<span class="fc" id="L168">            int offset = 0;</span>
-<span class="fc" id="L169">            parameters.add(&quot;limit&quot;, String.valueOf(limit));</span>
-<span class="fc" id="L170">            parameters.add(&quot;offset&quot;, String.valueOf(offset));</span>
+<span class="fc" id="L167">            List&lt;Object&gt; shareLinks = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L168">            LinkedMultiValueMap&lt;String, String&gt; parameters = new LinkedMultiValueMap&lt;String, String&gt;();</span>
+<span class="fc" id="L169">            int limit = 10000;</span>
+<span class="fc" id="L170">            int offset = 0;</span>
+<span class="fc" id="L171">            parameters.add(&quot;limit&quot;, String.valueOf(limit));</span>
+<span class="fc" id="L172">            parameters.add(&quot;offset&quot;, String.valueOf(offset));</span>
             do {
-<span class="fc" id="L172">                shareLinks = Client.get(Client.getWebClient(co.metadataURL + &quot;/api/share-link/&quot;, co.token),</span>
+<span class="fc" id="L174">                shareLinks = Client.get(Client.getWebClient(co.metadataURL + &quot;/api/share-link/&quot;, co.token),</span>
                                                          parameters,
-<span class="fc" id="L174">                                                         new ParameterizedTypeReference&lt;List&lt;Object&gt;&gt;() {});</span>
-<span class="fc" id="L175">                List&lt;LinkedHashMap&lt;?, ?&gt;&gt; expiredLinks = shareLinks.stream()</span>
-<span class="fc" id="L176">                        .map(sl -&gt; (LinkedHashMap&lt;?, ?&gt;) sl)</span>
-<span class="fc" id="L177">                        .filter(sl -&gt; LocalDateTime.parse(sl.get(&quot;expiry&quot;).toString()).isBefore(LocalDateTime.now()))</span>
-<span class="fc" id="L178">                        .collect(Collectors.toList());</span>
-<span class="fc bfc" id="L179" title="All 2 branches covered.">                if (!dryrun) {</span>
-<span class="fc" id="L180">                    List&lt;String&gt; shareIds = expiredLinks.stream()</span>
-<span class="fc" id="L181">                            .map(sl -&gt; sl.get(&quot;shareId&quot;).toString()).toList();</span>
-<span class="fc" id="L182">                    System.out.println(&quot;DELETE RESULT:&quot; + Client.post(Client.getWebClient(co.metadataURL + &quot;/api/share-link/delete&quot;, co.token),</span>
+<span class="fc" id="L176">                                                         new ParameterizedTypeReference&lt;List&lt;Object&gt;&gt;() {});</span>
+<span class="fc" id="L177">                List&lt;LinkedHashMap&lt;?, ?&gt;&gt; expiredLinks = shareLinks.stream()</span>
+<span class="fc" id="L178">                        .map(sl -&gt; (LinkedHashMap&lt;?, ?&gt;) sl)</span>
+<span class="fc" id="L179">                        .filter(sl -&gt; LocalDateTime.parse(sl.get(&quot;expiry&quot;).toString()).isBefore(LocalDateTime.now()))</span>
+<span class="fc" id="L180">                        .collect(Collectors.toList());</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">                if (!dryrun) {</span>
+<span class="fc" id="L182">                    List&lt;String&gt; shareIds = expiredLinks.stream()</span>
+<span class="fc" id="L183">                            .map(sl -&gt; sl.get(&quot;shareId&quot;).toString()).toList();</span>
+<span class="fc" id="L184">                    System.out.println(&quot;DELETE RESULT:&quot; + Client.post(Client.getWebClient(co.metadataURL + &quot;/api/share-link/delete&quot;, co.token),</span>
                                                                       shareIds,
-<span class="fc" id="L184">                                                                      new ParameterizedTypeReference&lt;Integer&gt;() {},</span>
-<span class="fc" id="L185">                                                                      httpHeaders -&gt; httpHeaders.setBearerAuth(co.token)));</span>
+<span class="fc" id="L186">                                                                      new ParameterizedTypeReference&lt;Integer&gt;() {},</span>
+<span class="fc" id="L187">                                                                      httpHeaders -&gt; httpHeaders.setBearerAuth(co.token)));</span>
                 }
-<span class="fc" id="L187">                DateTimeFormatter formatter = DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm:ss&quot;);</span>
-<span class="fc" id="L188">                co.out().println(&quot;Deleted ShareLinks: &quot; + expiredLinks.size());</span>
-<span class="fc" id="L189">                expiredLinks.forEach(sl -&gt; {</span>
-<span class="fc" id="L190">                    co.out().println(&quot;File path: &quot; + sl.get(&quot;filePath&quot;).toString() + &quot;, Emails: &quot; + sl.get(&quot;emailAddresses&quot;).toString() + &quot;, Expired on: &quot; + (LocalDateTime.parse(sl.get(&quot;expiry&quot;).toString())).format(formatter));</span>
-<span class="fc" id="L191">                });</span>
-<span class="fc" id="L192">                offset += limit;</span>
-<span class="pc bpc" id="L193" title="1 of 2 branches missed.">            } while (shareLinks.size() == limit);</span>
-<span class="fc bfc" id="L194" title="All 2 branches covered.">            if (dryrun) System.out.println(&quot;DRYRUN: NO LINKS WERE DELETED.&quot;);</span>
-<span class="fc" id="L195">        }</span>
+<span class="fc" id="L189">                DateTimeFormatter formatter = DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm:ss&quot;);</span>
+<span class="fc" id="L190">                co.out().println(&quot;Deleted ShareLinks: &quot; + expiredLinks.size());</span>
+<span class="fc" id="L191">                expiredLinks.forEach(sl -&gt; {</span>
+<span class="fc" id="L192">                    co.out().println(&quot;File path: &quot; + sl.get(&quot;filePath&quot;).toString() + &quot;, Emails: &quot; + sl.get(&quot;emailAddresses&quot;).toString() + &quot;, Expired on: &quot; + (LocalDateTime.parse(sl.get(&quot;expiry&quot;).toString())).format(formatter));</span>
+<span class="fc" id="L193">                });</span>
+<span class="fc" id="L194">                offset += limit;</span>
+<span class="pc bpc" id="L195" title="1 of 2 branches missed.">            } while (shareLinks.size() == limit);</span>
+<span class="fc bfc" id="L196" title="All 2 branches covered.">            if (dryrun) System.out.println(&quot;DRYRUN: NO LINKS WERE DELETED.&quot;);</span>
+<span class="fc" id="L197">        }</span>
     }
 
 }

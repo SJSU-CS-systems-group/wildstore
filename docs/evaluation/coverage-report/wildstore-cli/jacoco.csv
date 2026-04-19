@@ -8,5 +8,5 @@ wildstore-cli,edu.sjsu.wildstore,Main,56,4,5,1,16,2,7,1,4,1
 wildstore-cli,edu.sjsu.wildstore,Main.Cli.new ParameterizedTypeReference() {...},0,6,0,0,0,1,0,1,0,1
 wildstore-cli,edu.sjsu.wildstore,Main.Cli.new ParameterizedTypeReference() {...},0,6,0,0,0,1,0,1,0,1
 wildstore-cli,edu.sjsu.wildstore,Main.Cli.new ParameterizedTypeReference() {...},0,6,0,0,0,1,0,1,0,1
-wildstore-cli,edu.sjsu.wildstore,Main.Cli,36,429,4,22,5,78,3,26,0,16
+wildstore-cli,edu.sjsu.wildstore,Main.Cli,36,429,4,22,5,79,3,26,0,16
 wildstore-cli,edu.sjsu.wildstore,CliOptions,14,84,0,8,3,21,0,10,0,6

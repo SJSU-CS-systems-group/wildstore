@@ -311,12 +311,12 @@ import java.util.stream.StreamSupport;
      * this is our own file walker that will skip files that are not accessible, unlike Files.walk().
      * we use a Spliterator to allow parallel processing of files.
      */
-    static private class FileSpliterator extends java.util.Spliterators.AbstractSpliterator&lt;Path&gt; {
+    private static class FileSpliterator extends java.util.Spliterators.AbstractSpliterator&lt;Path&gt; {
         private static final long POPULATE_QUEUE_SIZE = 1000;
         // all FileSpliterator instances share the same queue of directories to walk
-        final private ConcurrentLinkedQueue&lt;Path&gt; dirQueue;
+        private final ConcurrentLinkedQueue&lt;Path&gt; dirQueue;
         // each instance has its own queue of files to process
-<span class="fc" id="L319">        final private LinkedList&lt;Path&gt; fileQueue = new LinkedList&lt;&gt;();</span>
+<span class="fc" id="L319">        private final LinkedList&lt;Path&gt; fileQueue = new LinkedList&lt;&gt;();</span>
 
         FileSpliterator(List&lt;Path&gt; pathsToWalk) {
 <span class="fc" id="L322">            super(Long.MAX_VALUE, java.util.Spliterator.NONNULL);</span>
@@ -365,7 +365,7 @@ import java.util.stream.StreamSupport;
         }
 
         @Override
-        synchronized public boolean tryAdvance(java.util.function.Consumer&lt;? super Path&gt; action) {
+        public synchronized boolean tryAdvance(java.util.function.Consumer&lt;? super Path&gt; action) {
 <span class="fc" id="L369">            var path = fileQueue.pollFirst();</span>
 <span class="fc bfc" id="L370" title="All 2 branches covered.">            if (path != null) {</span>
 <span class="fc" id="L371">                action.accept(path);</span>
@@ -383,7 +383,7 @@ import java.util.stream.StreamSupport;
         }
 
         @Override
-        synchronized public FileSpliterator trySplit() {
+        public synchronized FileSpliterator trySplit() {
 <span class="fc" id="L387">            var newSpliterator = new FileSpliterator(this.dirQueue);</span>
 <span class="pc bpc" id="L388" title="1 of 2 branches missed.">            if (newSpliterator.populateFileQueue() == 0) {</span>
 <span class="fc" id="L389">                return null; // No files to split</span>

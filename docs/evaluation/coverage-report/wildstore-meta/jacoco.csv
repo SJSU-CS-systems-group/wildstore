@@ -15,7 +15,8 @@ wildstore-meta,edu.sjsu.wildstore.meta.controller,StatisticsController,16,407,0,
 wildstore-meta,edu.sjsu.wildstore.meta.controller,ShareLinkController.CreatedLinks,0,9,0,0,0,4,0,1,0,1
 wildstore-meta,edu.sjsu.wildstore.meta.controller,UserController,14,56,4,5,3,14,3,4,0,2
 wildstore-meta,edu.sjsu.wildstore.meta.controller,MetadataController,20,474,7,27,5,84,6,24,0,13
-wildstore-meta,edu.sjsu.wildstore.meta.controller,SecurityConfiguration,5,308,2,12,0,75,3,20,1,15
+wildstore-meta,edu.sjsu.wildstore.meta.controller,SecurityConfiguration,5,312,2,12,0,75,3,20,1,15
 wildstore-meta,edu.sjsu.wildstore.meta.controller,OauthController,18,167,2,2,3,36,3,8,1,8
 wildstore-meta,edu.sjsu.wildstore.meta.controller,FileDownloadController,0,10,0,0,0,3,0,2,0,2
+wildstore-meta,edu.sjsu.wildstore.meta.controller,FileNodeBridgeController,40,3,0,0,6,1,1,1,1,1
 wildstore-meta,edu.sjsu.wildstore.meta.controller,UsersController,0,51,0,4,0,12,0,7,0,5

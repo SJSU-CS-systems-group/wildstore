@@ -15,7 +15,7 @@ import java.util.function.BiFunction;
     @CommandLine.Option(names=&quot;--count&quot;, description=&quot;Number of times to duplicate the file&quot;, defaultValue = &quot;100&quot;,
     showDefaultValue = CommandLine.Help.Visibility.ALWAYS)
     int count;
-    public final static int MAX_COUNT = 24*60; // 24 hours in minutes
+    public static final int MAX_COUNT = 24*60; // 24 hours in minutes
 
     @Override
     public void run() {

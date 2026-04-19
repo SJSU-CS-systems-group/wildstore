@@ -50,7 +50,7 @@ import java.util.*;
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 <span class="fc" id="L51">        http.csrf(CsrfConfigurer::disable)</span>
 <span class="fc" id="L52">                .cors(cors -&gt; cors.configurationSource(corsConfigurationSource()))</span>
-<span class="fc" id="L53">                .authorizeHttpRequests(ac -&gt; ac.requestMatchers(&quot;/error&quot;).permitAll()</span>
+<span class="fc" id="L53">                .authorizeHttpRequests(ac -&gt; ac.requestMatchers(&quot;/error&quot;, &quot;/actuator/health&quot;).permitAll()</span>
 <span class="fc" id="L54">                        .anyRequest().authenticated())</span>
 <span class="fc" id="L55">                .oauth2Login(oauth2 -&gt; {</span>
 <span class="fc" id="L56">                    oauth2.userInfoEndpoint()</span>
