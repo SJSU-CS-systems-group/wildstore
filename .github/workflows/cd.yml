@@ -3,6 +3,7 @@ name: CD – Build, Verify & Release
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: cd-pipeline
@@ -10,8 +11,6 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  META_IMAGE: ghcr.io/${{ github.repository }}/wildstore-meta
-  FILESERVE_IMAGE: ghcr.io/${{ github.repository }}/wildstore-fileserve
 
 permissions:
   contents: write
@@ -22,8 +21,17 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      meta_image: ${{ steps.images.outputs.meta }}
+      fileserve_image: ${{ steps.images.outputs.fileserve }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set image names
+        id: images
+        run: |
+          REPO_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "meta=ghcr.io/${REPO_LC}/wildstore-meta" >> "$GITHUB_OUTPUT"
+          echo "fileserve=ghcr.io/${REPO_LC}/wildstore-fileserve" >> "$GITHUB_OUTPUT"
 
       - name: Set version
         id: version
@@ -46,9 +54,9 @@ jobs:
           target: meta
           push: true
           tags: |
-            ${{ env.META_IMAGE }}:${{ github.sha }}
-            ${{ env.META_IMAGE }}:staging
-            ${{ env.META_IMAGE }}:v${{ steps.version.outputs.version }}
+            ${{ steps.images.outputs.meta }}:${{ github.sha }}
+            ${{ steps.images.outputs.meta }}:staging
+            ${{ steps.images.outputs.meta }}:v${{ steps.version.outputs.version }}
           cache-from: type=gha,scope=meta
           cache-to: type=gha,mode=max,scope=meta
 
@@ -59,9 +67,9 @@ jobs:
           target: fileserve
           push: true
           tags: |
-            ${{ env.FILESERVE_IMAGE }}:${{ github.sha }}
-            ${{ env.FILESERVE_IMAGE }}:staging
-            ${{ env.FILESERVE_IMAGE }}:v${{ steps.version.outputs.version }}
+            ${{ steps.images.outputs.fileserve }}:${{ github.sha }}
+            ${{ steps.images.outputs.fileserve }}:staging
+            ${{ steps.images.outputs.fileserve }}:v${{ steps.version.outputs.version }}
           cache-from: type=gha,scope=fileserve
           cache-to: type=gha,mode=max,scope=fileserve
 
@@ -88,6 +96,9 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
+    env:
+      META_IMAGE: ${{ needs.build-and-push.outputs.meta_image }}
+      FILESERVE_IMAGE: ${{ needs.build-and-push.outputs.fileserve_image }}
     steps:
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -147,6 +158,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-and-push, smoke-test]
     environment: production
+    env:
+      META_IMAGE: ${{ needs.build-and-push.outputs.meta_image }}
+      FILESERVE_IMAGE: ${{ needs.build-and-push.outputs.fileserve_image }}
     steps:
       - uses: actions/checkout@v4
 
