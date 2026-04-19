@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserCli.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">wildstore-cli</a> &gt; <a href="index.source.html" class="el_package">edu.sjsu.wildstore</a> &gt; <span class="el_source">UserCli.java</span></div><h1>UserCli.java</h1><pre class="source lang-java linenums">package edu.sjsu.wildstore;
+
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Mixin;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
+
+import java.io.PrintWriter;
+import java.util.List;
+import java.util.Map;
+
+@Command(name = &quot;user&quot;, description = &quot;manage users. admin role required.&quot;, mixinStandardHelpOptions = true)
+<span class="fc" id="L16">class UserCli {</span>
+
+    @Command(description = &quot;List all users with their roles&quot;)
+    public void list(@Mixin CliOptions cliOptions) throws CommandLine.PicocliException {
+        try {
+<span class="fc" id="L21">            List&lt;Map&gt; users = Client.get(cliOptions.metadataURL + &quot;/api/userlist/&quot;, cliOptions.token);</span>
+<span class="pc bpc" id="L22" title="1 of 2 branches missed.">            if (users == null) {</span>
+<span class="nc" id="L23">                throw new CommandLine.ExecutionException(cliOptions.cmd(), &quot;Error retrieving user list&quot;, null);</span>
+<span class="pc bpc" id="L24" title="1 of 2 branches missed.">            } else if (users.isEmpty()) {</span>
+<span class="nc" id="L25">                cliOptions.out().println(&quot;No users found&quot;);</span>
+            } else {
+<span class="fc" id="L27">                users.forEach(u -&gt; cliOptions.out().printf(&quot;%s: %s %s%n&quot;, u.get(&quot;email&quot;), u.get(&quot;role&quot;), u.get(&quot;name&quot;)));</span>
+            }
+<span class="fc" id="L29">        } catch (WebClientResponseException e) {</span>
+<span class="fc" id="L30">            throw new CommandLine.ExecutionException(cliOptions.cmd(), e.getMessage(), null);</span>
+<span class="fc" id="L31">        }</span>
+<span class="fc" id="L32">    }</span>
+
+    @Command(description = &quot;Get token for a user&quot;)
+    public void getToken(@Mixin CliOptions cliOptions,
+                         @Parameters(paramLabel = &quot;email&quot;, description = &quot;email to add/update&quot;, index = &quot;0&quot;)
+                         String email) throws CommandLine.PicocliException {
+        try {
+<span class="fc" id="L39">            List&lt;Map&gt; result = Client.get(cliOptions.metadataURL + &quot;/api/userlist/&quot; + email, cliOptions.token);</span>
+<span class="pc bpc" id="L40" title="1 of 4 branches missed.">            if (result == null || result.isEmpty()) {</span>
+<span class="fc" id="L41">                throw new CommandLine.ExecutionException(cliOptions.cmd(), &quot;User not found&quot;, null);</span>
+            }
+<span class="fc" id="L43">            String token = (String)result.get(0).get(&quot;token&quot;);</span>
+<span class="fc bfc" id="L44" title="All 2 branches covered.">            if (token == null) {</span>
+<span class="fc" id="L45">                throw new CommandLine.ExecutionException(cliOptions.cmd(), &quot;User token not found&quot;, null);</span>
+            } else {
+<span class="fc" id="L47">                cliOptions.out().printf(&quot;%s: %s%n&quot;, email, token);</span>
+            }
+<span class="fc" id="L49">        } catch (WebClientResponseException e) {</span>
+<span class="fc" id="L50">            throw new CommandLine.ExecutionException(cliOptions.cmd(), e.getMessage(), null);</span>
+<span class="fc" id="L51">        }</span>
+<span class="fc" id="L52">    }</span>
+
+    @Command(description = &quot;Update or Add and email with a role&quot;)
+    public void update(@Parameters(paramLabel = &quot;email&quot;, description = &quot;email to add/update&quot;, index = &quot;0&quot;)
+                       String email,
+                       @Option(names = &quot;--role&quot;, description = &quot;role to assign&quot;,  defaultValue =  &quot;user&quot;) String role,
+                       @Mixin CliOptions cliOptions) {
+<span class="fc bfc" id="L59" title="All 4 branches covered.">        var canonicalRole = switch (role) {</span>
+<span class="fc" id="L60">            case &quot;admin&quot;, &quot;ADMIN&quot;, &quot;ROLE_ADMIN&quot; -&gt; &quot;ROLE_ADMIN&quot;;</span>
+<span class="fc" id="L61">            case &quot;user&quot;, &quot;USER&quot;, &quot;ROLE_USER&quot; -&gt; &quot;ROLE_USER&quot;;</span>
+<span class="fc" id="L62">            case &quot;guest&quot;, &quot;GUEST&quot;, &quot;ROLE_GUEST&quot; -&gt; &quot;ROLE_GUEST&quot;;</span>
+<span class="fc" id="L63">            default -&gt; throw new CommandLine.ExecutionException(cliOptions.cmd(), &quot;Invalid role, must be one of admin, user, guest&quot;);</span>
+        };
+        try {
+<span class="fc" id="L66">            Boolean result = Client.post(cliOptions.metadataURL + &quot;/api/userlist/&quot; + email,</span>
+<span class="fc" id="L67">                                         Map.of(&quot;role&quot;, canonicalRole),</span>
+                                         cliOptions.token);
+<span class="pc bpc" id="L69" title="2 of 4 branches missed.">            if (result == null || !result) {</span>
+<span class="nc" id="L70">                throw new CommandLine.ExecutionException(cliOptions.cmd(), &quot;Error updating user&quot;);</span>
+            } else {
+<span class="fc" id="L72">                cliOptions.out().printf(&quot;User %s updated to role %s%n&quot;, email, canonicalRole);</span>
+            }
+<span class="fc" id="L74">        } catch (WebClientResponseException e) {</span>
+<span class="fc" id="L75">            throw new CommandLine.ExecutionException(cliOptions.cmd(), e.getMessage(), null);</span>
+<span class="fc" id="L76">        }</span>
+<span class="fc" id="L77">    }</span>
+
+    @Command(description = &quot;Remove a user by email&quot;)
+    public void remove(@Parameters(paramLabel = &quot;email&quot;, description = &quot;email to add/update&quot;, index = &quot;0&quot;)
+                       String email, @Mixin CliOptions cliOptions) {
+<span class="fc" id="L82">        WebClient webClient = Client.getWebClient(cliOptions.metadataURL + &quot;/api/userlist/&quot; + email, cliOptions.token);</span>
+<span class="fc" id="L83">        var result = webClient.delete().retrieve().bodyToMono(Boolean.class).retry(1).onErrorComplete(e -&gt; {</span>
+<span class="fc" id="L84">            cliOptions.err().println(e.getMessage());</span>
+<span class="fc" id="L85">            return true;</span>
+<span class="fc" id="L86">        }).block();</span>
+<span class="pc bpc" id="L87" title="1 of 4 branches missed.">        if (result == null || !result) {</span>
+<span class="fc" id="L88">            cliOptions.out().printf(&quot;Error deleting %s%n&quot;, email);</span>
+        } else {
+<span class="fc" id="L90">            cliOptions.out().printf(&quot;%s deleted%n&quot;, email);</span>
+        }
+<span class="fc" id="L92">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
