@@ -83,6 +83,30 @@ class MetadataControllerTest extends BaseControllerTest {
                         .content("{\"searchQuery\":\"\",\"limit\":10,\"offset\":0}"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("1"));
+
+        // Search with includeFields, expect: 200 with 1 result
+        mockMvc.perform(post("/api/metadata/search")
+                        .with(user("u").roles("USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"searchQuery\":\"\",\"limit\":10,\"offset\":0,\"includeFields\":[\"digestString\"]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)));
+
+        // Search with excludeFields, expect: 200 with 1 result
+        mockMvc.perform(post("/api/metadata/search")
+                        .with(user("u").roles("USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"searchQuery\":\"\",\"limit\":10,\"offset\":0,\"excludeFields\":[\"variables\"]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)));
+
+        // searchCount with excludeFields, expect: 1
+        mockMvc.perform(post("/api/metadata/search/count")
+                        .with(user("u").roles("USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"searchQuery\":\"\",\"limit\":10,\"offset\":0,\"excludeFields\":[\"variables\"]}"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("1"));
     }
 
     @Test
@@ -141,6 +165,79 @@ class MetadataControllerTest extends BaseControllerTest {
                         .content(dupDoc))
                 .andExpect(status().isOk())
                 .andExpect(content().string("false"));
+
+        // Date-type globalAttribute, expect: true (Date value converted from long)
+        String dateDoc = "{\"digestString\":\"newDigest003\","
+                + "\"fileName\":[\"/data/date.nc\"],"
+                + "\"filePath\":[\"/data/\"],"
+                + "\"fileType\":[\"nc\"],"
+                + "\"lastModified\":1000000,"
+                + "\"domain\":0,\"fileSize\":512,"
+                + "\"globalAttributes\":[{\"attributeName\":\"time\",\"type\":\"Date\",\"value\":2200000000}],"
+                + "\"variables\":[]}";
+        mockMvc.perform(post("/api/metadata")
+                        .with(user("u").roles("USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(dateDoc))
+                .andExpect(status().isOk())
+                .andExpect(content().string("true"));
+
+        // Same digestString different fileName → updates existing doc's fileName set, expect: false
+        String sameDigestNewFile = "{\"digestString\":\"testDigest001\","
+                + "\"fileName\":[\"/data/another.nc\"],"
+                + "\"filePath\":[\"/data2/\"],"
+                + "\"fileType\":[\"nc\"],"
+                + "\"lastModified\":2000000,"
+                + "\"domain\":1,\"fileSize\":1024,"
+                + "\"globalAttributes\":[],\"variables\":[]}";
+        mockMvc.perform(post("/api/metadata")
+                        .with(user("u").roles("USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(sameDigestNewFile))
+                .andExpect(status().isOk())
+                .andExpect(content().string("false"));
+
+        // removeFilenames: old doc with single fileName is removed when a new digest claims the same file, expect: true
+        Metadata singleFileDoc = new Metadata();
+        singleFileDoc.digestString = "oldDigest";
+        singleFileDoc.fileName = new HashSet<>(Set.of("/data/removable.nc"));
+        singleFileDoc.filePath = new HashSet<>(Set.of("/data/"));
+        singleFileDoc.lastModified = System.currentTimeMillis();
+        singleFileDoc.globalAttributes = new ArrayList<>();
+        singleFileDoc.variables = new ArrayList<>();
+        mongoTemplate.save(singleFileDoc, MongoCollections.METADATA);
+
+        mockMvc.perform(post("/api/metadata")
+                        .with(user("u").roles("USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"digestString\":\"newDigest3\","
+                                + "\"fileName\":[\"/data/removable.nc\"],"
+                                + "\"filePath\":[\"/data/\"],\"fileType\":[\"nc\"],"
+                                + "\"lastModified\":1000000,\"domain\":0,\"fileSize\":512,"
+                                + "\"globalAttributes\":[],\"variables\":[]}"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("true"));
+
+        // removeFilenames: old doc with multiple fileNames has the matching name pulled, new doc inserted, expect: true
+        Metadata multiFileDoc = new Metadata();
+        multiFileDoc.digestString = "multiDigest";
+        multiFileDoc.fileName = new HashSet<>(Set.of("/data/multi1.nc", "/data/multi2.nc"));
+        multiFileDoc.filePath = new HashSet<>(Set.of("/data/"));
+        multiFileDoc.lastModified = System.currentTimeMillis();
+        multiFileDoc.globalAttributes = new ArrayList<>();
+        multiFileDoc.variables = new ArrayList<>();
+        mongoTemplate.save(multiFileDoc, MongoCollections.METADATA);
+
+        mockMvc.perform(post("/api/metadata")
+                        .with(user("u").roles("USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"digestString\":\"newDigest4\","
+                                + "\"fileName\":[\"/data/multi1.nc\"],"
+                                + "\"filePath\":[\"/data/\"],\"fileType\":[\"nc\"],"
+                                + "\"lastModified\":1000000,\"domain\":0,\"fileSize\":512,"
+                                + "\"globalAttributes\":[],\"variables\":[]}"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("true"));
     }
 
     @Test
@@ -163,6 +260,13 @@ class MetadataControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("[\"/data/test.nc\"]"))
                 .andExpect(status().isOk());
+
+        // After deleting all docs, getFileNames returns empty list, expect: 200 with []
+        mockMvc.perform(get("/api/metadata/filenames")
+                        .param("limit", "10").param("offset", "0")
+                        .with(user("u").roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(content().string("[]"));
     }
 
     @Test
