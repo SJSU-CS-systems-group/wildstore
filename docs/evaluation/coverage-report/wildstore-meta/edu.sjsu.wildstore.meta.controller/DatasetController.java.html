@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DatasetController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">wildstore-meta</a> &gt; <a href="index.source.html" class="el_package">edu.sjsu.wildstore.meta.controller</a> &gt; <span class="el_source">DatasetController.java</span></div><h1>DatasetController.java</h1><pre class="source lang-java linenums">package edu.sjsu.wildstore.meta.controller;
+
+import com.mongodb.MongoWriteException;
+import edu.sjsu.wildstore.Dataset;
+import edu.sjsu.wildstore.Metadata;
+import edu.sjsu.wildstore.WildfireAttribute;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationOptions;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
+import java.math.BigInteger;
+import java.nio.file.*;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
+
+@RestController
+@RequestMapping(&quot;/api&quot;)
+<span class="fc" id="L26">public class DatasetController {</span>
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
+<span class="fc" id="L30">    public final String METADATA_COLLECTION = &quot;metadata&quot;;</span>
+<span class="fc" id="L31">    public final String DATASET_COLLECTION = &quot;dataset&quot;;</span>
+
+<span class="fc" id="L33">    private final Path datasetCreationLog = Paths.get(&quot;DatasetCreation.log&quot;);</span>
+
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    @PostMapping(&quot;/dataset&quot;)
+    public int upsertDataset() throws MongoWriteException {
+<span class="fc" id="L38">        AggregationOptions options = AggregationOptions.builder().allowDiskUse(true).build();</span>
+<span class="fc" id="L39">        Aggregation aggregation = Aggregation.newAggregation(Aggregation.unwind(&quot;filePath&quot;),</span>
+<span class="fc" id="L40">                                                             Aggregation.sort(Sort.Direction.ASC, &quot;filePath&quot;))</span>
+<span class="fc" id="L41">                .withOptions(options);</span>
+
+<span class="fc" id="L43">        AtomicReference&lt;String&gt; currentFilePath = new AtomicReference&lt;&gt;(&quot;&quot;);</span>
+<span class="fc" id="L44">        final Dataset[] currentDataset = { new Dataset() };</span>
+
+        try {
+<span class="nc" id="L47">            Files.createFile(datasetCreationLog);</span>
+<span class="fc" id="L48">        } catch (FileAlreadyExistsException e) {</span>
+<span class="nc" id="L49">        } catch (IOException e) {</span>
+<span class="nc" id="L50">            throw new RuntimeException(e);</span>
+<span class="pc" id="L51">        }</span>
+
+<span class="fc" id="L53">        mongoTemplate.aggregateStream(aggregation, METADATA_COLLECTION, Metadata.class).forEach(metadata -&gt; {</span>
+
+<span class="fc bfc" id="L55" title="All 2 branches covered.">            for (String path : metadata.filePath) {</span>
+<span class="fc" id="L56">                String tempPath = String.valueOf(currentFilePath);</span>
+
+<span class="fc bfc" id="L58" title="All 2 branches covered.">                if (!path.equals(tempPath)) {</span>
+                    //Search the collection and update the current dataset
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">                    if (currentDataset[0].digestString != null) {</span>
+<span class="nc" id="L61">                        checkUpdate(currentDataset[0], tempPath);</span>
+                    }
+                    //Update new current path
+<span class="fc" id="L64">                    currentFilePath.set(path);</span>
+
+                    //Create new Dataset
+<span class="fc" id="L67">                    currentDataset[0] = new Dataset();</span>
+
+                    // Initialize set and add dataset path
+<span class="fc" id="L70">                    currentDataset[0].datasetPath = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L71">                    currentDataset[0].datasetPath.add(path);</span>
+
+                    // Initialize digest string and max domain
+<span class="fc" id="L74">                    currentDataset[0].digestString = metadata.digestString;</span>
+<span class="fc" id="L75">                    currentDataset[0].maxDomain = metadata.domain;</span>
+
+                    // Initialize list and add digest
+<span class="fc" id="L78">                    currentDataset[0].digestList = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L79">                    currentDataset[0].digestList.add(metadata.digestString);</span>
+
+                    //Initialize first and last time stamp in dataset
+<span class="fc bfc" id="L82" title="All 2 branches covered.">                    for (int i = 0; i &lt; metadata.globalAttributes.size(); i++) {</span>
+<span class="fc" id="L83">                        var attribute = metadata.globalAttributes.get(i);</span>
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">                        if (attribute.attributeName.equals(&quot;StartDate&quot;) ||</span>
+<span class="nc bnc" id="L85" title="All 2 branches missed.">                                attribute.attributeName.equals(&quot;Start_Date&quot;)) {</span>
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">                            if (attribute.type.equals(&quot;int&quot;)) {</span>
+<span class="nc" id="L87">                                ArrayList&lt;Integer&gt; dateList = (ArrayList&lt;Integer&gt;) attribute.value;</span>
+<span class="nc" id="L88">                                currentDataset[0].firstTimeStamp = new Date(dateList.get(0));</span>
+<span class="nc" id="L89">                                currentDataset[0].lastTimeStamp = new Date(dateList.get(0));</span>
+<span class="nc" id="L90">                            } else {</span>
+<span class="fc" id="L91">                                currentDataset[0].firstTimeStamp = (Date) attribute.value;</span>
+<span class="fc" id="L92">                                currentDataset[0].lastTimeStamp = (Date) attribute.value;</span>
+                            }
+                        }
+                    }
+                } else {
+<span class="fc" id="L97">                    BigInteger digest = base64decoding(currentDataset[0].digestString);</span>
+<span class="fc" id="L98">                    currentDataset[0].digestString = base64encoding(digest.add(base64decoding(metadata.digestString)));</span>
+                    //Update digestList
+<span class="fc" id="L100">                    currentDataset[0].digestList.add(metadata.digestString);</span>
+                    //Update maxDomain
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">                    if (currentDataset[0].maxDomain &lt; metadata.domain) {</span>
+<span class="fc" id="L103">                        currentDataset[0].maxDomain = metadata.domain;</span>
+                    }
+                    //Update first time and last stamp if timestamp is earlier or later
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">                    for (WildfireAttribute attr : metadata.globalAttributes) {</span>
+<span class="pc bpc" id="L107" title="3 of 4 branches missed.">                        if (attr.attributeName.equals(&quot;StartDate&quot;) || attr.attributeName.equals(&quot;Start_Date&quot;)) {</span>
+                            //If existing first date is greater than current, update
+                            Date tempDate;
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">                            if (attr.type.equals(&quot;int&quot;)) {</span>
+<span class="nc" id="L111">                                ArrayList&lt;Integer&gt; dateList = (ArrayList&lt;Integer&gt;) attr.value;</span>
+<span class="nc" id="L112">                                tempDate = new Date(dateList.get(0));</span>
+<span class="nc" id="L113">                            } else {</span>
+<span class="fc" id="L114">                                tempDate = (Date) attr.value;</span>
+                            }
+                            //Update  time stamps if null
+<span class="pc bpc" id="L117" title="1 of 2 branches missed.">                            if (currentDataset[0].firstTimeStamp == null) {</span>
+<span class="nc" id="L118">                                currentDataset[0].firstTimeStamp = tempDate;</span>
+                            }
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">                            if (currentDataset[0].lastTimeStamp == null) {</span>
+<span class="nc" id="L121">                                currentDataset[0].lastTimeStamp = tempDate;</span>
+                            }
+                            //Update time stamps if there is corresponding earlier or later one
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">                            if (currentDataset[0].firstTimeStamp.compareTo(tempDate) &gt; 0) {</span>
+<span class="nc" id="L125">                                currentDataset[0].firstTimeStamp = tempDate;</span>
+<span class="pc bpc" id="L126" title="1 of 2 branches missed.">                            } else if (currentDataset[0].lastTimeStamp.compareTo(tempDate) &lt; 0) {</span>
+<span class="fc" id="L127">                                currentDataset[0].lastTimeStamp = tempDate;</span>
+                            }
+                            break;
+                        }
+
+<span class="nc" id="L132">                    }</span>
+                }
+<span class="fc" id="L134">            }</span>
+<span class="fc" id="L135">        });</span>
+
+<span class="fc bfc" id="L137" title="All 2 branches covered.">        if (currentDataset[0].digestString != null) {</span>
+<span class="fc" id="L138">            checkUpdate(currentDataset[0], String.valueOf(currentFilePath));</span>
+        }
+
+<span class="fc" id="L141">        return 0;</span>
+    }
+
+    /**
+     * Converts a file's (metadata) digestString to a bigInteger through decoding
+     * and converting to bigInteger from byte array
+     *
+     * @param digest Metadata digest string
+     * @return BigInteger Construct
+     */
+    public static BigInteger base64decoding(String digest) {
+<span class="fc bfc" id="L152" title="All 2 branches covered.">        return digest.equals(&quot;&quot;) ? new BigInteger(&quot;0&quot;) : new BigInteger(Base64.getUrlDecoder().decode(digest));</span>
+    }
+
+    /**
+     * Converts a BigInteger construct of byte array into a digestString for datasets
+     *
+     * @param digestBytes New Digest String of Dataset
+     * @return Dataset new digest string
+     */
+    public static String base64encoding(BigInteger digestBytes) {
+<span class="fc" id="L162">        return Base64.getUrlEncoder().encodeToString(digestBytes.toByteArray()).substring(0, 16);</span>
+    }
+
+    /**
+     * Check the collection to see if the dataset needs to be updated. If the document already exist but
+     * different digestString, remove path from the current document, and create or update a document.
+     *
+     * @param dataset Dataset to be checked and updated
+     * @param path    Path of the current dataset
+     */
+    public void checkUpdate(Dataset dataset, String path) {
+<span class="fc" id="L173">        Query query = new Query(Criteria.where(&quot;datasetPath&quot;).is(path));</span>
+<span class="fc" id="L174">        List&lt;Dataset&gt; existingDoc = mongoTemplate.find(query, Dataset.class, DATASET_COLLECTION);</span>
+
+<span class="fc bfc" id="L176" title="All 2 branches covered.">        if (!existingDoc.isEmpty()) { //If doc exists, compare digestString</span>
+            //If digestString update, remove from old dataset add to new dataset
+            //If the same do nothing
+<span class="fc bfc" id="L179" title="All 2 branches covered.">            if (!existingDoc.get(0).digestString.equals(dataset.digestString)) {</span>
+<span class="fc" id="L180">                Update update = new Update();</span>
+
+                // We remove the dataset path from the old dataset
+<span class="fc" id="L183">                existingDoc.get(0).datasetPath.remove(path);</span>
+
+                // If the dataset no longer has any paths, delete it
+<span class="fc bfc" id="L186" title="All 2 branches covered.">                if (existingDoc.get(0).datasetPath.size() == 0) {</span>
+                    try {
+<span class="fc" id="L188">                        Files.writeString(datasetCreationLog,</span>
+<span class="fc" id="L189">                                          &quot;Removed file with Digest String, &quot; + existingDoc.get(0).digestString +</span>
+                                                  &quot;, and replaced with file digest string, &quot; + dataset.digestString +
+                                                  &quot;\n&quot;,
+                                          StandardOpenOption.APPEND);
+<span class="nc" id="L193">                    } catch (IOException e) {</span>
+<span class="nc" id="L194">                        System.out.println(&quot;Failed to write to DatasetCreation Log&quot;);</span>
+<span class="nc" id="L195">                        throw new RuntimeException(e);</span>
+<span class="fc" id="L196">                    }</span>
+<span class="fc" id="L197">                    mongoTemplate.remove(new Query(Criteria.where(&quot;digestString&quot;).is(existingDoc.get(0).digestString)),</span>
+                                         DATASET_COLLECTION);
+                } else {
+<span class="fc" id="L200">                    update.set(&quot;datasetPath&quot;, existingDoc.get(0).datasetPath);</span>
+<span class="fc" id="L201">                    mongoTemplate.updateFirst(query, update, Dataset.class, DATASET_COLLECTION);</span>
+                }
+
+<span class="fc" id="L204">                upsertDatasetPath(dataset, String.valueOf(dataset));</span>
+<span class="fc" id="L205">            }</span>
+        } else {
+            //If document does not exist add it to the collection, using the object but single path
+            //Also need to check if it is a duplicate digestString before creating new object
+<span class="fc" id="L209">            upsertDatasetPath(dataset, path);</span>
+        }
+<span class="fc" id="L211">    }</span>
+
+    /**
+     * Checks if a dataset's digest string already exist, and if it does, adds it to the current object,
+     * otherwise creates a new one
+     *
+     * @param dataset Dataset object being searched
+     * @param path    Current path being checked
+     * @throws MongoWriteException
+     */
+    public void upsertDatasetPath(Dataset dataset, String path) throws MongoWriteException {
+
+<span class="fc" id="L223">        Query query = new Query(Criteria.where(&quot;digestString&quot;).is(dataset.digestString));</span>
+<span class="fc" id="L224">        var existingDoc = mongoTemplate.find(query, Dataset.class, DATASET_COLLECTION);</span>
+
+<span class="fc bfc" id="L226" title="All 2 branches covered.">        if (!existingDoc.isEmpty()) {</span>
+            // Update existing document with corresponding digest String with new path
+<span class="fc" id="L228">            Update update = new Update();</span>
+
+<span class="fc" id="L230">            existingDoc.get(0).datasetPath.add(path);</span>
+<span class="fc" id="L231">            update.set(&quot;datasetPath&quot;, existingDoc.get(0).datasetPath);</span>
+
+<span class="fc" id="L233">            mongoTemplate.updateFirst(query, update, Dataset.class, DATASET_COLLECTION);</span>
+<span class="fc" id="L234">        } else {</span>
+            //Create new document for the updated document
+<span class="fc" id="L236">            mongoTemplate.save(dataset, DATASET_COLLECTION);</span>
+        }
+<span class="fc" id="L238">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

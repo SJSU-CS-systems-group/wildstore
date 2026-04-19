@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">wildstore-meta</a> &gt; <a href="index.source.html" class="el_package">edu.sjsu.wildstore.meta.controller</a> &gt; <span class="el_source">UserController.java</span></div><h1>UserController.java</h1><pre class="source lang-java linenums">package edu.sjsu.wildstore.meta.controller;
+
+import edu.sjsu.wildstore.meta.service.UserService;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+
+@RestController
+@RequestMapping(&quot;/api/user&quot;)
+public class UserController {
+    final UserService userService;
+
+<span class="fc" id="L16">    public UserController(UserService userService) {</span>
+<span class="fc" id="L17">        this.userService = userService;</span>
+<span class="fc" id="L18">    }</span>
+
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    @GetMapping(&quot;/me&quot;)
+    public Map&lt;String, Object&gt; getUserProfile(OAuth2AuthenticationToken auth) {
+<span class="fc" id="L23">        OAuth2User principal = auth.getPrincipal();</span>
+<span class="fc" id="L24">        String provider = auth.getAuthorizedClientRegistrationId();</span>
+<span class="fc" id="L25">        String email = &quot;&quot;;</span>
+
+<span class="pc bpc" id="L27" title="1 of 3 branches missed.">        switch (provider.toLowerCase()) {</span>
+            case &quot;google&quot;:
+<span class="fc" id="L29">                email = principal.getAttribute(&quot;email&quot;);</span>
+<span class="fc" id="L30">                break;</span>
+            case &quot;github&quot;:
+<span class="nc" id="L32">                email = principal.getAttribute(&quot;email&quot;);</span>
+<span class="nc bnc" id="L33" title="All 2 branches missed.">                if (email == null) {</span>
+<span class="nc" id="L34">                    email = principal.getAttribute(&quot;login&quot;) + &quot;@github&quot;;</span>
+                }
+                break;
+            default:
+<span class="fc" id="L38">                throw new IllegalArgumentException(&quot;Unsupported provider: &quot; + provider);</span>
+        }
+
+<span class="fc" id="L41">        var result = userService.getUser(email);</span>
+<span class="pc bpc" id="L42" title="1 of 4 branches missed.">        if (result == null || result.isEmpty()) {</span>
+<span class="fc" id="L43">            throw new IllegalArgumentException(&quot;User profile not found. email=&quot; + email);</span>
+        }
+<span class="fc" id="L45">        return result.get(0); // first (and only) user</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

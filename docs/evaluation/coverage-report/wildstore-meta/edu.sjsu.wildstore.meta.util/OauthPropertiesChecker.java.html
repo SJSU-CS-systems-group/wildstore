@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OauthPropertiesChecker.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">wildstore-meta</a> &gt; <a href="index.source.html" class="el_package">edu.sjsu.wildstore.meta.util</a> &gt; <span class="el_source">OauthPropertiesChecker.java</span></div><h1>OauthPropertiesChecker.java</h1><pre class="source lang-java linenums">package edu.sjsu.wildstore.meta.util;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.AbstractEnvironment;
+import org.springframework.core.env.EnumerablePropertySource;
+import org.springframework.core.env.PropertySource;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.stream.Collectors;
+
+/**
+ * This class will check to make sure that the oauth configuration looks valid and
+ * that we aren't getting any oauth information from the class path. (we want to make
+ * sure that our secrets don't leak into the source repo.)
+ * It will System.exit on any problems.
+ */
+@Configuration
+<span class="fc" id="L22">public class OauthPropertiesChecker implements CommandLineRunner {</span>
+    @Autowired
+    AbstractEnvironment env;
+
+    @Override
+    public void run(String... args) {
+<span class="fc" id="L28">        System.out.println(&quot;Hello property checker here!&quot;);</span>
+<span class="fc" id="L29">        var oauthSecrets = new ArrayList&lt;String&gt;();</span>
+<span class="fc" id="L30">        var oauthSecretsSources = new ArrayList&lt;PropertySource&lt;?&gt;&gt;();</span>
+<span class="fc" id="L31">        var oauthIds = new ArrayList&lt;String&gt;();</span>
+<span class="fc" id="L32">        env.getPropertySources().stream().iterator().forEachRemaining(s -&gt; {</span>
+<span class="fc bfc" id="L33" title="All 2 branches covered.">            if (s instanceof EnumerablePropertySource&lt;?&gt; es) {</span>
+<span class="fc" id="L34">                Arrays.stream(es.getPropertyNames())</span>
+<span class="fc" id="L35">                        .filter(n -&gt; n.startsWith(&quot;spring.security.oauth2.client.registration&quot;))</span>
+<span class="fc" id="L36">                        .forEach(n -&gt; {</span>
+<span class="fc" id="L37">                            var parts = n.split(&quot;\\.&quot;);</span>
+<span class="fc" id="L38">                            var provider = parts[parts.length - 2];</span>
+<span class="fc" id="L39">                            var prop = parts[parts.length - 1];</span>
+<span class="fc bfc" id="L40" title="All 2 branches covered.">                            if (prop.equals(&quot;clientId&quot;)) {oauthIds.add(provider);}</span>
+<span class="fc bfc" id="L41" title="All 2 branches covered.">                            if (prop.equals(&quot;clientSecret&quot;)) {</span>
+<span class="fc" id="L42">                                oauthSecrets.add(provider);</span>
+<span class="fc" id="L43">                                oauthSecretsSources.add(es);</span>
+                            }
+<span class="fc" id="L45">                        });</span>
+            }
+<span class="fc" id="L47">        });</span>
+<span class="pc bpc" id="L48" title="1 of 2 branches missed.">        if (oauthIds.size() == 0) {</span>
+<span class="nc" id="L49">            System.out.println(&quot;no oauth properties found. properties should have the form&quot;);</span>
+<span class="nc" id="L50">            System.out.println(&quot;  spring.security.oauth2.client.registration.{provider}.clientId and&quot;);</span>
+<span class="nc" id="L51">            System.out.println(&quot;  spring.security.oauth2.client.registration.{provider}.clientSecret&quot;);</span>
+<span class="nc" id="L52">            System.exit(1);</span>
+        }
+<span class="fc bfc" id="L54" title="All 2 branches covered.">        for (int i = 0; i &lt; oauthSecretsSources.size(); i++) {</span>
+<span class="fc" id="L55">            var s = oauthSecretsSources.get(i);</span>
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">            if (s.getName().contains(&quot;classpath:&quot;)) {</span>
+<span class="nc" id="L57">                System.out.printf(&quot;%s information was found on classpath. this is a security violation: %s&quot;,</span>
+<span class="nc" id="L58">                                  oauthIds.get(i),</span>
+                                  s);
+<span class="nc" id="L60">                System.exit(1);</span>
+            }
+        }
+<span class="pc bpc" id="L63" title="1 of 2 branches missed.">        if (oauthIds.size() != oauthSecrets.size()) {</span>
+<span class="nc" id="L64">            System.out.printf(&quot;id list %s doesn't match secret list %s%n&quot;, oauthIds, oauthSecrets);</span>
+<span class="nc" id="L65">            System.exit(1);</span>
+        }
+<span class="fc" id="L67">        var duplicates =</span>
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">                oauthIds.stream().filter(id -&gt; Collections.frequency(oauthIds, id) &gt; 1).collect(Collectors.toSet());</span>
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">        if (duplicates.size() &gt; 0) {</span>
+<span class="nc" id="L70">            System.out.println(&quot;duplicate oauthIds found: &quot; + duplicates);</span>
+<span class="nc" id="L71">            System.exit(1);</span>
+        }
+<span class="fc" id="L73">        System.out.println(&quot;everything checks out! we are good to go!&quot;);</span>
+<span class="fc" id="L74">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
