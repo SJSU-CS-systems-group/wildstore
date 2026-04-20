@@ -112,10 +112,10 @@ jobs:
           docker run -d --name meta --network host \
             -e server.port=8080 \
             -e spring.data.mongodb.uri=mongodb://localhost:27017/wildfire \
-            -e spring.security.oauth2.client.registration.google.client-id=unused \
-            -e spring.security.oauth2.client.registration.google.client-secret=unused \
-            -e spring.security.oauth2.client.registration.github.client-id=unused \
-            -e spring.security.oauth2.client.registration.github.client-secret=unused \
+            -e spring.security.oauth2.client.registration.google.clientId=unused \
+            -e spring.security.oauth2.client.registration.google.clientSecret=unused \
+            -e spring.security.oauth2.client.registration.github.clientId=unused \
+            -e spring.security.oauth2.client.registration.github.clientSecret=unused \
             "${{ env.META_IMAGE }}:${{ github.sha }}"
 
       - name: Start fileserve container
