@@ -1,3 +1,6 @@
+[![Coverage](.github/badges/jacoco.svg)](https://github.com/SJSU-CS-systems-group/wildstore/actions/workflows/maven.yml)
+[![Branches](.github/badges/branches.svg)](https://github.com/SJSU-CS-systems-group/wildstore/actions/workflows/maven.yml)
+
 ## To start the MongoDB server through Terminal
 With authentication
 ```
