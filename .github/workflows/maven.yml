@@ -11,6 +11,9 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write
+
     services:
       mongo:
         image: mongo:6.0
@@ -48,3 +51,26 @@ jobs:
 
     - name: Generate coverage report
       run: mvn jacoco:report -B -ntp
+
+    - name: Generate JaCoCo coverage badges
+      id: jacoco
+      uses: cicirello/jacoco-badge-generator@v2
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      with:
+        jacoco-csv-file: >
+          docs/evaluation/coverage-report/wildstore-common/jacoco.csv
+          docs/evaluation/coverage-report/wildstore-meta/jacoco.csv
+          docs/evaluation/coverage-report/wildstore-crawl/jacoco.csv
+          docs/evaluation/coverage-report/wildstore-fileserve/jacoco.csv
+          docs/evaluation/coverage-report/wildstore-cli/jacoco.csv
+        badges-directory: .github/badges
+        generate-branches-badge: true
+        on-missing-report: quiet
+
+    - name: Commit and push coverage badges
+      uses: EndBug/add-and-commit@v9
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      with:
+        default_author: github_actions
+        message: 'ci: update coverage badges [skip ci]'
+        add: '.github/badges/*.svg'
