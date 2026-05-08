@@ -1,9 +1,10 @@
-import { useState, useMemo, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polygon, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useSelector, useDispatch } from 'react-redux';
+import { useEffect, useMemo, useState } from 'react';
+import { MapContainer, Marker, Polygon, Popup, TileLayer, useMap } from 'react-leaflet';
+import { useDispatch, useSelector } from 'react-redux';
 import { addQuery, setCurrentPage } from '../../redux/filterSlice';
+import MetadataDetails from '../metadata-details/metadataDetails';
 
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
@@ -181,72 +182,6 @@ const MapView = () => {
       .filter(Boolean);
   }, [metadataRecords]);
 
-  const renderPopupContent = (record) => (
-    <div className="text-xs font-mono">
-      <h3 className="m-0 mb-2 text-[#0056b3] text-sm break-all">
-        📄 {record.fileName?.[0] || 'Dataset'}
-      </h3>
-
-      <div className="border-b border-[#eee] pb-1 mb-1">
-        <strong>Domain:</strong> {record.domain ?? 'N/A'}
-        <br />
-        <strong>Size:</strong> {record.fileSize ?? 'N/A'}
-        <br />
-        <strong>Path:</strong> {record.filePath?.[0] || '(unknown)'}
-      </div>
-
-      <div className="bg-[#f9f9f9] p-1 rounded">
-        <strong>Variables:</strong>
-        <ul className="my-1 pl-5 text-[#444] list-disc">
-          {(record.variables || []).slice(0, 12).map((v) => {
-            const attrs = v.attributeList || [];
-            const dims = (v.varDimensionList || [])
-              .map((d) => `${d.name}=${d.value}`)
-              .join(', ');
-
-            const unitsAttr = attrs.find((a) => a.attributeName === 'units');
-            const units = Array.isArray(unitsAttr?.value)
-              ? unitsAttr.value[0]
-              : unitsAttr?.value;
-
-            const min =
-              typeof v.minValue === 'number'
-                ? v.minValue
-                : parseFloat(v.minValue);
-            const max =
-              typeof v.maxValue === 'number'
-                ? v.maxValue
-                : parseFloat(v.maxValue);
-
-            const hasRange = Number.isFinite(min) && Number.isFinite(max);
-
-            return (
-              <li key={v.variableName}>
-                <strong>{v.variableName}</strong>
-                {dims && (
-                  <span className="text-[#666]"> &nbsp;({dims})</span>
-                )}
-                <br />
-                <span className="text-[#666] text-[11px]">
-                  {v.type && `type: ${v.type}`}
-                  {units && ` • units: ${units}`}
-                  {hasRange &&
-                    ` • range: ${min.toFixed(2)} – ${max.toFixed(2)}`}
-                </span>
-              </li>
-            );
-          })}
-
-          {record.variables && record.variables.length > 12 && (
-            <li>
-              ... (+{record.variables.length - 12} more)
-            </li>
-          )}
-        </ul>
-      </div>
-    </div>
-  );
-
   return (
     <div className="relative h-full w-full">
       <MapContainer
@@ -279,7 +214,7 @@ const MapView = () => {
                     remove: () => setSelectedId(null),
                   }}
                 >
-                  {renderPopupContent(feat.record)}
+                  <MetadataDetails record={feat.record} />
                 </Popup>
               </Polygon>
             );
@@ -288,7 +223,7 @@ const MapView = () => {
           // point-only fallback (no usable bbox)
           return (
             <Marker key={feat.id} position={feat.markerPos}>
-              <Popup>{renderPopupContent(feat.record)}</Popup>
+              <Popup><MetadataDetails record={feat.record} /></Popup>
             </Marker>
           );
         })}
