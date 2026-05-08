@@ -1,10 +1,8 @@
-import { GoPaperAirplane, GoDownload, GoLocation } from 'react-icons/go';
-import { useDispatch } from 'react-redux';
-import { setSelectedRecord } from '../../redux/mapSlice';
-import { setModalData } from '../../redux/modalSlice';
-import { useSelector } from 'react-redux';
-import { setShowModal } from '../../redux/modalSlice';
 import { useState } from 'react';
+import { GoDownload, GoLocation, GoPaperAirplane } from 'react-icons/go';
+import { useDispatch, useSelector } from 'react-redux';
+import { setSelectedRecord } from '../../redux/mapSlice';
+import { setModalData, setShowModal } from '../../redux/modalSlice';
 import ShareModal from '../shareModal/shareModal';
 
 const SearchResult = ({ metadataRecord }) => {
@@ -32,14 +30,16 @@ const SearchResult = ({ metadataRecord }) => {
         });
         if (response.redirected) {
             window.location.href = response.url;
+            return;
         }
         let d = await response.json();
-        dispatch(setModalData({ "data": JSON.stringify(d[0]), "header": d[0].filePath[0] }));
+        const selectedRecord = d?.[0] ?? metadataRecord;
+        dispatch(setModalData({ "data": JSON.stringify(selectedRecord), "header": selectedRecord?.filePath?.[0] ?? "" }));
     }
 
-    const fetchDetails = () => {
+    const fetchDetails = async () => {
+        await getData();
         dispatch(setShowModal(true));
-        getData();
     }
 
     const token = useSelector(state => state.userReducer.opaqueToken)
@@ -89,7 +89,7 @@ const SearchResult = ({ metadataRecord }) => {
                 <h3 className="card-title text-lg hover:cursor-pointer break-all">{metadataRecord.fileName[0]}</h3>
                 <p className="break-words">{metadataRecord.digestString}</p>
                 <div className="card-actions justify-end items-center">
-                    <div><a className="link link-primary" onClick={fetchDetails}>Details</a></div>
+                    <div><button type="button" className="link link-primary" onClick={fetchDetails}>Details</button></div>
                     <div className='grow'></div>
                     <div className='tooltip' data-tip="Locate on Map">
                         <button className="btn btn-square bg-transparent border-none" onClick={locateOnMap}>

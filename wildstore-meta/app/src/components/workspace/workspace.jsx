@@ -1,12 +1,12 @@
-import { GoSearch, GoFilter, GoCodescanCheckmark, GoX } from 'react-icons/go';
-import Filter from '../filter/filter';
-import SearchResultContainer from '../searchResultContainer/searchResultContainer';
 import { useEffect, useState } from 'react';
+import { GoCodescanCheckmark, GoFilter, GoSearch, GoX } from 'react-icons/go';
 import { useDispatch, useSelector } from 'react-redux';
-import { setMetadata, setDescriptions } from '../../redux/metadataSlice';
 import { addQuery, deleteQuery, setQueryCount } from '../../redux/filterSlice';
-import Modal from '../modal/modal';
+import { setDescriptions, setMetadata } from '../../redux/metadataSlice';
 import { setSearchTerm } from "../../redux/searchTermSlice";
+import Filter from '../filter/filter';
+import Modal from '../modal/modal';
+import SearchResultContainer from '../searchResultContainer/searchResultContainer';
 
 const Workspace = () => {
 
@@ -16,7 +16,6 @@ const Workspace = () => {
     const limit = useSelector(state => state.filterReducer.limit)
     const offset = useSelector(state => state.filterReducer.offset)
     const [openSearchResults, setOpenSearchResults] = useState(true)
-    const [showModal, setShowModal] = useState(false);
 
     const getData = async () => {
         const builtQuery = (query.length !== 0) ? query.join(" AND ") : "";
@@ -168,10 +167,10 @@ const Workspace = () => {
                     </div>
                 </div>
                 <div className="collapse-content">
-                    <SearchResultContainer metadataRecords={metadataRecords} setShowModal={setShowModal} />
+                    <SearchResultContainer metadataRecords={metadataRecords} />
                 </div>
             </div>
-            {showModal && <Modal showModal={showModal} setShowModal={setShowModal} />}
+            <Modal />
         </div>
     );
 }
