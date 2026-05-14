@@ -1,9 +1,7 @@
-import React, { useEffect, useRef } from 'react';
-import { useState } from "react";
-import { useDispatch } from "react-redux";
+import { useEffect, useRef, useState } from 'react';
+import { useDispatch, useSelector } from "react-redux";
 import { addQuery } from '../../redux/filterSlice';
 import Predicate from '../predicate/predicate';
-import { useSelector } from 'react-redux';
 
 const Filter = () => {
 
@@ -87,7 +85,7 @@ const Filter = () => {
                     />
                 ))}
             </div>
-            <button className="btn mt-4" onClick={handleSearch}>Search</button>
+            <button className="btn mt-4" onClick={handleSearch}>Add Filter</button>
         </div>
     );
 }
