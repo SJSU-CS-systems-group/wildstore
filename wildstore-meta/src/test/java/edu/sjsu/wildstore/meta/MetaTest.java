@@ -72,11 +72,20 @@ public class MetaTest {
 
     @Test
     public void testBackup() throws IOException, InterruptedException {
-        FileTime firstTime = Files.getLastModifiedTime(backupDir.resolve("share-links.json"));
-        Assertions.assertTrue(Files.exists(backupDir.resolve("share-links.json")));
-        Assertions.assertTrue(Files.exists(backupDir.resolve("userData.json")));
+        Path shareLinks = backupDir.resolve("share-links.json");
+        Path userData = backupDir.resolve("userData.json");
 
+        // Wait up to 3s for the first backup run to create the files
+        long deadline = System.currentTimeMillis() + 3000;
+        while ((!Files.exists(shareLinks) || !Files.exists(userData)) && System.currentTimeMillis() < deadline) {
+            Thread.sleep(100);
+        }
+
+        Assertions.assertTrue(Files.exists(shareLinks));
+        Assertions.assertTrue(Files.exists(userData));
+
+        FileTime firstTime = Files.getLastModifiedTime(shareLinks);
         Thread.sleep(1000);
-        Assertions.assertTrue(firstTime.compareTo(Files.getLastModifiedTime(backupDir.resolve("share-links.json"))) < 0);
+        Assertions.assertTrue(firstTime.compareTo(Files.getLastModifiedTime(shareLinks)) < 0);
     }
 }

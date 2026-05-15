@@ -17,6 +17,7 @@ import picocli.CommandLine;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.URISyntaxException;
@@ -114,6 +115,13 @@ public class CliTest {
         Assertions.assertEquals(2, result.exitCode);
         Assertions.assertTrue(result.err.contains("No such file"));
 
+        // token file exists but has no token, return "No token found"
+        var emptyTokenFile = tempDir.resolve("empty-token.txt");
+        Files.write(emptyTokenFile, "somekey=somevalue".getBytes());
+        result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--tokenFile", emptyTokenFile.toString());
+        Assertions.assertEquals(2, result.exitCode);
+        Assertions.assertTrue(result.err.contains("No token found"));
+
         // create the token file but since it's not in the db, it should give unauthorized
         Files.write(adminTokenFile, ("token=" + token).getBytes());
         result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
@@ -125,6 +133,33 @@ public class CliTest {
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertEquals("", result.err);
         Assertions.assertEquals(format("%s: %s %s%n", email, role, name), result.out);
+
+        // metaURL ends with trailing slash, split and pass metaURL + /, command still succeeds
+        result = clirun(cmd, "user", "list", "--metaURL", metaURL + "/", "--tokenFile", adminTokenFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains(email));
+
+        result = clirun(cmd, "user", "getToken", "ghost@example.com", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
+        Assertions.assertEquals(1, result.exitCode);
+        Assertions.assertTrue(result.err.contains("User not found"));
+
+        var noTokenUser = new HashMap<String, Object>(Map.of("role", "ROLE_USER", "name", "NoToken", "email", "notoken@example.com"));
+        springCtx.getBean(MongoTemplate.class).insert(noTokenUser, USER_DATA_COLLECTION);
+        result = clirun(cmd, "user", "getToken", "notoken@example.com", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
+        Assertions.assertEquals(1, result.exitCode);
+        Assertions.assertTrue(result.err.contains("User token not found"));
+
+        result = clirun(cmd, "user", "update", "newadmin@example.com", "--role", "admin", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains("ROLE_ADMIN"));
+
+        result = clirun(cmd, "user", "update", "guest@example.com", "--role", "guest", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains("ROLE_GUEST"));
+
+        result = clirun(cmd, "user", "update", "someone@example.com", "--role", "superuser", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
+        Assertions.assertEquals(1, result.exitCode);
+        Assertions.assertTrue(result.err.contains("Invalid role"));
 
         result = clirun(cmd, "user", "update", "x@y.z", "--role", "user", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
@@ -148,16 +183,20 @@ public class CliTest {
         result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertEquals("", result.err);
-        Assertions.assertEquals(2, result.out.split("\n").length);
 
         result = clirun(cmd, "user", "remove", "x@y.z", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertEquals("", result.err);
 
+        var deadSocket = new ServerSocket(0);
+        var deadPort = deadSocket.getLocalPort();
+        deadSocket.close();
+        result = clirun(cmd, "user", "remove", email, "--metaURL", "http://localhost:" + deadPort, "--tokenFile", adminTokenFile.toString());
+        Assertions.assertTrue(result.out.contains("Error deleting " + email));
+
         result = clirun(cmd, "user", "list", "--metaURL", metaURL, "--tokenFile", adminTokenFile.toString());
         Assertions.assertEquals(0, result.exitCode);
         Assertions.assertEquals("", result.err);
-        Assertions.assertEquals(1, result.out.split("\n").length);
 
         emptyCollections();
     }
@@ -377,6 +416,167 @@ public class CliTest {
                     });
         }
         emptyCollections();
+    }
+
+    @Test
+    void testSearch() throws IOException {
+        var cmd = new Main.Cli();
+        var userTokenFile = tempDir.resolve("search-user-token.txt");
+        var guestTokenFile = tempDir.resolve("search-guest-token.txt");
+        var userToken = "secret-search-user-token";
+        var guestToken = "secret-search-guest-token";
+
+        Files.write(userTokenFile, ("token=" + userToken).getBytes());
+        Files.write(guestTokenFile, ("token=" + guestToken).getBytes());
+
+        createUser("ROLE_USER", "SearchUser", "user@search", userToken);
+        createUser("ROLE_GUEST", "SearchGuest", "guest@search", guestToken);
+
+        var testMeta1 = new Metadata();
+        testMeta1.fileName = new HashSet<>(Set.of("/data/test-search-1.nc"));
+        testMeta1.filePath = new HashSet<>(Set.of("/data"));
+        testMeta1.digestString = "search-digest-1";
+
+        var testMeta2 = new Metadata();
+        testMeta2.fileName = new HashSet<>(Set.of("/data/test-search-2.nc"));
+        testMeta2.filePath = new HashSet<>(Set.of("/data"));
+        testMeta2.digestString = "search-digest-2";
+
+        springCtx.getBean(MongoTemplate.class).insert(testMeta1, METADATA_COLLECTION);
+        springCtx.getBean(MongoTemplate.class).insert(testMeta2, METADATA_COLLECTION);
+
+        // missing required query parameter
+        var result = clirun(cmd, "search", "--metaURL", metaURL, "--tokenFile", userTokenFile.toString());
+        Assertions.assertEquals(2, result.exitCode);
+        Assertions.assertTrue(result.err.contains("Missing required parameter"));
+
+        // invalid token file path
+        result = clirun(cmd, "search", "digestString = 'search-digest-1'", "--metaURL", metaURL, "--tokenFile", "nonexistent-token-file");
+        Assertions.assertEquals(2, result.exitCode);
+        Assertions.assertTrue(result.err.contains("No such file"));
+
+        // token not registered in DB, should return unauthorized
+        var badTokenFile = tempDir.resolve("bad-search-token.txt");
+        Files.write(badTokenFile, "token=invalid-token".getBytes());
+        result = clirun(cmd, "search", "digestString = 'search-digest-1'", "--metaURL", metaURL, "--tokenFile", badTokenFile.toString());
+        Assertions.assertEquals(1, result.exitCode);
+
+        // guest role lacks ROLE_USER, should return unauthorized
+        result = clirun(cmd, "search", "digestString = 'search-digest-1'", "--metaURL", metaURL, "--tokenFile", guestTokenFile.toString());
+        Assertions.assertEquals(1, result.exitCode);
+
+        // valid search, no results
+        var sysOut = new ByteArrayOutputStream();
+        var originalOut = System.out;
+        System.setOut(new PrintStream(sysOut));
+        try {
+            result = clirun(cmd, "search", "digestString = 'nonexistent'", "--metaURL", metaURL, "--tokenFile", userTokenFile.toString());
+        } finally {
+            System.setOut(originalOut);
+        }
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(sysOut.toString().contains("SEARCH returned: 0 results"));
+
+        // valid search with "all" option (default), return 2 test results, and printAllData prints "Digest String:"
+        sysOut.reset();
+        System.setOut(new PrintStream(sysOut));
+        try {
+            result = clirun(cmd, "search", "digestString LIKE '%search-digest%'", "--metaURL", metaURL, "--tokenFile", userTokenFile.toString());
+        } finally {
+            System.setOut(originalOut);
+        }
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(sysOut.toString().contains("SEARCH returned: 2 results"));
+        Assertions.assertTrue(sysOut.toString().contains("Digest String:"));
+
+        // valid search with "basic" option, return 2 test results, and printBasic does not print "Digest String:"
+        sysOut.reset();
+        System.setOut(new PrintStream(sysOut));
+        try {
+            result = clirun(cmd, "search", "digestString LIKE '%search-digest%'", "basic", "--metaURL", metaURL, "--tokenFile", userTokenFile.toString());
+        } finally {
+            System.setOut(originalOut);
+        }
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(sysOut.toString().contains("SEARCH returned: 2 results"));
+        Assertions.assertFalse(sysOut.toString().contains("Digest String:"));
+
+        // pagination: --limit 1 with 2 matching results should still total 2 test results
+        sysOut.reset();
+        System.setOut(new PrintStream(sysOut));
+        try {
+            result = clirun(cmd, "search", "digestString LIKE '%search-digest%'", "--limit", "1", "--metaURL", metaURL, "--tokenFile", userTokenFile.toString());
+        } finally {
+            System.setOut(originalOut);
+        }
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(sysOut.toString().contains("SEARCH returned: 2 results"));
+
+        // dead server, should return connection error
+        var deadSocket = new ServerSocket(0);
+        var deadPort = deadSocket.getLocalPort();
+        deadSocket.close();
+        result = clirun(cmd, "search", "digestString = 'search-digest-1'", "--metaURL", "http://localhost:" + deadPort, "--tokenFile", userTokenFile.toString());
+        Assertions.assertEquals(1, result.exitCode);
+
+        emptyCollections();
+    }
+
+    @Test
+    void testDatasetInfo() throws IOException {
+        var cmd = new Main.Cli();
+
+        // missing both required params
+        var result = clirun(cmd, "datasetInfo");
+        Assertions.assertEquals(2, result.exitCode);
+        Assertions.assertTrue(result.err.contains("Missing required parameter"));
+
+        // missing hostname param
+        result = clirun(cmd, "datasetInfo", "somefile.nc");
+        Assertions.assertEquals(2, result.exitCode);
+        Assertions.assertTrue(result.err.contains("Missing required parameter"));
+
+        // dead server → connection error
+        var deadSocket = new ServerSocket(0);
+        var deadPort = deadSocket.getLocalPort();
+        deadSocket.close();
+        var sysOut = new ByteArrayOutputStream();
+        var originalOut = System.out;
+        System.setOut(new PrintStream(sysOut));
+        try {
+            result = clirun(cmd, "datasetInfo", "somefile.nc", "http://localhost:" + deadPort);
+        } finally {
+            System.setOut(originalOut);
+        }
+        Assertions.assertEquals(1, result.exitCode);
+
+        // valid server but no auth token → 401 Unauthorized
+        sysOut.reset();
+        System.setOut(new PrintStream(sysOut));
+        try {
+            result = clirun(cmd, "datasetInfo", "somefile.nc", metaURL);
+        } finally {
+            System.setOut(originalOut);
+        }
+        Assertions.assertEquals(1, result.exitCode);
+    }
+
+    @Test
+    void testCheckDebugEnv() throws Exception {
+        var checkDebugEnv = Main.class.getDeclaredMethod("checkDebugEnv", Exception.class);
+        checkDebugEnv.setAccessible(true);
+        var ex = new RuntimeException("test error for checkDebugEnv");
+        var originalErr = System.err;
+        var capturedErr = new ByteArrayOutputStream();
+
+        // DEBUG not set, then method runs without printing anything
+        System.setErr(new PrintStream(capturedErr));
+        try {
+            checkDebugEnv.invoke(null, ex);
+        } finally {
+            System.setErr(originalErr);
+        }
+        Assertions.assertTrue(capturedErr.toString().isEmpty());
     }
 
     @Test

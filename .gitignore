@@ -1,3 +1,5 @@
+/target
+target/checkstyle-cachefile
 wildstore-cli/target/
 wildstore-common/target/
 wildstore-crawl/target/
@@ -13,3 +15,5 @@ oauth.yml
 
 enumVarList.txt
 DatasetCreation.log
+.env
+deploy/.env

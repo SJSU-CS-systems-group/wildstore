@@ -22,7 +22,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class NetcdfFileReader {
+public class NetcdfFileReader implements FileReader {
     private final String netcdfFilepath;
     private long maxReadSize = 1000000000;
     private static final int ENUM_THRESHOLD = 20;
@@ -36,8 +36,8 @@ public class NetcdfFileReader {
         this.netcdfFilepath = netcdfFilepath;
     }
 
-    public Metadata processFile(int maxReadSize) {
-        // Try and read the contents of the netCDF file
+    @Override
+    public Metadata processMetadata() {
         try {
             var method = NetcdfFile.class.getDeclaredMethod("open", RandomAccessFile.class, String.class, CancelTask.class, Object.class);
             method.setAccessible(true);
@@ -48,9 +48,7 @@ public class NetcdfFileReader {
             throw new RuntimeException(e);
         }
 
-        this.maxReadSize = maxReadSize;
         Metadata metadata = new Metadata();
-        String fileNameStr = netcdfFilepath.substring(netcdfFilepath.lastIndexOf('/') + 1);
         metadata.fileName = Set.of(netcdfFilepath);
         metadata.filePath = Set.of(netcdfFilepath.substring(0, netcdfFilepath.lastIndexOf('/') + 1));
 
@@ -59,8 +57,15 @@ public class NetcdfFileReader {
         metadata.fileSize = file.length();
         metadata.lastModified = file.lastModified();
 
-        metadata.globalAttributes = readGlobalAttributes();
+        return metadata;
+    }
 
+    @Override
+    public void processFileContents(Metadata metadata, int maxReadSize) {
+        this.maxReadSize = maxReadSize;
+        String fileNameStr = netcdfFilepath.substring(netcdfFilepath.lastIndexOf('/') + 1);
+
+        metadata.globalAttributes = readGlobalAttributes();
         metadata.variables = readVariables();
 
         //Special processing @Todo: Find a more efficient way to do this
@@ -93,8 +98,9 @@ public class NetcdfFileReader {
         Variable nfuel_cat = netcdfFile.findVariable("NFUEL_CAT");
         if (fire_area != null && nfuel_cat != null) {
             WildfireVariable nfuel_burnt = findNFUEL_CAT_BURNT(fire_area, nfuel_cat);
-            if(nfuel_burnt.elementMap.size() > 0)
+            if(nfuel_burnt.elementMap.size() > 0) {
                 metadata.variables.add(nfuel_burnt);
+            }
         }
         //Time
         Variable times = netcdfFile.findVariable("Times");
@@ -151,8 +157,6 @@ public class NetcdfFileReader {
             System.out.println("No digest was found for this file.");
             throw new RuntimeException(e);
         }
-
-        return metadata;
     }
 
     public List<WildfireAttribute> readGlobalAttributes() {
@@ -498,10 +502,12 @@ public class NetcdfFileReader {
             uIndex++;
             vIndex++;
 
-            if((i + 1) % (west_east_dim) == 0) //Skip the last element of each row
+            if((i + 1) % (west_east_dim) == 0) { //Skip the last element of each row
                 uIndex++;
-            if((i + 1) % (west_east_dim*south_north_dim) == 0) //Skip the last row of each rectangle
+            }
+            if((i + 1) % (west_east_dim*south_north_dim) == 0) { //Skip the last row of each rectangle
                 vIndex += west_east_dim;
+            }
         }
 
         String[] stringWindDir = {"NorthWind", "NorthEastWind", "EastWind", "SouthEastWind", "SouthWind", "SouthWestWind", "WestWind", "NorthWestWind"};
@@ -519,8 +525,9 @@ public class NetcdfFileReader {
             temp.attributeList = new ArrayList<>();
             temp.varDimensionList = new ArrayList<>();
 
-            if(windSpeedMin[i]!=Integer.MAX_VALUE && windSpeedMax[i]!=0 && !Float.isNaN(temp.average))
+            if(windSpeedMin[i]!=Integer.MAX_VALUE && windSpeedMax[i]!=0 && !Float.isNaN(temp.average)) {
                 windSpeeds.add(temp);
+            }
         }
         return windSpeeds;
     }
@@ -583,8 +590,9 @@ public class NetcdfFileReader {
             date.attributeName = dateName[i];
             date.type = "Date";
             date.value = dateValue;
-            if (!year.equals("0000"))
+            if (!year.equals("0000")) {
                 dates.add(date);
+            }
         }
 
         return dates;

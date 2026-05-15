@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Function;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,6 +36,15 @@ import java.util.stream.StreamSupport;
 
 @CommandLine.Command(name = "GET", mixinStandardHelpOptions = true)
 public class WildfireFilesCrawler implements Runnable {
+    private static final Map<String, Function<String, FileReader>> FILE_READERS = Map.of(
+        ".nc",   NetcdfFileReader::new,
+        ".hdf5", BasicFileReader::new,
+        ".h5",   BasicFileReader::new,
+        ".shp",  BasicFileReader::new,
+        ".tif",  BasicFileReader::new,
+        ".tiff", BasicFileReader::new,
+        ".kmz",  BasicFileReader::new
+    );
     @CommandLine.Option(names = "--metaURL", description = "Host name of the API server", required = true)
     String metaURL;
     @CommandLine.Option(names = "--log", description = "Whether to generate a log")
@@ -88,8 +98,13 @@ public class WildfireFilesCrawler implements Runnable {
                                 int maxReadSize,
                                 String option,
                                 boolean enumLog) throws InterruptedException, ExecutionException {
-        NetcdfFileReader fileReader = new NetcdfFileReader(file);
-        var metadata = fileReader.processFile(maxReadSize);
+        var supportedFile = FILE_READERS.entrySet().stream()
+                .filter(e -> file.endsWith(e.getKey()))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse(null);
+        if (supportedFile == null) {return false;}
+        var metadata = supportedFile.apply(file).processFile(maxReadSize);
 
         System.out.println("Crawling file: " + file);
         if (option.equals("all")) {
@@ -296,12 +311,12 @@ public class WildfireFilesCrawler implements Runnable {
      * this is our own file walker that will skip files that are not accessible, unlike Files.walk().
      * we use a Spliterator to allow parallel processing of files.
      */
-    static private class FileSpliterator extends java.util.Spliterators.AbstractSpliterator<Path> {
+    private static class FileSpliterator extends java.util.Spliterators.AbstractSpliterator<Path> {
         private static final long POPULATE_QUEUE_SIZE = 1000;
         // all FileSpliterator instances share the same queue of directories to walk
-        final private ConcurrentLinkedQueue<Path> dirQueue;
+        private final ConcurrentLinkedQueue<Path> dirQueue;
         // each instance has its own queue of files to process
-        final private LinkedList<Path> fileQueue = new LinkedList<>();
+        private final LinkedList<Path> fileQueue = new LinkedList<>();
 
         FileSpliterator(List<Path> pathsToWalk) {
             super(Long.MAX_VALUE, java.util.Spliterator.NONNULL);
@@ -334,7 +349,8 @@ public class WildfireFilesCrawler implements Runnable {
                             dirQueue.add(p);
                             return false;
                         } else if (Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS) &&
-                                Files.isReadable(p) && p.toString().endsWith(".nc")) {
+                                Files.isReadable(p) &&
+                                FILE_READERS.keySet().stream().anyMatch(p.toString()::endsWith)) {
                             fileQueue.add(p);
                             return true;
                         } else {
@@ -349,7 +365,7 @@ public class WildfireFilesCrawler implements Runnable {
         }
 
         @Override
-        synchronized public boolean tryAdvance(java.util.function.Consumer<? super Path> action) {
+        public synchronized boolean tryAdvance(java.util.function.Consumer<? super Path> action) {
             var path = fileQueue.pollFirst();
             if (path != null) {
                 action.accept(path);
@@ -367,7 +383,7 @@ public class WildfireFilesCrawler implements Runnable {
         }
 
         @Override
-        synchronized public FileSpliterator trySplit() {
+        public synchronized FileSpliterator trySplit() {
             var newSpliterator = new FileSpliterator(this.dirQueue);
             if (newSpliterator.populateFileQueue() == 0) {
                 return null; // No files to split

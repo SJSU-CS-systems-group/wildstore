@@ -1,10 +1,9 @@
-import SearchResult from '../search-result/searchResult';
-import { useSelector } from 'react-redux';
-import { useDispatch } from 'react-redux';
-import { setCurrentPage, setLimit } from '../../redux/filterSlice';
 import { GoTriangleLeft, GoTriangleRight } from 'react-icons/go';
+import { useDispatch, useSelector } from 'react-redux';
+import { setCurrentPage, setLimit } from '../../redux/filterSlice';
+import SearchResult from '../search-result/searchResult';
 
-const SearchResultContainer = ({ metadataRecords, setShowModal }) => {
+const SearchResultContainer = ({ metadataRecords }) => {
 
     const queryCount = useSelector(state => state.filterReducer.queryCount);
     const currentPage = useSelector(state => state.filterReducer.currentPage);
@@ -48,7 +47,7 @@ const SearchResultContainer = ({ metadataRecords, setShowModal }) => {
     return (
         <div className='flex flex-col gap-3'>
             <div className="flex flex-col gap-2">
-                {metadataRecords.map((metadataRecord, i) => <SearchResult key={metadataRecord.digestString} metadataRecord={metadataRecord} setShowModal={setShowModal} />)}
+                {metadataRecords.map((metadataRecord) => <SearchResult key={metadataRecord.digestString} metadataRecord={metadataRecord} />)}
             </div>
             <div className="flex items-center justify-center gap-4">
                 <div className="join">

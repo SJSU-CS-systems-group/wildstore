@@ -1,11 +1,3 @@
-# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
 name: Java CI with Maven
 
 on:
@@ -19,6 +11,9 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write
+
     services:
       mongo:
         image: mongo:6.0
@@ -31,17 +26,51 @@ jobs:
           --health-retries=5
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up JDK 17
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
-    - name: Build with Maven
+
+    - name: Install MongoDB tools
       run: |
         wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-6.0.gpg
         echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
         sudo apt-get update
         sudo apt-get install -y mongodb-database-tools
-        mvn install -B -ntp
+
+    - name: Run linter/formatter check
+      run: mvn checkstyle:check -B -ntp
+
+    - name: Run test suite
+      run: mvn test -B -ntp
+
+    - name: Generate coverage report
+      run: mvn jacoco:report -B -ntp
+
+    - name: Generate JaCoCo coverage badges
+      id: jacoco
+      uses: cicirello/jacoco-badge-generator@v2
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      with:
+        jacoco-csv-file: >
+          docs/evaluation/coverage-report/wildstore-common/jacoco.csv
+          docs/evaluation/coverage-report/wildstore-meta/jacoco.csv
+          docs/evaluation/coverage-report/wildstore-crawl/jacoco.csv
+          docs/evaluation/coverage-report/wildstore-fileserve/jacoco.csv
+          docs/evaluation/coverage-report/wildstore-cli/jacoco.csv
+        badges-directory: .github/badges
+        generate-branches-badge: true
+        on-missing-report: quiet
+
+    - name: Commit and push coverage badges
+      uses: EndBug/add-and-commit@v9
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      with:
+        default_author: github_actions
+        message: 'ci: update coverage badges [skip ci]'
+        add: '.github/badges/*.svg'

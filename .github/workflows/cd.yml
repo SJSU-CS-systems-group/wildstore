@@ -1,0 +1,190 @@
+name: CD – Build, Verify & Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cd-pipeline
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      meta_image: ${{ steps.images.outputs.meta }}
+      fileserve_image: ${{ steps.images.outputs.fileserve }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set image names
+        id: images
+        run: |
+          REPO_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "meta=ghcr.io/${REPO_LC}/wildstore-meta" >> "$GITHUB_OUTPUT"
+          echo "fileserve=ghcr.io/${REPO_LC}/wildstore-fileserve" >> "$GITHUB_OUTPUT"
+
+      - name: Set version
+        id: version
+        run: echo "version=$(date +%Y%m%d)-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push meta image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: meta
+          push: true
+          tags: |
+            ${{ steps.images.outputs.meta }}:${{ github.sha }}
+            ${{ steps.images.outputs.meta }}:staging
+            ${{ steps.images.outputs.meta }}:v${{ steps.version.outputs.version }}
+          cache-from: type=gha,scope=meta
+          cache-to: type=gha,mode=max,scope=meta
+
+      - name: Build and push fileserve image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: fileserve
+          push: true
+          tags: |
+            ${{ steps.images.outputs.fileserve }}:${{ github.sha }}
+            ${{ steps.images.outputs.fileserve }}:staging
+            ${{ steps.images.outputs.fileserve }}:v${{ steps.version.outputs.version }}
+          cache-from: type=gha,scope=fileserve
+          cache-to: type=gha,mode=max,scope=fileserve
+
+      - name: Create GitHub pre-release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
+            --notes "Pre-release from ${GITHUB_SHA::7}. Awaiting smoke test." \
+            --prerelease
+
+  smoke-test:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    services:
+      mongo:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd="mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      META_IMAGE: ${{ needs.build-and-push.outputs.meta_image }}
+      FILESERVE_IMAGE: ${{ needs.build-and-push.outputs.fileserve_image }}
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Start meta container
+        run: |
+          docker run -d --name meta --network host \
+            -e server.port=8080 \
+            -e spring.data.mongodb.uri=mongodb://localhost:27017/wildfire \
+            -e spring.security.oauth2.client.registration.google.clientId=unused \
+            -e spring.security.oauth2.client.registration.google.clientSecret=unused \
+            -e spring.security.oauth2.client.registration.github.clientId=unused \
+            -e spring.security.oauth2.client.registration.github.clientSecret=unused \
+            "${{ env.META_IMAGE }}:${{ github.sha }}"
+
+      - name: Start fileserve container
+        run: |
+          docker run -d --name fileserve --network host \
+            -e custom.metadataServer=http://localhost:8080 \
+            "${{ env.FILESERVE_IMAGE }}:${{ github.sha }}"
+
+      - name: Wait for meta health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8080/actuator/health; then
+              echo ""
+              echo "meta is healthy"
+              exit 0
+            fi
+            echo "attempt $i/30 – waiting for meta..."
+            sleep 2
+          done
+          echo "meta failed health check"
+          docker logs meta
+          exit 1
+
+      - name: Wait for fileserve health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:27778/actuator/health; then
+              echo ""
+              echo "fileserve is healthy"
+              exit 0
+            fi
+            echo "attempt $i/30 – waiting for fileserve..."
+            sleep 2
+          done
+          echo "fileserve failed health check"
+          docker logs fileserve
+          exit 1
+
+  promote-to-prod:
+    runs-on: ubuntu-latest
+    needs: [build-and-push, smoke-test]
+    environment: production
+    env:
+      META_IMAGE: ${{ needs.build-and-push.outputs.meta_image }}
+      FILESERVE_IMAGE: ${{ needs.build-and-push.outputs.fileserve_image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Re-tag images as latest and versioned
+        env:
+          VERSION: ${{ needs.build-and-push.outputs.version }}
+        run: |
+          for IMAGE in "${{ env.META_IMAGE }}" "${{ env.FILESERVE_IMAGE }}"; do
+            docker pull "${IMAGE}:${{ github.sha }}"
+            docker tag  "${IMAGE}:${{ github.sha }}" "${IMAGE}:latest"
+            docker tag  "${IMAGE}:${{ github.sha }}" "${IMAGE}:v${VERSION}"
+            docker push "${IMAGE}:latest"
+            docker push "${IMAGE}:v${VERSION}"
+          done
+
+      - name: Promote pre-release to full release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.build-and-push.outputs.version }}
+        run: gh release edit "v${VERSION}" --prerelease=false

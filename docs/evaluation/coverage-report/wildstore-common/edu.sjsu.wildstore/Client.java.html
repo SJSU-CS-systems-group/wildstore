@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Client.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">wildstore-common</a> &gt; <a href="index.source.html" class="el_package">edu.sjsu.wildstore</a> &gt; <span class="el_source">Client.java</span></div><h1>Client.java</h1><pre class="source lang-java linenums">package edu.sjsu.wildstore;
+
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Mono;
+
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+
+<span class="nc" id="L15">public class Client {</span>
+    public static &lt;T&gt; T get(WebClient webClient,
+                             MultiValueMap&lt;String, String&gt; queryParams,
+                             ParameterizedTypeReference&lt;T&gt; parameterizedTypeReference) {
+<span class="nc" id="L19">        return webClient.get()</span>
+<span class="nc" id="L20">                .uri(uriBuilder -&gt; uriBuilder.queryParams(queryParams).build())</span>
+<span class="nc" id="L21">                .retrieve()</span>
+<span class="nc" id="L22">                .bodyToMono(parameterizedTypeReference)</span>
+<span class="nc" id="L23">                .block();</span>
+    }
+
+    public static WebClient getWebClient(String path) {
+<span class="fc" id="L27">        WebClient webClient = WebClient.builder()</span>
+<span class="fc" id="L28">                .exchangeStrategies(ExchangeStrategies.builder()</span>
+<span class="fc" id="L29">                                            .codecs(configurer -&gt; configurer.defaultCodecs()</span>
+<span class="fc" id="L30">                                                    .maxInMemorySize(16 * 1024 * 1024))</span>
+<span class="fc" id="L31">                                            .build())</span>
+<span class="fc" id="L32">                .baseUrl(path)</span>
+<span class="fc" id="L33">                .build();</span>
+<span class="fc" id="L34">        return webClient;</span>
+    }
+
+    public static WebClient getWebClient(String path, String token) {
+<span class="fc" id="L38">        return WebClient.builder()</span>
+<span class="fc" id="L39">                .exchangeStrategies(ExchangeStrategies.builder()</span>
+<span class="fc" id="L40">                                            .codecs(configurer -&gt; configurer.defaultCodecs()</span>
+<span class="fc" id="L41">                                                    .maxInMemorySize(16 * 1024 * 1024))</span>
+<span class="fc" id="L42">                                            .build())</span>
+<span class="fc" id="L43">                .baseUrl(path)</span>
+<span class="fc" id="L44">                .defaultHeader(HttpHeaders.AUTHORIZATION, &quot;Bearer &quot; + token)</span>
+<span class="fc" id="L45">                .build();</span>
+    }
+
+    public static Object post(WebClient webClient,
+                              Object body,
+                              ParameterizedTypeReference parameterizedTypeReference) throws ExecutionException,
+            InterruptedException {
+
+<span class="nc" id="L53">        var response = webClient.post()</span>
+<span class="nc" id="L54">                .body(Mono.just(body), body.getClass())</span>
+<span class="nc" id="L55">                .retrieve()</span>
+<span class="nc" id="L56">                .bodyToMono(parameterizedTypeReference)</span>
+<span class="nc" id="L57">                .retry(1)</span>
+<span class="nc" id="L58">                .toFuture()</span>
+<span class="nc" id="L59">                .get();</span>
+<span class="nc" id="L60">        return response;</span>
+    }
+
+    public static &lt;T&gt; T post(WebClient webClient,
+                              Object body,
+                              ParameterizedTypeReference&lt;T&gt; parameterizedTypeReference,
+                              Consumer&lt;HttpHeaders&gt; headers) throws ExecutionException, InterruptedException {
+
+<span class="nc" id="L68">        return webClient.post()</span>
+<span class="nc" id="L69">                .headers(headers)</span>
+<span class="nc" id="L70">                .body(Mono.just(body), body.getClass())</span>
+<span class="nc" id="L71">                .retrieve()</span>
+<span class="nc" id="L72">                .bodyToMono(parameterizedTypeReference)</span>
+<span class="nc" id="L73">                .retry(1)</span>
+<span class="nc" id="L74">                .block();</span>
+    }
+
+    public static &lt;T&gt; T get(String url, String token) throws WebClientResponseException {
+<span class="nc" id="L78">        return getWebClient(url, token)</span>
+<span class="nc" id="L79">                .get()</span>
+<span class="nc" id="L80">                .retrieve()</span>
+<span class="nc" id="L81">                .bodyToMono(new ParameterizedTypeReference&lt;T&gt;() {})</span>
+<span class="nc" id="L82">                .retry(1)</span>
+<span class="nc" id="L83">                .block();</span>
+    }
+
+    public static &lt;T&gt; T post(String url,
+                             Object body,
+                             String token) {
+<span class="nc" id="L89">        return getWebClient(url, token)</span>
+<span class="nc" id="L90">                .post()</span>
+<span class="nc" id="L91">                .body(Mono.just(body), body.getClass())</span>
+<span class="nc" id="L92">                .retrieve()</span>
+<span class="nc" id="L93">                .bodyToMono(new ParameterizedTypeReference&lt;T&gt;() {})</span>
+<span class="nc" id="L94">                .retry(1)</span>
+<span class="nc" id="L95">                .block();</span>
+    }
+
+    public static HttpStatusCode delete(WebClient webClient,
+                                              String filename) {
+<span class="nc" id="L100">        return webClient.delete()</span>
+<span class="nc" id="L101">                .uri(filename)</span>
+<span class="nc" id="L102">                .retrieve()</span>
+<span class="nc" id="L103">                .toBodilessEntity()</span>
+<span class="nc" id="L104">                .block()</span>
+<span class="nc" id="L105">                .getStatusCode();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

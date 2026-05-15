@@ -47,3 +47,4 @@ public class FileNode {
       this.digest = digest;
     }
 }
+

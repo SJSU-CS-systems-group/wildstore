@@ -1,6 +1,4 @@
-# CLAUDE.md - Wildstore Project Guide
-
-## Project Overview
+# Project Overview
 
 Wildstore is a scientific data management system for NetCDF files. It provides metadata extraction, search, file sharing, and a web UI with map-based geospatial visualization. Built at SJSU as a multi-module Java/React application.
 
@@ -49,7 +47,7 @@ cd wildstore-meta/app && npm install && npm start
 
 1. Start MongoDB on port 27017
 2. Build: `mvn package`
-3. Start metadata server: `java -jar wildstore-meta/target/wildstore-meta.jar --spring.data.mongodb.uri=mongodb://localhost:27017/wildfire --server.port=27777`
+3. Start metadata server: `java -jar wildstore-meta/target/wildstore-meta-server.jar --spring.data.mongodb.uri=mongodb://localhost:27017/wildfire --server.port=27777`
 4. Start file server: `java -jar wildstore-fileserve/target/wildstore-fileserve.jar --custom.metadataServer=http://127.0.0.1:27777 --server.port=27778`
 
 For frontend dev mode, run `npm start` from `wildstore-meta/app/` (serves on port 3000).

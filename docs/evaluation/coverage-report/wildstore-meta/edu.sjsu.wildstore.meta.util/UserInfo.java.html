@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserInfo.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">wildstore-meta</a> &gt; <a href="index.source.html" class="el_package">edu.sjsu.wildstore.meta.util</a> &gt; <span class="el_source">UserInfo.java</span></div><h1>UserInfo.java</h1><pre class="source lang-java linenums">package edu.sjsu.wildstore.meta.util;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.core.OAuth2AuthenticatedPrincipal;
+import org.springframework.stereotype.Controller;
+
+import java.util.Map;
+
+import static edu.sjsu.wildstore.meta.MongoCollections.USER_DATA;
+
+@Controller
+<span class="fc" id="L16">public class UserInfo {</span>
+
+    private static MongoTemplate mongoTemplate;
+
+    @Autowired
+    public void setMongoTemplate(MongoTemplate mongoTemplate) {
+<span class="fc" id="L22">        this.mongoTemplate = mongoTemplate;</span>
+<span class="fc" id="L23">    }</span>
+
+    public static final String USER_COLLECTION = USER_DATA;
+
+    public static boolean tokenExist(String input) {
+<span class="nc" id="L28">        Query query = new Query(Criteria.where(&quot;token&quot;).is(input));</span>
+<span class="nc" id="L29">        var opaqueTokenMap = mongoTemplate.find(query, Map.class, USER_COLLECTION);</span>
+<span class="nc bnc" id="L30" title="All 2 branches missed.">        if (!opaqueTokenMap.isEmpty()) {</span>
+<span class="nc" id="L31">            return true;</span>
+        }
+<span class="nc" id="L33">        return false;</span>
+    }
+
+    public static Map getUser(String token) {
+<span class="fc" id="L37">        Query query = new Query(Criteria.where(&quot;token&quot;).is(token));</span>
+<span class="fc" id="L38">        var opaqueTokenMap = mongoTemplate.find(query, Map.class, USER_COLLECTION);</span>
+<span class="fc bfc" id="L39" title="All 2 branches covered.">        if (!opaqueTokenMap.isEmpty()) {</span>
+<span class="fc" id="L40">            return opaqueTokenMap.get(0);</span>
+        }
+<span class="fc" id="L42">        return null;</span>
+    }
+
+    public static Map getUserBy(String key, String value) {
+<span class="fc" id="L46">        Query query = new Query(Criteria.where(key).is(value));</span>
+<span class="fc" id="L47">        var opaqueTokenMap = mongoTemplate.find(query, Map.class, USER_COLLECTION);</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        if (!opaqueTokenMap.isEmpty()) {</span>
+<span class="fc" id="L49">            return opaqueTokenMap.get(0);</span>
+        }
+<span class="fc" id="L51">        return null;</span>
+    }
+
+    public static String getUserEmail(Authentication user) {
+<span class="fc" id="L55">        OAuth2AuthenticatedPrincipal principal = (OAuth2AuthenticatedPrincipal) user.getPrincipal();</span>
+<span class="fc" id="L56">        String email = principal.getAttribute(&quot;email&quot;);</span>
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">        if (email == null) {</span>
+<span class="nc" id="L58">            var githubLogin = principal.getAttribute(&quot;login&quot;);</span>
+<span class="nc bnc" id="L59" title="All 2 branches missed.">            if (githubLogin != null) {</span>
+<span class="nc" id="L60">                email = principal.getAttribute(&quot;login&quot;) + &quot;@github&quot;;</span>
+            }
+        }
+<span class="fc" id="L63">        return email;</span>
+    }
+
+    public static String getUserName(Authentication user) {
+<span class="fc" id="L67">        OAuth2AuthenticatedPrincipal principal = (OAuth2AuthenticatedPrincipal) user.getPrincipal();</span>
+<span class="fc" id="L68">        return principal.getAttribute(&quot;name&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

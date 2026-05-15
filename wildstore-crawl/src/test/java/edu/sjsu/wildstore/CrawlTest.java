@@ -217,6 +217,158 @@ public class CrawlTest {
         Assertions.assertTrue(result.out.contains("0 valid files found."));
         Assertions.assertTrue(result.out.contains("Crawled 0 new files."));
         Assertions.assertTrue(result.out.contains("Skipped " + expected + " files already crawled."));
+
+        // crawl() with "basic" option and enumLog=true
+        WildfireFilesCrawler.crawl(fileNames.get(0),
+                Client.getWebClient(metaURL + "/api/metadata", userToken),
+                1024 * 1024, "basic", true);
+
+        // --log creates a .log file at filesToProcessPath + ".log"
+        result = clirun(WildfireFilesCrawler.class,
+                "--metaURL", metaURL,
+                "--tokenFile", userTokenFile.toString(),
+                "--log", nameFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(Files.exists(Path.of(nameFile + ".log")));
+
+        // --dataset calls /api/dataset to build dataset collection
+        result = clirun(WildfireFilesCrawler.class,
+                "--metaURL", metaURL,
+                "--tokenFile", userTokenFile.toString(),
+                "--dataset", nameFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains("Initiating dataset collection"));
+
+        // IOException reading nonexistent filesToProcessPath
+        result = clirun(WildfireFilesCrawler.class,
+                "--metaURL", metaURL,
+                "--tokenFile", userTokenFile.toString(),
+                "/nonexistent/path/to/files.txt");
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains("There was an exception"));
+
+        // corrupt .nc passes filter but crawl() throws error and exit
+        var corruptNc = tempNameDir.resolve("corrupt.nc");
+        Files.write(corruptNc, "not a valid netcdf file".getBytes());
+        var corruptNameFile = tempNameDir.resolve("corruptFiles.txt");
+        Files.write(corruptNameFile, corruptNc.toString().getBytes());
+        result = clirun(WildfireFilesCrawler.class,
+                "--metaURL", metaURL,
+                "--tokenFile", userTokenFile.toString(),
+                corruptNameFile.toString());
+        Assertions.assertEquals(1, result.exitCode);
+        Assertions.assertTrue(result.err.contains("Error processing file"));
+
+        // file in DB but deleted from disk, throws IOException in filter lambda
+        var deletedNc = tempNameDir.resolve("to-delete.nc");
+        Files.copy(Path.of(fileNames.get(0)), deletedNc);
+        WildfireFilesCrawler.crawl(deletedNc.toString(),
+                Client.getWebClient(metaURL + "/api/metadata", userToken),
+                1024 * 1024, "all", false);
+        Files.delete(deletedNc);
+        var deletedNameFile = tempNameDir.resolve("deletedName.txt");
+        Files.write(deletedNameFile, deletedNc.toString().getBytes());
+        result = clirun(WildfireFilesCrawler.class,
+                "--metaURL", metaURL,
+                "--tokenFile", userTokenFile.toString(),
+                deletedNameFile.toString());
+        Assertions.assertNotEquals(0, result.exitCode);
+        Assertions.assertTrue(result.err.contains("Error fetching fileNames or lastModified from map"));
+    }
+
+    @Test
+    public void testBasicCrawl() throws IOException {
+        String userToken = "secret-user-token";
+        createUser("ROLE_USER", "user", "user@crawl", userToken);
+
+        var userTokenFile = tempDir.resolve("user-token.txt");
+        Files.write(userTokenFile, ("token=" + userToken).getBytes());
+
+        // Create basic test files (HDF5, shapefiles, GeoTIFFs, KMZ) in tempNameDir
+        var genericDir = tempNameDir.resolve("basic-data");
+        Files.createDirectories(genericDir);
+
+        var hdf5File  = genericDir.resolve("testData.h5");
+        var hdf5File2 = genericDir.resolve("testData.hdf5");
+        var shpFile   = genericDir.resolve("testData.shp");
+        var tifFile   = genericDir.resolve("testData.tif");
+        var tiffFile  = genericDir.resolve("testData.tiff");
+        var kmzFile   = genericDir.resolve("testData.kmz");
+        Files.write(hdf5File,  "test hdf5 content".getBytes());
+        Files.write(hdf5File2, "test hdf5 content 2".getBytes());
+        Files.write(shpFile,   "test shapefile content".getBytes());
+        Files.write(tifFile,   "test geotiff content".getBytes());
+        Files.write(tiffFile,  "test geotiff content 2".getBytes());
+        Files.write(kmzFile,   "test kmz content".getBytes());
+
+        var genericFiles = List.of(hdf5File.toString(), hdf5File2.toString(), shpFile.toString(),
+                                   tifFile.toString(), tiffFile.toString(), kmzFile.toString());
+        int numToCrawl = genericFiles.size();
+
+        var nameFile = tempNameDir.resolve("genericFileNames.txt");
+        Files.write(nameFile, String.join("\n", genericFiles).getBytes());
+
+        var dirFile = tempNameDir.resolve("genericDirName.txt");
+        Files.write(dirFile, genericDir.toAbsolutePath().toString().getBytes());
+
+        var singleFile = tempNameDir.resolve("genericSingleFile.txt");
+        Files.write(singleFile, hdf5File.toAbsolutePath().toString().getBytes());
+
+        // user should be able to crawl basic files
+        var result = clirun(WildfireFilesCrawler.class,
+                        "--metaURL", metaURL,
+                        "--tokenFile", userTokenFile.toString(), nameFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains("Successfully processed file"));
+        Assertions.assertTrue(result.out.contains(numToCrawl + " valid files found."));
+        Assertions.assertTrue(result.out.contains("Crawled " + numToCrawl + " new files."));
+        Assertions.assertTrue(result.out.contains("Skipped 0 files already crawled."));
+
+        // unsupported file types in the directory should be silently ignored
+        var unsupportedFile = genericDir.resolve("ignored.txt");
+        Files.write(unsupportedFile, "this file should be ignored".getBytes());
+
+        // should skip already-crawled files and ignore unsupported types when crawling directory
+        result = clirun(WildfireFilesCrawler.class,
+                        "--metaURL", metaURL,
+                        "--tokenFile", userTokenFile.toString(), dirFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains("0 valid files found."));
+        Assertions.assertTrue(result.out.contains("Crawled 0 new files."));
+        // all 6 basic files skipped, .txt not counted at all
+        System.out.println("Test skipping: " +result.out);
+        Assertions.assertTrue(result.out.contains("Skipped " + numToCrawl + " files already crawled."));
+
+        // should re-crawl a basic file with a later lastModified date
+        var metaDataCount = springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments();
+        Files.write(hdf5File, "updated hdf5 content".getBytes());
+        Files.setLastModifiedTime(hdf5File, FileTime.from(Instant.now().plusSeconds(2)));
+
+        result = clirun(WildfireFilesCrawler.class,
+                        "--metaURL", metaURL,
+                        "--tokenFile", userTokenFile.toString(), singleFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains("1 valid files found."));
+        Assertions.assertTrue(result.out.contains("Crawled 1 new files."));
+        Assertions.assertTrue(result.out.contains("Skipped 0 files already crawled."));
+        // re-crawling an existing file should update, not insert a new document
+        Assertions.assertEquals(metaDataCount, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
+
+        // symlinks in directory are silently skipped by FileSpliterator
+        var symlinkTestDir = tempNameDir.resolve("symlink-dir");
+        Files.createDirectories(symlinkTestDir);
+        var realH5 = symlinkTestDir.resolve("real.h5");
+        Files.write(realH5, "content".getBytes());
+        var symlink = symlinkTestDir.resolve("symlink.h5");
+        Files.createSymbolicLink(symlink, realH5);
+        var symlinkDirFile = tempNameDir.resolve("symlinkDir.txt");
+        Files.write(symlinkDirFile, symlinkTestDir.toString().getBytes());
+        result = clirun(WildfireFilesCrawler.class,
+                "--metaURL", metaURL,
+                "--tokenFile", userTokenFile.toString(),
+                symlinkDirFile.toString());
+        Assertions.assertEquals(0, result.exitCode);
+        Assertions.assertTrue(result.out.contains("1 valid files found."));
     }
 
     private static void createUser(String role, String name, String email, String token) {

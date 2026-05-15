@@ -8,7 +8,6 @@ import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-import java.io.PrintWriter;
 import java.util.List;
 import java.util.Map;
 

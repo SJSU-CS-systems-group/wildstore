@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MetadataController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">wildstore-meta</a> &gt; <a href="index.source.html" class="el_package">edu.sjsu.wildstore.meta.controller</a> &gt; <span class="el_source">MetadataController.java</span></div><h1>MetadataController.java</h1><pre class="source lang-java linenums">package edu.sjsu.wildstore.meta.controller;
+
+import com.mongodb.DBObject;
+import com.mongodb.MongoWriteException;
+import edu.sjsu.wildstore.Metadata;
+import edu.sjsu.wildstore.MetadataRequest;
+import edu.sjsu.wildstore.meta.CriteriaBuilder;
+import edu.sjsu.wildstore.meta.MongoCollections;
+import net.sf.jsqlparser.JSQLParserException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
+import java.io.Serializable;
+import java.nio.charset.Charset;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@RestController
+@RequestMapping(&quot;/api&quot;)
+<span class="fc" id="L31">public class MetadataController {</span>
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
+
+<span class="fc" id="L36">    public final String METADATA_COLLECTION = MongoCollections.METADATA;</span>
+
+    @Value(&quot;classpath:static/variableDescriptions.json&quot;)
+    Resource variableResourceFile;
+
+    @Value(&quot;classpath:static/attributeDescriptions.json&quot;)
+    Resource attributeResourceFile;
+
+    /**
+     * Searches metadata documents corresponding to the query
+     *
+     * @param request A request object that contains the search query
+     * @return a list of matching Metadata documents
+     * @throws JSQLParserException
+     */
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    @PostMapping(&quot;/metadata/search&quot;)
+    public List&lt;Metadata&gt; search(@RequestBody MetadataRequest request) throws JSQLParserException {
+<span class="fc" id="L54">        Query query = new Query();</span>
+<span class="fc" id="L55">        Criteria criteria = CriteriaBuilder.buildFromSQL(request.searchQuery);</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        if (criteria != null) {</span>
+<span class="fc" id="L57">            query.addCriteria(criteria);</span>
+        }
+<span class="fc" id="L59">        query.limit(request.limit);</span>
+<span class="fc" id="L60">        query.skip(request.offset);</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        if (request.includeFields != null) {</span>
+<span class="fc" id="L62">            query.fields().include(request.includeFields);</span>
+        }
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        if (request.excludeFields != null) {</span>
+<span class="fc" id="L65">            query.fields().exclude(request.excludeFields);</span>
+        }
+<span class="fc" id="L67">        var res = mongoTemplate.find(query, Metadata.class);</span>
+<span class="fc" id="L68">        return res;</span>
+    }
+
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    @PostMapping(&quot;/metadata/search/count&quot;)
+    public long searchCount(@RequestBody MetadataRequest request) throws JSQLParserException {
+<span class="fc" id="L74">        Query query = new Query();</span>
+<span class="fc" id="L75">        Criteria criteria = CriteriaBuilder.buildFromSQL(request.searchQuery);</span>
+<span class="pc bpc" id="L76" title="1 of 2 branches missed.">        if (criteria != null) {</span>
+<span class="nc" id="L77">            query.addCriteria(criteria);</span>
+        }
+<span class="fc bfc" id="L79" title="All 2 branches covered.">        if (request.excludeFields != null) {</span>
+<span class="fc" id="L80">            query.fields().exclude(request.excludeFields);</span>
+        }
+<span class="fc" id="L82">        return mongoTemplate.count(query, Metadata.class);</span>
+    }
+
+    @PreAuthorize(&quot;hasRole('GUEST')&quot;)
+    @GetMapping(&quot;/metadata/{digestString}&quot;)
+    public DBObject getMetadataByDigest(@PathVariable String digestString) {
+<span class="fc" id="L88">        Query query = new Query(Criteria.where(&quot;digestString&quot;).is(digestString));</span>
+<span class="fc" id="L89">        List&lt;DBObject&gt; res = mongoTemplate.find(query, DBObject.class, METADATA_COLLECTION);</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        return res.isEmpty() ? null : res.get(0);</span>
+    }
+
+    /**
+     * Searches Metadata documents where filename matches
+     *
+     * @param fileName the file whose metadata is to be retrieved
+     * @return Metadata related to the filename
+     */
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    @GetMapping(&quot;/metadata&quot;)
+    public List&lt;DBObject&gt; getFileMetadata(@RequestParam(&quot;filename&quot;) String fileName) {
+<span class="fc" id="L102">        Query query = new Query(Criteria.where(&quot;fileName&quot;).regex(&quot;.*&quot; + fileName + &quot;.*&quot;));</span>
+<span class="fc" id="L103">        List&lt;DBObject&gt; res = mongoTemplate.find(query, DBObject.class, METADATA_COLLECTION);</span>
+<span class="fc" id="L104">        return res;</span>
+    }
+
+    /**
+     * @param metadata The metadata document to be inserted
+     * @return 0 on success
+     * @throws MongoWriteException
+     */
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    @PostMapping(&quot;/metadata&quot;)
+    public boolean upsertMetadata(@RequestBody Metadata metadata) throws MongoWriteException {
+        // if metadata with same fileName and digestString already exist, we don't need to update anything
+<span class="fc bfc" id="L116" title="All 2 branches covered.">        if (removeFilenames(metadata.fileName.iterator().next(), metadata.digestString)) {</span>
+<span class="fc" id="L117">                return false;</span>
+        }
+        // Convert string date to date type to allow querying on dates
+<span class="fc" id="L120">        metadata.globalAttributes.forEach(attr -&gt; {</span>
+<span class="pc bpc" id="L121" title="1 of 2 branches missed.">            if (attr.type.equals(&quot;Date&quot;)) {</span>
+                try {
+<span class="fc" id="L123">                    attr.value = new Date((long) attr.value);</span>
+<span class="nc" id="L124">                } catch (Exception e) {</span>
+<span class="nc" id="L125">                    throw new RuntimeException(e);</span>
+<span class="fc" id="L126">                }</span>
+            }
+<span class="fc" id="L128">        });</span>
+<span class="fc" id="L129">        Query query = new Query(Criteria.where(&quot;digestString&quot;).is(metadata.digestString));</span>
+<span class="fc" id="L130">        query.fields().exclude(&quot;variables&quot;, &quot;globalAttributes&quot;);</span>
+<span class="fc" id="L131">        var existingDoc = mongoTemplate.find(query, Metadata.class);</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">        if (!existingDoc.isEmpty()) {</span>
+<span class="fc" id="L133">            existingDoc.get(0).fileName.addAll(metadata.fileName);</span>
+<span class="fc" id="L134">            existingDoc.get(0).filePath.addAll(metadata.filePath);</span>
+<span class="fc" id="L135">            Update update = new Update().set(&quot;fileName&quot;, existingDoc.get(0).fileName)</span>
+<span class="fc" id="L136">                    .set(&quot;filePath&quot;, existingDoc.get(0).filePath);</span>
+<span class="pc bpc" id="L137" title="2 of 4 branches missed.">            if (existingDoc.get(0).fileType != null &amp;&amp; metadata.fileType != null) {</span>
+<span class="fc" id="L138">                existingDoc.get(0).fileType.addAll(metadata.fileType);</span>
+<span class="fc" id="L139">                update.set(&quot;fileType&quot;, existingDoc.get(0).fileType);</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">            } else if (metadata.fileType != null) {</span>
+<span class="nc" id="L141">                update.set(&quot;fileType&quot;, metadata.fileType);</span>
+            }
+<span class="fc" id="L143">            update.max(&quot;lastModified&quot;, metadata.lastModified);</span>
+<span class="fc" id="L144">            mongoTemplate.updateFirst(query, update, Metadata.class);</span>
+<span class="fc" id="L145">            return false;</span>
+        } else {
+<span class="fc" id="L147">            mongoTemplate.save(metadata, METADATA_COLLECTION);</span>
+<span class="fc" id="L148">            return true;</span>
+        }
+    }
+
+    private boolean removeFilenames(String fileName, String digestString) {
+<span class="fc" id="L153">        var dataExist = false;</span>
+<span class="fc" id="L154">        Query query = new Query(Criteria.where(&quot;fileName&quot;).regex(&quot;.*&quot; + fileName + &quot;.*&quot;));</span>
+<span class="fc" id="L155">        List&lt;Metadata&gt; res = (List&lt;Metadata&gt;) mongoTemplate.find(query, Metadata.class, METADATA_COLLECTION);</span>
+<span class="fc bfc" id="L156" title="All 2 branches covered.">        for (Metadata data : res) {</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">            if (data.digestString.equals(digestString)) {</span>
+<span class="fc" id="L158">                dataExist = true;</span>
+<span class="fc" id="L159">                continue;</span>
+            }
+<span class="fc" id="L161">            Query remove = new Query(Criteria.where(&quot;digestString&quot;).is(data.digestString));</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">            if (data.fileName.size() == 1) {</span>
+<span class="fc" id="L163">                mongoTemplate.remove(remove, METADATA_COLLECTION);</span>
+            } else {
+<span class="fc" id="L165">                Update update = new Update().pull(&quot;fileName&quot;, fileName)</span>
+<span class="fc" id="L166">                        .pull(&quot;filePath&quot;, fileName.substring(0, fileName.lastIndexOf('/') + 1));</span>
+<span class="fc" id="L167">                mongoTemplate.updateFirst(query, update, METADATA_COLLECTION);</span>
+            }
+<span class="fc" id="L169">        }</span>
+<span class="fc" id="L170">        return dataExist;</span>
+    }
+
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    @GetMapping(&quot;/metadata/filenames&quot;)
+    public List&lt;Map&lt;String,? extends Serializable&gt;&gt; getFileNames(@RequestParam(&quot;limit&quot;) int limit, @RequestParam(&quot;offset&quot;) int offset) {
+<span class="fc" id="L176">        Aggregation aggregation = Aggregation.newAggregation(Aggregation.skip(offset),</span>
+<span class="fc" id="L177">                                                             Aggregation.limit(limit),</span>
+<span class="fc" id="L178">                                                             Aggregation.unwind(&quot;fileName&quot;),</span>
+<span class="fc" id="L179">                                                             Aggregation.project(&quot;fileName&quot;, &quot;lastModified&quot;));</span>
+<span class="fc" id="L180">        List&lt;DBObject&gt; res = mongoTemplate.aggregate(aggregation, MongoCollections.METADATA, DBObject.class).getMappedResults();</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">        if (res.isEmpty()) {</span>
+<span class="fc" id="L182">            return List.of();</span>
+        }
+<span class="fc" id="L184">        return res.stream()</span>
+<span class="fc" id="L185">                .filter(dbObject -&gt; dbObject.get(&quot;fileName&quot;) instanceof String)</span>
+<span class="fc" id="L186">                .map(dbObject -&gt; {</span>
+<span class="fc" id="L187">            String fileName = (String) dbObject.get(&quot;fileName&quot;);</span>
+<span class="fc" id="L188">            var lastModifiedObject = dbObject.get(&quot;lastModified&quot;);</span>
+<span class="fc" id="L189">            return Map.of(&quot;fileName&quot;, fileName,</span>
+<span class="pc bpc" id="L190" title="1 of 2 branches missed.">                          &quot;lastModified&quot;, lastModifiedObject instanceof Long ? (Long)lastModifiedObject : Long.MIN_VALUE);</span>
+<span class="fc" id="L191">        }).collect(Collectors.toList());</span>
+    }
+
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @PostMapping(&quot;/metadata/filenames&quot;)
+    public int deleteMetadata(@RequestBody List&lt;String&gt; fileNames) {
+<span class="fc" id="L197">        Query query = new Query(Criteria.where(&quot;fileName&quot;).in(fileNames));</span>
+<span class="fc" id="L198">        return (int) mongoTemplate.remove(query, METADATA_COLLECTION).getDeletedCount();</span>
+    }
+
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    @GetMapping(&quot;/metadata/description&quot;)
+    public Map getDescriptions() throws IOException {
+<span class="fc" id="L204">        return Map.of(&quot;variables&quot;,</span>
+<span class="fc" id="L205">                      variableResourceFile.getContentAsString(Charset.defaultCharset()),</span>
+                      &quot;attributes&quot;,
+<span class="fc" id="L207">                      attributeResourceFile.getContentAsString(Charset.defaultCharset()));</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
