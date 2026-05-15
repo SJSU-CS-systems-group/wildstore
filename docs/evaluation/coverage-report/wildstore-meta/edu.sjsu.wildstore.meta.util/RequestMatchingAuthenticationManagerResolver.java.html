@@ -24,13 +24,13 @@ public class RequestMatchingAuthenticationManagerResolver implements Authenticat
 
     @Override
     public AuthenticationManager resolve(HttpServletRequest context) {
-<span class="nc bnc" id="L27" title="All 2 branches missed.">        for (Map.Entry&lt;RequestMatcher, AuthenticationManager&gt; entry : this.authenticationManagers.entrySet()) {</span>
-<span class="nc bnc" id="L28" title="All 2 branches missed.">            if (entry.getKey().matches(context)) {</span>
-<span class="nc" id="L29">                return entry.getValue();</span>
+<span class="fc bfc" id="L27" title="All 2 branches covered.">        for (Map.Entry&lt;RequestMatcher, AuthenticationManager&gt; entry : this.authenticationManagers.entrySet()) {</span>
+<span class="fc bfc" id="L28" title="All 2 branches covered.">            if (entry.getKey().matches(context)) {</span>
+<span class="fc" id="L29">                return entry.getValue();</span>
             }
-<span class="nc" id="L31">        }</span>
+<span class="fc" id="L31">        }</span>
 
-<span class="nc" id="L33">        return this.defaultAuthenticationManager;</span>
+<span class="fc" id="L33">        return this.defaultAuthenticationManager;</span>
     }
 
     public void setDefaultAuthenticationManager(AuthenticationManager defaultAuthenticationManager) {

@@ -1,5 +1,7 @@
 package edu.sjsu.wildstore.wildstore_relationalDb;
 
+import edu.sjsu.wildstore.wildstore_relationalDb.records.FileNodeRecord;
+
 import java.util.ArrayList;
 import java.util.List;
 

@@ -9,18 +9,18 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import edu.sjsu.wildstore.wildstore_relationalDb.resources.FileNode;
+import edu.sjsu.wildstore.wildstore_relationalDb.records.FileNodeRecord;
 
 @RestController
 <span class="fc" id="L15">public class FileNodeBridgeController {</span>
     @PreAuthorize(&quot;hasRole('GUEST')&quot;)
     @GetMapping(&quot;/file_contents&quot;)
-    public List&lt;FileNode&gt; files(@RequestParam(value = &quot;file_id&quot;, defaultValue = &quot;0&quot;) String fileId) {
+    public List&lt;FileNodeRecord&gt; files(@RequestParam(value = &quot;file_id&quot;, defaultValue = &quot;0&quot;) String fileId) {
         try {
 <span class="nc" id="L20">            Class&lt;?&gt; controllerClass = Class.forName(&quot;edu.sjsu.wildstore.wildstore_relationalDb.controller.FileNodeController&quot;);</span>
 <span class="nc" id="L21">            Object fileNodeController = controllerClass.getDeclaredConstructor().newInstance();</span>
 <span class="nc" id="L22">            Object response = controllerClass.getMethod(&quot;files&quot;, String.class).invoke(fileNodeController, fileId);</span>
-<span class="nc" id="L23">            return (List&lt;FileNode&gt;) response;</span>
+<span class="nc" id="L23">            return (List&lt;FileNodeRecord&gt;) response;</span>
 <span class="nc" id="L24">        } catch (Exception e) {</span>
 <span class="nc" id="L25">            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,</span>
                     &quot;Unable to load FileNodeController data&quot;, e);
