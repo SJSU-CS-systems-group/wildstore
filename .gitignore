@@ -1,5 +1,6 @@
 /target
 target/checkstyle-cachefile
+coverage-report/
 wildstore-cli/target/
 wildstore-common/target/
 wildstore-crawl/target/
