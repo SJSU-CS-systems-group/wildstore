@@ -47,8 +47,16 @@ public class FileNodeService {
         return fileNodeRepository.save(fileNode); // Save the new entity
     }
 
+    public FileNode saveFileNode(FileNode fileNode) {
+        return fileNodeRepository.save(fileNode);
+    }
+
     public Optional<FileNode> findById(Long fileNodeId) {
         return fileNodeRepository.findById(fileNodeId);
+    }
+
+    public List<FileNode> findByParentId(Long parentId) {
+        return fileNodeRepository.findByParentId(parentId);
     }
 
     public List<FileNode> fileNodeChildrenUserCanAccess(Long parentId, Long userId) throws Exception {

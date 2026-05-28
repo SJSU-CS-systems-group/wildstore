@@ -15,6 +15,8 @@ public interface FileNodeRepository extends JpaRepository<FileNode, Long> {
 
   boolean existsById(Long fileNodeId);
 
+  List<FileNode> findByParentId(Long parentId);
+
   @Query("SELECT DISTINCT f FROM FileNode f JOIN f.filePermissions p WHERE f.parent = :parent AND p.user = :user")
   List<FileNode> findByParentIdAndUserFilePermission(@Param("parent") FileNode parent, @Param("user") User user);
 }

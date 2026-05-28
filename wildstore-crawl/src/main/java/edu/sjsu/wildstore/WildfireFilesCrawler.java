@@ -47,6 +47,8 @@ public class WildfireFilesCrawler implements Runnable {
     );
     @CommandLine.Option(names = "--metaURL", description = "Host name of the API server", required = true)
     String metaURL;
+    @CommandLine.Option(names = "--relationalURL", description = "Host name of the API server", required = true)
+    String relationalURL;
     @CommandLine.Option(names = "--log", description = "Whether to generate a log")
     Boolean log = false;
     @CommandLine.Option(names = "--enums", description = "Generate log of Enum Variable names")
