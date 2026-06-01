@@ -1,5 +1,7 @@
 package edu.sjsu.wildstore.wildstore_relationalDb;
 
+import edu.sjsu.wildstore.wildstore_relationalDb.records.FileNodeRecord;
+
 import java.util.List;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Convert;
@@ -47,6 +49,10 @@ public class FileNode {
       this.fileType = fileType;
       this.parent = parent;
       this.digest = digest;
+    }
+
+    public FileNodeRecord toRecord() {
+      return new FileNodeRecord(id, fileName, size, digest);
     }
 }
 
