@@ -26,6 +26,9 @@ public class FileNodeController {
   @GetMapping("/file_contents")
   public ResponseEntity<List<FileNodeRecord>> fileNodes(@RequestParam(value="file_id", defaultValue= "0") String fileId) {
     Long longFileId = Long.parseLong(fileId);
+    if (longFileId == 0) {
+      longFileId = null;
+    }
     List<FileNode> fileNodeList = fileNodeService.findByParentId(longFileId);
     List<FileNodeRecord> fileNodeRecordList = fileNodeList.stream().map(fileNode -> fileNode.toRecord()).toList();
     
