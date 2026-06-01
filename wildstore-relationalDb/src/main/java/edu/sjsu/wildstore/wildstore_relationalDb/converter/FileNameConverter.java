@@ -6,7 +6,7 @@ import jakarta.persistence.Converter;
 @Converter
 public class FileNameConverter implements AttributeConverter<String, String> {
  
-    private static final byte[] KEY = System.getenv("FILE_NAME_ENCRYPTION_KEY").getBytes();
+    private static final String KEY = System.getenv("FILE_NAME_ENCRYPTION_KEY");
  
     @Override
     public String convertToDatabaseColumn(String fileName) {

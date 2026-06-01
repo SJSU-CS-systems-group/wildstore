@@ -6,7 +6,7 @@ import jakarta.persistence.Converter;
 @Converter
 public class UserEmailConverter implements AttributeConverter<String, String> {
  
-    private static final byte[] KEY = System.getenv("EMAIL_ENCRYPTION_KEY").getBytes();
+    private static final String KEY = System.getenv("EMAIL_ENCRYPTION_KEY");
  
     @Override
     public String convertToDatabaseColumn(String email) {

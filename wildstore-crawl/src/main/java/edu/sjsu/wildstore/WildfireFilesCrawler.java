@@ -47,7 +47,7 @@ public class WildfireFilesCrawler implements Runnable {
     );
     @CommandLine.Option(names = "--metaURL", description = "Host name of the API server", required = true)
     String metaURL;
-    @CommandLine.Option(names = "--relationalURL", description = "Host name of the API server", required = true)
+    @CommandLine.Option(names = "--relationalURL", description = "Host name of the permission API server", required = true)
     String relationalURL;
     @CommandLine.Option(names = "--log", description = "Whether to generate a log")
     Boolean log = false;
@@ -97,6 +97,8 @@ public class WildfireFilesCrawler implements Runnable {
 
     public static boolean crawl(String file,
                                 WebClient webClient,
+                                WebClient fileNodeClient,
+                                Map<String, Long> directoryFileNodeIdMap,
                                 int maxReadSize,
                                 String option,
                                 boolean enumLog) throws InterruptedException, ExecutionException {
@@ -125,7 +127,11 @@ public class WildfireFilesCrawler implements Runnable {
             PrintData.printEnums(enumFile, metadata);
         }
 
-        return (boolean) Client.post(webClient, metadata, new ParameterizedTypeReference<Boolean>() {});
+        boolean posted = (boolean) Client.post(webClient, metadata, new ParameterizedTypeReference<Boolean>() {});
+        if (posted) {
+            postFileNodes(file, metadata.fileSize, metadata.digestString, directoryFileNodeIdMap, fileNodeClient);
+        }
+        return posted;
     }
 
     final PrintWriter out() {
@@ -154,6 +160,8 @@ public class WildfireFilesCrawler implements Runnable {
         Instant start = Instant.now();
         ConcurrentHashMap<String, Exception> status = new ConcurrentHashMap<>();
         WebClient webClient = Client.getWebClient(metaURL + "/api/metadata", token);
+        WebClient fileNodeClient = Client.getWebClient(relationalURL + "/file_contents");
+        Map<String, Long> directoryFileNodeIdMap = new ConcurrentHashMap<>();
         AtomicInteger filesCount = new AtomicInteger();
         AtomicInteger crawledCount = new AtomicInteger();
         AtomicInteger skippedCount = new AtomicInteger();
@@ -220,7 +228,7 @@ public class WildfireFilesCrawler implements Runnable {
                     }
                 }).map(file -> {
                     try {
-                        if (crawl(file, webClient, maxReadSize, option, enumLog)) {
+                        if (crawl(file, webClient, fileNodeClient, directoryFileNodeIdMap, maxReadSize, option, enumLog)) {
                             crawledCount.getAndIncrement();
                         }
                         filesCount.getAndIncrement();
@@ -307,6 +315,38 @@ public class WildfireFilesCrawler implements Runnable {
                                                      "Error(s) occurred during processing. See above for details.",
                                                      null);
         }
+    }
+
+    private static Long postFileNodes(String fileName, Long fileSize, String digest, Map<String, Long> directoryFileNodeIdMap, WebClient fileNodeClient) throws InterruptedException, ExecutionException {
+        if (fileName == null || fileName.equals(System.getenv("ROOT_NODE_DIRECTORY")) || fileName.equals("null")) {
+          return null;
+        }
+        Long fileNodeId = directoryFileNodeIdMap.get(fileName);
+        if (fileNodeId != null) {
+          return fileNodeId;
+        }
+        Path filePath = Paths.get(fileName);
+        Path parentPath = filePath.getParent();
+
+        Long parentId = postFileNodes(String.valueOf(parentPath), null, null, directoryFileNodeIdMap, fileNodeClient);
+
+        File file = new File(fileName);
+                    
+        FileType fileType = FileType.FILE;
+        if (file.isDirectory()) {
+          fileType = FileType.DIRECTORY;
+        } 
+
+        FileNodeParams fileNodeParams = new FileNodeParams();
+        fileNodeParams.fileName = filePath.toString();
+        fileNodeParams.size = fileSize;
+        fileNodeParams.fileType = fileType;
+        fileNodeParams.parentId = parentId;
+        fileNodeParams.digest = digest;
+
+        fileNodeId = (Long) Client.post(fileNodeClient, fileNodeParams, new ParameterizedTypeReference<Long>() {});
+        directoryFileNodeIdMap.put(fileName, fileNodeId);
+        return fileNodeId;
     }
 
     /**

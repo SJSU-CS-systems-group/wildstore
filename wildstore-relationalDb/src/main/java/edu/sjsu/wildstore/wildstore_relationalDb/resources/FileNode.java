@@ -18,12 +18,12 @@ import jakarta.persistence.OneToMany;
 public class FileNode {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    public Long id;
 
     @Convert(converter = FileNameConverter.class)
-    private String fileName; 
+    public String fileName; 
 
-    private long size; 
+    private Long size; 
 
     @Enumerated(EnumType.STRING)
     private FileType fileType; 
@@ -35,11 +35,13 @@ public class FileNode {
     @OneToMany(mappedBy = "fileNode", cascade = CascadeType.REMOVE)
     private List<FilePermission> filePermissions;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = true)
     @Convert(converter = FileDigestConverter.class)
     private String digest;
 
-    public FileNode(String fileName, long size, FileType fileType, FileNode parent, String digest) {
+    public FileNode() {}
+
+    public FileNode(String fileName, Long size, FileType fileType, FileNode parent, String digest) {
       this.fileName = fileName;
       this.size = size;
       this.fileType = fileType;

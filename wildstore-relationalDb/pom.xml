@@ -10,7 +10,6 @@
         <artifactId>wildstore</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-
     <groupId>edu.sjsu.wildstore</groupId>
     <artifactId>wildstore-relationalDb</artifactId>
     <version>1.0-SNAPSHOT</version>

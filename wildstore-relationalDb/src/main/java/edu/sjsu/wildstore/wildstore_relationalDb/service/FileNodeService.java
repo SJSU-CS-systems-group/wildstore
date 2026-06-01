@@ -47,7 +47,15 @@ public class FileNodeService {
         return fileNodeRepository.save(fileNode); // Save the new entity
     }
 
-    public FileNode saveFileNode(FileNode fileNode) {
+    public FileNode saveFileNode(FileNodeParams fileNodeParams) {
+        FileNode parent = null;
+        if (fileNodeParams.parentId != null) {
+            parent = fileNodeRepository.findById(fileNodeParams.parentId).get();
+        }
+        String fileName = fileNodeParams.fileName;
+        FileType fileType = fileNodeParams.fileType;
+        String digest = fileNodeParams.digest;
+        FileNode fileNode = new FileNode(fileName, fileNodeParams.size, fileType, parent, digest);
         return fileNodeRepository.save(fileNode);
     }
 

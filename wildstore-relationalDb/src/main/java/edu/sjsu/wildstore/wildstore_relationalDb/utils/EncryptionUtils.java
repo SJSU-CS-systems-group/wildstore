@@ -8,9 +8,13 @@ import java.util.Base64;
 public class EncryptionUtils {
     private static final String ALGORITHM = "AES/ECB/PKCS5Padding";
 
-    public static String encryptString(String string, byte[] aes_key) {
+    public static String encryptString(String string, String aes_key) {
+      if (string == null) {
+        return null;
+      }
       // do some encryption
-      Key key = new SecretKeySpec(aes_key, "AES");
+      byte[] decodedKeyBytes = Base64.getUrlDecoder().decode(aes_key); 
+      Key key = new SecretKeySpec(decodedKeyBytes, "AES");
       try {
          Cipher c = Cipher.getInstance(ALGORITHM);
          c.init(Cipher.ENCRYPT_MODE, key);
@@ -20,9 +24,13 @@ public class EncryptionUtils {
       }
     }
 
-    public static String decryptString(String encrypted_string, byte[] aes_key) {
+    public static String decryptString(String encrypted_string, String aes_key) {
+      if (encrypted_string == null) {
+        return null;
+      }
       // do some decryption
-      Key key = new SecretKeySpec(aes_key, "AES");
+      byte[] decodedKeyBytes = Base64.getUrlDecoder().decode(aes_key); 
+      Key key = new SecretKeySpec(decodedKeyBytes, "AES");
       try {
         Cipher c = Cipher.getInstance(ALGORITHM);
         c.init(Cipher.DECRYPT_MODE, key);

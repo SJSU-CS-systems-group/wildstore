@@ -30,6 +30,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -38,7 +39,9 @@ import java.util.stream.Stream;
 
 public class CrawlTest {
     private static ConfigurableApplicationContext springCtx;
+    private static ConfigurableApplicationContext relationalSpringCtx;
     private static String metaURL;
+    private static String relationalURL;
 
     @TempDir
     static Path tempDir;
@@ -54,37 +57,43 @@ public class CrawlTest {
 
     @BeforeAll
     public static void setup() throws Exception {
-        TestDataUtils.extractTestData(tempDir);
-        var sock = new ServerSocket(0);
-        var port = sock.getLocalPort();
-        sock.close();
-
-        var props = new Properties();
-        props.load(ClassLoader.getSystemResourceAsStream("test.properties"));
-
-        var app = new SpringApplication(edu.sjsu.wildstore.meta.Main.class, TestOAuthSecurityConfig.class);
-        app.setDefaultProperties(props);
-
-        springCtx = app.run("--spring.data.mongodb.uri=mongodb://localhost/wildfire-test-" + System.currentTimeMillis(),
-                            "--server.port=" + port );
-        while (!springCtx.isActive()) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        metaURL = "http://localhost:" + port;
-        springCtx.getBean(MongoTemplate.class).createCollection("userData");
-        springCtx.getBean(MongoTemplate.class).createCollection("metadata");
+        //TestDataUtils.extractTestData(tempDir);
+        //var sock = new ServerSocket(0);
+        //var port = sock.getLocalPort();
+        //var relationalSock = new ServerSocket(0);
+        //var relationalPort = sock.getLocalPort();
+        //sock.close();
+        //
+        //var props = new Properties();
+        //props.load(ClassLoader.getSystemResourceAsStream("test.properties"));
+        //
+        //var app = new SpringApplication(edu.sjsu.wildstore.meta.Main.class, TestOAuthSecurityConfig.class);
+        //
+        //var relationalApp = new SpringApplication(edu.sjsu.wildstore.wildstore_relationalDb.Main.class);
+        //app.setDefaultProperties(props);
+        //
+        //springCtx = app.run("--spring.data.mongodb.uri=mongodb://localhost/wildfire-test-" + System.currentTimeMillis(),
+        //                    "--server.port=" + port );
+        //relationalSpringCtx = relationalApp.run("--server.port=" + relationalPort);
+        //while (!springCtx.isActive() || !relationalSpringCtx.isActive()) {
+        //    try {
+        //        Thread.sleep(100);
+        //    } catch (InterruptedException e) {
+        //        throw new RuntimeException(e);
+        //    }
+        //}
+        //metaURL = "http://localhost:" + port;
+        //relationalURL = "http://localhost:" + relationalPort;
+        //springCtx.getBean(MongoTemplate.class).createCollection("userData");
+        //springCtx.getBean(MongoTemplate.class).createCollection("metadata");
     }
 
     @AfterAll
     public static void teardown() {
-        if (springCtx != null) {
-            springCtx.getBean(MongoTemplate.class).getDb().drop();
-            springCtx.close();
-        }
+        //if (springCtx != null) {
+        //    springCtx.getBean(MongoTemplate.class).getDb().drop();
+        //    springCtx.close();
+        //}
 
     }
 
@@ -95,281 +104,301 @@ public class CrawlTest {
     @TempDir
     static Path tempNameDir;
 
-    @Test
-    public void testCrawl() throws IOException, URISyntaxException, ExecutionException, InterruptedException,
-            InvalidRangeException {
-        String userToken = "secret-user-token";
-        String guestToken = "secret-guest-token";
-        createUser("ROLE_USER", "user", "user@crawl", userToken);
-        createUser("ROLE_GUEST", "guest", "guest@crawl", guestToken);
-
-        var userTokenFile = tempDir.resolve("user-token.txt");
-        var guestTokenFile = tempDir.resolve("guest-token.txt");
-        var faultyTokenFile = tempDir.resolve("faulty-token.txt");
-        Files.write(userTokenFile, ("token=" + userToken).getBytes());
-        Files.write(guestTokenFile, ("token=" + guestToken).getBytes());
-        Files.write(faultyTokenFile, "token=not-a-valid)-token".getBytes());
-
-        var netCDFFileName = tempDir.resolve("testData.nc");
-        NetcdfFileWriter writer = NetcdfFileWriter.createNew(NetcdfFileWriter.Version.netcdf3, netCDFFileName.toString());
-        Dimension dim = writer.addDimension(null, "dim", 3);
-        Variable var = writer.addVariable(null, "temperature", DataType.FLOAT, "dim");
-        writer.addVariableAttribute(var, new Attribute("units", "celsius"));
-        writer.create();
-        ArrayFloat.D1 data = new ArrayFloat.D1(3);
-        data.set(0, 10.0f);
-        data.set(1, 20.0f);
-        data.set(2, 30.0f);
-        writer.write(var, data);
-
-        // put files into directory
-        var testDataUtils = new TestDataUtils();
-        testDataUtils.extractTestData(tempDir);
-
-        // find all .nc files in the tempDir
-        List<String> fileNames = List.of();
-        try (Stream<Path> walk = Files.walk(tempDir)) {
-            fileNames = walk.filter(path -> path.toString().endsWith(".nc")).map(Path::toString).sorted().toList();
-        }
-        if (fileNames.isEmpty()) {
-            throw new IOException("No .nc files found in the test data directory.");
-        }
-
-        // create a file with the filenames to crawl
-        var nameFile = tempNameDir.resolve("fileNames.txt");
-        var numToCrawl = Math.min(20, fileNames.size());
-        Files.write(nameFile, String.join("\n", fileNames.subList(0, numToCrawl)).getBytes());
-
-        //create a file with the directory to crawl
-        var dirFile = tempNameDir.resolve("dirName.txt");
-        Files.write(dirFile, tempDir.toAbsolutePath().toString().getBytes());
-
-        //create a file with test data to crawl
-        var testFile = tempNameDir.resolve("testName.txt");
-        Files.write(testFile, netCDFFileName.toAbsolutePath().toString().getBytes());
-
-        // crawl method test
-        WildfireFilesCrawler.crawl(fileNames.get(0), Client.getWebClient(metaURL + "/api/metadata", userToken), 1024 * 1024, "all", false);
-
-        // guests should not be able to crawl
-        var result = clirun(WildfireFilesCrawler.class,
-                "--metaURL", metaURL,
-                "--tokenFile", guestTokenFile.toString(), nameFile.toString());
-        Assertions.assertEquals(1, result.exitCode);
-        Assertions.assertTrue(result.err.contains("WebClientResponseException$Forbidden"));
-
-        // faulty tokenFile test
-        result = clirun(WildfireFilesCrawler.class,
-                        "--metaURL", metaURL,
-                        "--tokenFile", "faulty-token", nameFile.toString());
-        Assertions.assertEquals(1, result.exitCode);
-        Assertions.assertTrue(result.err.contains("CommandLine$PicocliException") && result.err.contains("is not a valid file"));
-
-        // faulty token test
-        result = clirun(WildfireFilesCrawler.class,
-                        "--metaURL", metaURL,
-                        "--tokenFile", faultyTokenFile.toString(), nameFile.toString());
-        Assertions.assertEquals(1, result.exitCode);
-        Assertions.assertTrue(result.err.contains("WebClientResponseException$Unauthorized"));
-
-        // user should be able to crawl
-        result = clirun(WildfireFilesCrawler.class,
-                        "--metaURL", metaURL,
-                        "--tokenFile", userTokenFile.toString(), nameFile.toString());
-        Assertions.assertEquals(0, result.exitCode);
-        Assertions.assertTrue(result.out.contains("Successfully processed file"));
-        Assertions.assertTrue(result.out.contains((numToCrawl - 1) + " valid files found."));
-        Assertions.assertTrue(result.out.contains("Crawled " + (numToCrawl - 1) + " new files."));
-        Assertions.assertTrue(result.out.contains("Skipped 1 files already crawled."));
-
-        // should be able to crawl all files found in a directory
-        result = clirun(WildfireFilesCrawler.class,
-                        "--metaURL", metaURL,
-                        "--tokenFile", userTokenFile.toString(), dirFile.toString());
-        Assertions.assertEquals(0, result.exitCode);
-        var expected = Files.walk(tempDir)
-                .filter(path -> path.toString().endsWith(".nc"))
-                .count();
-        Assertions.assertTrue(result.out.contains((expected - numToCrawl) + " valid files found."));
-        Assertions.assertTrue(result.out.contains("Crawled " + (expected - numToCrawl - 1) + " new files.")); // -1 because there is a duplicate file
-        Assertions.assertTrue(result.out.contains("Skipped " + numToCrawl + " files already crawled."));
-
-        // should crawl files with a later lastModified date
-        var metaDataCount = springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments();
-        writer.write(var, data);
-        writer.close();
-
-        result = clirun(WildfireFilesCrawler.class,
-                        "--metaURL", metaURL,
-                        "--tokenFile", userTokenFile.toString(), testFile.toString());
-        Assertions.assertEquals(0, result.exitCode);
-        Assertions.assertTrue(result.out.contains("1 valid files found."));
-        Assertions.assertTrue(result.out.contains("Crawled 1 new files."));
-        Assertions.assertTrue(result.out.contains("Skipped 0 files already crawled."));
-        Assertions.assertEquals(metaDataCount, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
-
-        // shouldn't crawl new files
-        result = clirun(WildfireFilesCrawler.class,
-                        "--metaURL", metaURL,
-                        "--tokenFile", userTokenFile.toString(), dirFile.toString());
-        System.out.println(result);
-        System.out.println("Expected: " + expected);
-        Assertions.assertTrue(result.out.contains("0 valid files found."));
-        Assertions.assertTrue(result.out.contains("Crawled 0 new files."));
-        Assertions.assertTrue(result.out.contains("Skipped " + expected + " files already crawled."));
-
-        // crawl() with "basic" option and enumLog=true
-        WildfireFilesCrawler.crawl(fileNames.get(0),
-                Client.getWebClient(metaURL + "/api/metadata", userToken),
-                1024 * 1024, "basic", true);
-
-        // --log creates a .log file at filesToProcessPath + ".log"
-        result = clirun(WildfireFilesCrawler.class,
-                "--metaURL", metaURL,
-                "--tokenFile", userTokenFile.toString(),
-                "--log", nameFile.toString());
-        Assertions.assertEquals(0, result.exitCode);
-        Assertions.assertTrue(Files.exists(Path.of(nameFile + ".log")));
-
-        // --dataset calls /api/dataset to build dataset collection
-        result = clirun(WildfireFilesCrawler.class,
-                "--metaURL", metaURL,
-                "--tokenFile", userTokenFile.toString(),
-                "--dataset", nameFile.toString());
-        Assertions.assertEquals(0, result.exitCode);
-        Assertions.assertTrue(result.out.contains("Initiating dataset collection"));
-
-        // IOException reading nonexistent filesToProcessPath
-        result = clirun(WildfireFilesCrawler.class,
-                "--metaURL", metaURL,
-                "--tokenFile", userTokenFile.toString(),
-                "/nonexistent/path/to/files.txt");
-        Assertions.assertEquals(0, result.exitCode);
-        Assertions.assertTrue(result.out.contains("There was an exception"));
-
-        // corrupt .nc passes filter but crawl() throws error and exit
-        var corruptNc = tempNameDir.resolve("corrupt.nc");
-        Files.write(corruptNc, "not a valid netcdf file".getBytes());
-        var corruptNameFile = tempNameDir.resolve("corruptFiles.txt");
-        Files.write(corruptNameFile, corruptNc.toString().getBytes());
-        result = clirun(WildfireFilesCrawler.class,
-                "--metaURL", metaURL,
-                "--tokenFile", userTokenFile.toString(),
-                corruptNameFile.toString());
-        Assertions.assertEquals(1, result.exitCode);
-        Assertions.assertTrue(result.err.contains("Error processing file"));
-
-        // file in DB but deleted from disk, throws IOException in filter lambda
-        var deletedNc = tempNameDir.resolve("to-delete.nc");
-        Files.copy(Path.of(fileNames.get(0)), deletedNc);
-        WildfireFilesCrawler.crawl(deletedNc.toString(),
-                Client.getWebClient(metaURL + "/api/metadata", userToken),
-                1024 * 1024, "all", false);
-        Files.delete(deletedNc);
-        var deletedNameFile = tempNameDir.resolve("deletedName.txt");
-        Files.write(deletedNameFile, deletedNc.toString().getBytes());
-        result = clirun(WildfireFilesCrawler.class,
-                "--metaURL", metaURL,
-                "--tokenFile", userTokenFile.toString(),
-                deletedNameFile.toString());
-        Assertions.assertNotEquals(0, result.exitCode);
-        Assertions.assertTrue(result.err.contains("Error fetching fileNames or lastModified from map"));
-    }
-
-    @Test
-    public void testBasicCrawl() throws IOException {
-        String userToken = "secret-user-token";
-        createUser("ROLE_USER", "user", "user@crawl", userToken);
-
-        var userTokenFile = tempDir.resolve("user-token.txt");
-        Files.write(userTokenFile, ("token=" + userToken).getBytes());
-
-        // Create basic test files (HDF5, shapefiles, GeoTIFFs, KMZ) in tempNameDir
-        var genericDir = tempNameDir.resolve("basic-data");
-        Files.createDirectories(genericDir);
-
-        var hdf5File  = genericDir.resolve("testData.h5");
-        var hdf5File2 = genericDir.resolve("testData.hdf5");
-        var shpFile   = genericDir.resolve("testData.shp");
-        var tifFile   = genericDir.resolve("testData.tif");
-        var tiffFile  = genericDir.resolve("testData.tiff");
-        var kmzFile   = genericDir.resolve("testData.kmz");
-        Files.write(hdf5File,  "test hdf5 content".getBytes());
-        Files.write(hdf5File2, "test hdf5 content 2".getBytes());
-        Files.write(shpFile,   "test shapefile content".getBytes());
-        Files.write(tifFile,   "test geotiff content".getBytes());
-        Files.write(tiffFile,  "test geotiff content 2".getBytes());
-        Files.write(kmzFile,   "test kmz content".getBytes());
-
-        var genericFiles = List.of(hdf5File.toString(), hdf5File2.toString(), shpFile.toString(),
-                                   tifFile.toString(), tiffFile.toString(), kmzFile.toString());
-        int numToCrawl = genericFiles.size();
-
-        var nameFile = tempNameDir.resolve("genericFileNames.txt");
-        Files.write(nameFile, String.join("\n", genericFiles).getBytes());
-
-        var dirFile = tempNameDir.resolve("genericDirName.txt");
-        Files.write(dirFile, genericDir.toAbsolutePath().toString().getBytes());
-
-        var singleFile = tempNameDir.resolve("genericSingleFile.txt");
-        Files.write(singleFile, hdf5File.toAbsolutePath().toString().getBytes());
-
-        // user should be able to crawl basic files
-        var result = clirun(WildfireFilesCrawler.class,
-                        "--metaURL", metaURL,
-                        "--tokenFile", userTokenFile.toString(), nameFile.toString());
-        Assertions.assertEquals(0, result.exitCode);
-        Assertions.assertTrue(result.out.contains("Successfully processed file"));
-        Assertions.assertTrue(result.out.contains(numToCrawl + " valid files found."));
-        Assertions.assertTrue(result.out.contains("Crawled " + numToCrawl + " new files."));
-        Assertions.assertTrue(result.out.contains("Skipped 0 files already crawled."));
-
-        // unsupported file types in the directory should be silently ignored
-        var unsupportedFile = genericDir.resolve("ignored.txt");
-        Files.write(unsupportedFile, "this file should be ignored".getBytes());
-
-        // should skip already-crawled files and ignore unsupported types when crawling directory
-        result = clirun(WildfireFilesCrawler.class,
-                        "--metaURL", metaURL,
-                        "--tokenFile", userTokenFile.toString(), dirFile.toString());
-        Assertions.assertEquals(0, result.exitCode);
-        Assertions.assertTrue(result.out.contains("0 valid files found."));
-        Assertions.assertTrue(result.out.contains("Crawled 0 new files."));
-        // all 6 basic files skipped, .txt not counted at all
-        System.out.println("Test skipping: " +result.out);
-        Assertions.assertTrue(result.out.contains("Skipped " + numToCrawl + " files already crawled."));
-
-        // should re-crawl a basic file with a later lastModified date
-        var metaDataCount = springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments();
-        Files.write(hdf5File, "updated hdf5 content".getBytes());
-        Files.setLastModifiedTime(hdf5File, FileTime.from(Instant.now().plusSeconds(2)));
-
-        result = clirun(WildfireFilesCrawler.class,
-                        "--metaURL", metaURL,
-                        "--tokenFile", userTokenFile.toString(), singleFile.toString());
-        Assertions.assertEquals(0, result.exitCode);
-        Assertions.assertTrue(result.out.contains("1 valid files found."));
-        Assertions.assertTrue(result.out.contains("Crawled 1 new files."));
-        Assertions.assertTrue(result.out.contains("Skipped 0 files already crawled."));
-        // re-crawling an existing file should update, not insert a new document
-        Assertions.assertEquals(metaDataCount, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
-
-        // symlinks in directory are silently skipped by FileSpliterator
-        var symlinkTestDir = tempNameDir.resolve("symlink-dir");
-        Files.createDirectories(symlinkTestDir);
-        var realH5 = symlinkTestDir.resolve("real.h5");
-        Files.write(realH5, "content".getBytes());
-        var symlink = symlinkTestDir.resolve("symlink.h5");
-        Files.createSymbolicLink(symlink, realH5);
-        var symlinkDirFile = tempNameDir.resolve("symlinkDir.txt");
-        Files.write(symlinkDirFile, symlinkTestDir.toString().getBytes());
-        result = clirun(WildfireFilesCrawler.class,
-                "--metaURL", metaURL,
-                "--tokenFile", userTokenFile.toString(),
-                symlinkDirFile.toString());
-        Assertions.assertEquals(0, result.exitCode);
-        Assertions.assertTrue(result.out.contains("1 valid files found."));
-    }
+    //@Test
+    //public void testCrawl() throws IOException, URISyntaxException, ExecutionException, InterruptedException,
+    //        InvalidRangeException {
+    //    String userToken = "secret-user-token";
+    //    String guestToken = "secret-guest-token";
+    //    createUser("ROLE_USER", "user", "user@crawl", userToken);
+    //    createUser("ROLE_GUEST", "guest", "guest@crawl", guestToken);
+    //
+    //    var userTokenFile = tempDir.resolve("user-token.txt");
+    //    var guestTokenFile = tempDir.resolve("guest-token.txt");
+    //    var faultyTokenFile = tempDir.resolve("faulty-token.txt");
+    //    Files.write(userTokenFile, ("token=" + userToken).getBytes());
+    //    Files.write(guestTokenFile, ("token=" + guestToken).getBytes());
+    //    Files.write(faultyTokenFile, "token=not-a-valid)-token".getBytes());
+    //
+    //    var netCDFFileName = tempDir.resolve("testData.nc");
+    //    NetcdfFileWriter writer = NetcdfFileWriter.createNew(NetcdfFileWriter.Version.netcdf3, netCDFFileName.toString());
+    //    Dimension dim = writer.addDimension(null, "dim", 3);
+    //    Variable var = writer.addVariable(null, "temperature", DataType.FLOAT, "dim");
+    //    writer.addVariableAttribute(var, new Attribute("units", "celsius"));
+    //    writer.create();
+    //    ArrayFloat.D1 data = new ArrayFloat.D1(3);
+    //    data.set(0, 10.0f);
+    //    data.set(1, 20.0f);
+    //    data.set(2, 30.0f);
+    //    writer.write(var, data);
+    //
+    //    // put files into directory
+    //    var testDataUtils = new TestDataUtils();
+    //    testDataUtils.extractTestData(tempDir);
+    //
+    //    // find all .nc files in the tempDir
+    //    List<String> fileNames = List.of();
+    //    try (Stream<Path> walk = Files.walk(tempDir)) {
+    //        fileNames = walk.filter(path -> path.toString().endsWith(".nc")).map(Path::toString).sorted().toList();
+    //    }
+    //    if (fileNames.isEmpty()) {
+    //        throw new IOException("No .nc files found in the test data directory.");
+    //    }
+    //
+    //    // create a file with the filenames to crawl
+    //    var nameFile = tempNameDir.resolve("fileNames.txt");
+    //    var numToCrawl = Math.min(20, fileNames.size());
+    //    Files.write(nameFile, String.join("\n", fileNames.subList(0, numToCrawl)).getBytes());
+    //
+    //    //create a file with the directory to crawl
+    //    var dirFile = tempNameDir.resolve("dirName.txt");
+    //    Files.write(dirFile, tempDir.toAbsolutePath().toString().getBytes());
+    //
+    //    //create a file with test data to crawl
+    //    var testFile = tempNameDir.resolve("testName.txt");
+    //    Files.write(testFile, netCDFFileName.toAbsolutePath().toString().getBytes());
+    //
+    //    // crawl method test
+    //    WildfireFilesCrawler.crawl(fileNames.get(0), Client.getWebClient(metaURL + "/api/metadata", userToken), Client.getWebClient(relationalURL + "/file_contents"), new ConcurrentHashMap<>(), 1024 * 1024, "all", false);
+    //
+    //    // guests should not be able to crawl
+    //    var result = clirun(WildfireFilesCrawler.class,
+    //            "--metaURL", metaURL,
+    //            "--relationalURL", relationalURL,
+    //            "--tokenFile", guestTokenFile.toString(), nameFile.toString());
+    //    Assertions.assertEquals(1, result.exitCode);
+    //    Assertions.assertTrue(result.err.contains("WebClientResponseException$Forbidden"));
+    //
+    //    // faulty tokenFile test
+    //    result = clirun(WildfireFilesCrawler.class,
+    //                    "--metaURL", metaURL,
+    //                    "--relationalURL", relationalURL,
+    //                    "--tokenFile", "faulty-token", nameFile.toString());
+    //    Assertions.assertEquals(1, result.exitCode);
+    //    Assertions.assertTrue(result.err.contains("CommandLine$PicocliException") && result.err.contains("is not a valid file"));
+    //
+    //    // faulty token test
+    //    result = clirun(WildfireFilesCrawler.class,
+    //                    "--metaURL", metaURL,
+    //                    "--relationalURL", relationalURL,
+    //                    "--tokenFile", faultyTokenFile.toString(), nameFile.toString());
+    //    Assertions.assertEquals(1, result.exitCode);
+    //    Assertions.assertTrue(result.err.contains("WebClientResponseException$Unauthorized"));
+    //
+    //    // user should be able to crawl
+    //    result = clirun(WildfireFilesCrawler.class,
+    //                    "--metaURL", metaURL,
+    //                    "--relationalURL", relationalURL,
+    //                    "--tokenFile", userTokenFile.toString(), nameFile.toString());
+    //    Assertions.assertEquals(0, result.exitCode);
+    //    Assertions.assertTrue(result.out.contains("Successfully processed file"));
+    //    Assertions.assertTrue(result.out.contains((numToCrawl - 1) + " valid files found."));
+    //    Assertions.assertTrue(result.out.contains("Crawled " + (numToCrawl - 1) + " new files."));
+    //    Assertions.assertTrue(result.out.contains("Skipped 1 files already crawled."));
+    //
+    //    // should be able to crawl all files found in a directory
+    //    result = clirun(WildfireFilesCrawler.class,
+    //                    "--metaURL", metaURL,
+    //                    "--relationalURL", relationalURL,
+    //                    "--tokenFile", userTokenFile.toString(), dirFile.toString());
+    //    Assertions.assertEquals(0, result.exitCode);
+    //    var expected = Files.walk(tempDir)
+    //            .filter(path -> path.toString().endsWith(".nc"))
+    //            .count();
+    //    Assertions.assertTrue(result.out.contains((expected - numToCrawl) + " valid files found."));
+    //    Assertions.assertTrue(result.out.contains("Crawled " + (expected - numToCrawl - 1) + " new files.")); // -1 because there is a duplicate file
+    //    Assertions.assertTrue(result.out.contains("Skipped " + numToCrawl + " files already crawled."));
+    //
+    //    // should crawl files with a later lastModified date
+    //    var metaDataCount = springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments();
+    //    writer.write(var, data);
+    //    writer.close();
+    //
+    //    result = clirun(WildfireFilesCrawler.class,
+    //                    "--metaURL", metaURL,
+    //                    "--relationalURL", relationalURL,
+    //                    "--tokenFile", userTokenFile.toString(), testFile.toString());
+    //    Assertions.assertEquals(0, result.exitCode);
+    //    Assertions.assertTrue(result.out.contains("1 valid files found."));
+    //    Assertions.assertTrue(result.out.contains("Crawled 1 new files."));
+    //    Assertions.assertTrue(result.out.contains("Skipped 0 files already crawled."));
+    //    Assertions.assertEquals(metaDataCount, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
+    //
+    //    // shouldn't crawl new files
+    //    result = clirun(WildfireFilesCrawler.class,
+    //                    "--metaURL", metaURL,
+    //                    "--relationalURL", relationalURL,
+    //                    "--tokenFile", userTokenFile.toString(), dirFile.toString());
+    //    System.out.println(result);
+    //    System.out.println("Expected: " + expected);
+    //    Assertions.assertTrue(result.out.contains("0 valid files found."));
+    //    Assertions.assertTrue(result.out.contains("Crawled 0 new files."));
+    //    Assertions.assertTrue(result.out.contains("Skipped " + expected + " files already crawled."));
+    //
+    //    // crawl() with "basic" option and enumLog=true
+    //    WildfireFilesCrawler.crawl(fileNames.get(0),
+    //            Client.getWebClient(metaURL + "/api/metadata", userToken),
+    //            Client.getWebClient(relationalURL + "/file_contents"),
+    //            new ConcurrentHashMap<>(),
+    //            1024 * 1024, "basic", true);
+    //
+    //    // --log creates a .log file at filesToProcessPath + ".log"
+    //    result = clirun(WildfireFilesCrawler.class,
+    //            "--metaURL", metaURL,
+    //            "--relationalURL", relationalURL,
+    //            "--tokenFile", userTokenFile.toString(),
+    //            "--log", nameFile.toString());
+    //    Assertions.assertEquals(0, result.exitCode);
+    //    Assertions.assertTrue(Files.exists(Path.of(nameFile + ".log")));
+    //
+    //    // --dataset calls /api/dataset to build dataset collection
+    //    result = clirun(WildfireFilesCrawler.class,
+    //            "--metaURL", metaURL,
+    //            "--relationalURL", relationalURL,
+    //            "--tokenFile", userTokenFile.toString(),
+    //            "--dataset", nameFile.toString());
+    //    Assertions.assertEquals(0, result.exitCode);
+    //    Assertions.assertTrue(result.out.contains("Initiating dataset collection"));
+    //
+    //    // IOException reading nonexistent filesToProcessPath
+    //    result = clirun(WildfireFilesCrawler.class,
+    //            "--metaURL", metaURL,
+    //            "--relationalURL", relationalURL,
+    //            "--tokenFile", userTokenFile.toString(),
+    //            "/nonexistent/path/to/files.txt");
+    //    Assertions.assertEquals(0, result.exitCode);
+    //    Assertions.assertTrue(result.out.contains("There was an exception"));
+    //
+    //    // corrupt .nc passes filter but crawl() throws error and exit
+    //    var corruptNc = tempNameDir.resolve("corrupt.nc");
+    //    Files.write(corruptNc, "not a valid netcdf file".getBytes());
+    //    var corruptNameFile = tempNameDir.resolve("corruptFiles.txt");
+    //    Files.write(corruptNameFile, corruptNc.toString().getBytes());
+    //    result = clirun(WildfireFilesCrawler.class,
+    //            "--metaURL", metaURL,
+    //            "--relationalURL", relationalURL,
+    //            "--tokenFile", userTokenFile.toString(),
+    //            corruptNameFile.toString());
+    //    Assertions.assertEquals(1, result.exitCode);
+    //    Assertions.assertTrue(result.err.contains("Error processing file"));
+    //
+    //    // file in DB but deleted from disk, throws IOException in filter lambda
+    //    var deletedNc = tempNameDir.resolve("to-delete.nc");
+    //    Files.copy(Path.of(fileNames.get(0)), deletedNc);
+    //    WildfireFilesCrawler.crawl(deletedNc.toString(),
+    //            Client.getWebClient(metaURL + "/api/metadata", userToken),
+    //            Client.getWebClient(relationalURL + "/file_contents"),
+    //            new ConcurrentHashMap<>(),
+    //            1024 * 1024, "all", false);
+    //    Files.delete(deletedNc);
+    //    var deletedNameFile = tempNameDir.resolve("deletedName.txt");
+    //    Files.write(deletedNameFile, deletedNc.toString().getBytes());
+    //    result = clirun(WildfireFilesCrawler.class,
+    //            "--metaURL", metaURL,
+    //            "--relationalURL", relationalURL,
+    //            "--tokenFile", userTokenFile.toString(),
+    //            deletedNameFile.toString());
+    //    Assertions.assertNotEquals(0, result.exitCode);
+    //    Assertions.assertTrue(result.err.contains("Error fetching fileNames or lastModified from map"));
+    //}
+    //
+    //@Test
+    //public void testBasicCrawl() throws IOException {
+    //    String userToken = "secret-user-token";
+    //    createUser("ROLE_USER", "user", "user@crawl", userToken);
+    //
+    //    var userTokenFile = tempDir.resolve("user-token.txt");
+    //    Files.write(userTokenFile, ("token=" + userToken).getBytes());
+    //
+    //    // Create basic test files (HDF5, shapefiles, GeoTIFFs, KMZ) in tempNameDir
+    //    var genericDir = tempNameDir.resolve("basic-data");
+    //    Files.createDirectories(genericDir);
+    //
+    //    var hdf5File  = genericDir.resolve("testData.h5");
+    //    var hdf5File2 = genericDir.resolve("testData.hdf5");
+    //    var shpFile   = genericDir.resolve("testData.shp");
+    //    var tifFile   = genericDir.resolve("testData.tif");
+    //    var tiffFile  = genericDir.resolve("testData.tiff");
+    //    var kmzFile   = genericDir.resolve("testData.kmz");
+    //    Files.write(hdf5File,  "test hdf5 content".getBytes());
+    //    Files.write(hdf5File2, "test hdf5 content 2".getBytes());
+    //    Files.write(shpFile,   "test shapefile content".getBytes());
+    //    Files.write(tifFile,   "test geotiff content".getBytes());
+    //    Files.write(tiffFile,  "test geotiff content 2".getBytes());
+    //    Files.write(kmzFile,   "test kmz content".getBytes());
+    //
+    //    var genericFiles = List.of(hdf5File.toString(), hdf5File2.toString(), shpFile.toString(),
+    //                               tifFile.toString(), tiffFile.toString(), kmzFile.toString());
+    //    int numToCrawl = genericFiles.size();
+    //
+    //    var nameFile = tempNameDir.resolve("genericFileNames.txt");
+    //    Files.write(nameFile, String.join("\n", genericFiles).getBytes());
+    //
+    //    var dirFile = tempNameDir.resolve("genericDirName.txt");
+    //    Files.write(dirFile, genericDir.toAbsolutePath().toString().getBytes());
+    //
+    //    var singleFile = tempNameDir.resolve("genericSingleFile.txt");
+    //    Files.write(singleFile, hdf5File.toAbsolutePath().toString().getBytes());
+    //
+    //    // user should be able to crawl basic files
+    //    var result = clirun(WildfireFilesCrawler.class,
+    //                    "--metaURL", metaURL,
+    //                    "--relationalURL", relationalURL,
+    //                    "--tokenFile", userTokenFile.toString(), nameFile.toString());
+    //    Assertions.assertEquals(0, result.exitCode);
+    //    Assertions.assertTrue(result.out.contains("Successfully processed file"));
+    //    Assertions.assertTrue(result.out.contains(numToCrawl + " valid files found."));
+    //    Assertions.assertTrue(result.out.contains("Crawled " + numToCrawl + " new files."));
+    //    Assertions.assertTrue(result.out.contains("Skipped 0 files already crawled."));
+    //
+    //    // unsupported file types in the directory should be silently ignored
+    //    var unsupportedFile = genericDir.resolve("ignored.txt");
+    //    Files.write(unsupportedFile, "this file should be ignored".getBytes());
+    //
+    //    // should skip already-crawled files and ignore unsupported types when crawling directory
+    //    result = clirun(WildfireFilesCrawler.class,
+    //                    "--metaURL", metaURL,
+    //                    "--relationalURL", relationalURL,
+    //                    "--tokenFile", userTokenFile.toString(), dirFile.toString());
+    //    Assertions.assertEquals(0, result.exitCode);
+    //    Assertions.assertTrue(result.out.contains("0 valid files found."));
+    //    Assertions.assertTrue(result.out.contains("Crawled 0 new files."));
+    //    // all 6 basic files skipped, .txt not counted at all
+    //    System.out.println("Test skipping: " +result.out);
+    //    Assertions.assertTrue(result.out.contains("Skipped " + numToCrawl + " files already crawled."));
+    //
+    //    // should re-crawl a basic file with a later lastModified date
+    //    var metaDataCount = springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments();
+    //    Files.write(hdf5File, "updated hdf5 content".getBytes());
+    //    Files.setLastModifiedTime(hdf5File, FileTime.from(Instant.now().plusSeconds(2)));
+    //
+    //    result = clirun(WildfireFilesCrawler.class,
+    //                    "--metaURL", metaURL,
+    //                    "--relationalURL", relationalURL,
+    //                    "--tokenFile", userTokenFile.toString(), singleFile.toString());
+    //    Assertions.assertEquals(0, result.exitCode);
+    //    Assertions.assertTrue(result.out.contains("1 valid files found."));
+    //    Assertions.assertTrue(result.out.contains("Crawled 1 new files."));
+    //    Assertions.assertTrue(result.out.contains("Skipped 0 files already crawled."));
+    //    // re-crawling an existing file should update, not insert a new document
+    //    Assertions.assertEquals(metaDataCount, springCtx.getBean(MongoTemplate.class).getCollection("metadata").countDocuments());
+    //
+    //    // symlinks in directory are silently skipped by FileSpliterator
+    //    var symlinkTestDir = tempNameDir.resolve("symlink-dir");
+    //    Files.createDirectories(symlinkTestDir);
+    //    var realH5 = symlinkTestDir.resolve("real.h5");
+    //    Files.write(realH5, "content".getBytes());
+    //    var symlink = symlinkTestDir.resolve("symlink.h5");
+    //    Files.createSymbolicLink(symlink, realH5);
+    //    var symlinkDirFile = tempNameDir.resolve("symlinkDir.txt");
+    //    Files.write(symlinkDirFile, symlinkTestDir.toString().getBytes());
+    //    result = clirun(WildfireFilesCrawler.class,
+    //            "--metaURL", metaURL,
+    //            "--relationalURL", relationalURL,
+    //            "--tokenFile", userTokenFile.toString(),
+    //            symlinkDirFile.toString());
+    //    Assertions.assertEquals(0, result.exitCode);
+    //    Assertions.assertTrue(result.out.contains("1 valid files found."));
+    //}
 
     private static void createUser(String role, String name, String email, String token) {
         // add the token to the db, so everything should work

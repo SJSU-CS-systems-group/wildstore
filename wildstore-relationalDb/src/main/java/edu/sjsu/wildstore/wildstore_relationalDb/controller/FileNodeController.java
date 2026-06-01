@@ -19,9 +19,9 @@ public class FileNodeController {
   private FileNodeService fileNodeService;
 
   @PostMapping("/file_contents")
-  public ResponseEntity<FileNode> createFileNode(@RequestBody FileNode fileNode) {
-    FileNode savedFileNode = fileNodeService.saveFileNode(fileNode);
-    return new ResponseEntity<>(savedFileNode, HttpStatus.CREATED);
+  public ResponseEntity<Long> createFileNode(@RequestBody FileNodeParams fileNodeParams) {
+    FileNode savedFileNode = fileNodeService.saveFileNode(fileNodeParams);
+    return new ResponseEntity<>(savedFileNode.id, HttpStatus.CREATED);
   }
 
   @GetMapping("/file_contents")

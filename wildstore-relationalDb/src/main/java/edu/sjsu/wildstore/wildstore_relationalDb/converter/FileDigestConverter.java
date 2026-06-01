@@ -6,7 +6,7 @@ import jakarta.persistence.Converter;
 @Converter
 public class FileDigestConverter implements AttributeConverter<String, String> {
  
-    private static final byte[] KEY = System.getenv("FILE_DIGEST_ENCRYPTION_KEY").getBytes();
+    private static final String KEY = System.getenv("FILE_DIGEST_ENCRYPTION_KEY");
  
     @Override
     public String convertToDatabaseColumn(String digest) {
