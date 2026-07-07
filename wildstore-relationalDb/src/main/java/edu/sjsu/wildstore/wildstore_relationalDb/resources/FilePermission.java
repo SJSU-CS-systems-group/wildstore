@@ -30,4 +30,6 @@ public class FilePermission {
       this.user = user;
       this.fileNode = fileNode;
     }
+
+    public FilePermission() {}
 }
