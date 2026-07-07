@@ -24,6 +24,7 @@ public class FilePermissionController {
       Long longFileId = filePermissionsParams.fileNodeId;
       String adminEmail = filePermissionsParams.adminEmail;
       List<String> emailPermissions = filePermissionsParams.emails;
+      filePermissionService.deleteByFileNodeId(longFileId);
       for (String emailPermission : emailPermissions) {
         FilePermission savedFilePermission = filePermissionService.findOrCreate(longFileId, emailPermission, adminEmail);
       }

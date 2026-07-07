@@ -8,4 +8,5 @@ public interface FilePermissionRepository extends JpaRepository<FilePermission, 
   List<FilePermission> findByFileNodeId(Long fileNodeId);
   boolean existsByUserIdAndFileNodeId(Long userId, Long fileNodeId);
   Optional<FilePermission> findByUserIdAndFileNodeId(Long userId, Long fileNodeId);
+  void deleteByFileNodeId(Long fileNodeId);
 }

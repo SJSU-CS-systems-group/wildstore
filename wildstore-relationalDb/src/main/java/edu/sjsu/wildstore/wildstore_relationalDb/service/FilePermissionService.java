@@ -50,4 +50,9 @@ public class FilePermissionService {
         FilePermission filePermission = new FilePermission(admin.get(), user, fileNode.get());
         return filePermissionRepository.save(filePermission); // Save the new entity
     }
+
+    @Transactional
+    public void deleteByFileNodeId(Long fileNodeId) {
+      filePermissionRepository.deleteByFileNodeId(fileNodeId);
+    }
 }
