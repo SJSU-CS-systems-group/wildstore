@@ -51,15 +51,10 @@ const FileBrowserShareModal = ({
       if (error !== "" || !inputRef.current.value) {
         setError("input-error");
         return;
-      } else if (!validFor) {
-        validForRef.current.classList.add("select-error");
-        return;
       }
-      generateShareLink([inputRef.current.value], validFor);
-    } else if (!validFor) {
-      validForRef.current.classList.add("select-error");
+      generateShareLink([inputRef.current.value]);
     } else {
-      generateShareLink(emailAddresses, validFor);
+      generateShareLink(emailAddresses);
     }
   };
 
@@ -107,17 +102,6 @@ const FileBrowserShareModal = ({
                   );
                 })}
               </div>
-              <select
-                className="select select-bordered w-full max-w-xs"
-                ref={validForRef}
-                onChange={(e) => handleValidForChange(e)}
-              >
-                <option hidden>Valid for</option>
-                <option value="day">1 day</option>
-                <option value="week">1 week</option>
-                <option value="month">1 month</option>
-                <option value="year">1 year</option>
-              </select>
               <button
                 className="btn bg-primary text-white hover:bg-gray-600 hover:bg-opacity-40"
                 onClick={(event) => handleSubmit(event)}

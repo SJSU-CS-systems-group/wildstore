@@ -62,6 +62,10 @@ public class UserService {
       return userRepository.findByIdAndUserRole(adminId, UserRole.ADMIN);
     }
 
+    public Optional<User> getAdminByEmail(String adminEmail) {
+      return userRepository.findByEmailAndUserRole(adminEmail, UserRole.ADMIN);
+    }
+
     public Optional<User> getUserById(Long userId) {
       return userRepository.findById(userId);
     }

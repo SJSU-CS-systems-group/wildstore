@@ -25,9 +25,9 @@ public class FilePermissionService {
     }
 
     @Transactional
-    public FilePermission findOrCreate(Long fileNodeId, String email, Long adminId) throws FileNodeDoesNotExistException {
+    public FilePermission findOrCreate(Long fileNodeId, String email, String adminEmail) throws FileNodeDoesNotExistException {
         // if not admin
-        Optional<User> admin = userService.getAdminById(adminId);
+        Optional<User> admin = userService.getAdminByEmail(adminEmail);
         if (!admin.isPresent()) {
           throw new SecurityException("User is not authorized: Requires Admin Role.");
         }

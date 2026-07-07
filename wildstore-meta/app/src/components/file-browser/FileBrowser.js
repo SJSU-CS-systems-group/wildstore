@@ -21,6 +21,7 @@ const FileBrowser = ({ mode = "download" }) => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [generatedLink, setGeneratedLink] = useState("");
   const [pendingShareDigests, setPendingShareDigests] = useState([]);
+  const [pendingShareFileId, setPendingShareFileId] = useState([]);
 
   const fileId = searchParams.get("file_id") || "0";
 
@@ -322,9 +323,23 @@ const FileBrowser = ({ mode = "download" }) => {
       setError("This file cannot be shared.");
       return;
     }
+    setPendingShareFileId(file.file_id);
     setPendingShareDigests([file.digest]);
     setGeneratedLink("");
     setShowShareModal(true);
+  };
+
+  const shareFile = async (emailAddresses) => {
+    let fetchUrl = `/file/share?file_id=${pendingShareFileId}`;
+    const response = await fetch(fetchUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "text/html, application/json",
+      },
+      body: JSON.stringify(emailAddresses),
+      credentials: "include",
+    });
   };
 
   const generateShareLink = async (emailAddresses, validFor) => {
@@ -582,7 +597,7 @@ const FileBrowser = ({ mode = "download" }) => {
             digestString=""
             showModal={showShareModal}
             closeModal={() => setShowShareModal(false)}
-            generateShareLink={generateShareLink}
+            generateShareLink={shareFile}
             generatedLink={generatedLink}
           />
         </div>
