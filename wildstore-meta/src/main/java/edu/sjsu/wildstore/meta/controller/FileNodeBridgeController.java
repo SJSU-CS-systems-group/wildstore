@@ -1,6 +1,7 @@
 package edu.sjsu.wildstore.meta.controller;
 
 import java.util.List;
+import edu.sjsu.wildstore.FilePermissionsParams;
 
 import java.util.Arrays;
 import org.springframework.http.ResponseEntity;
@@ -10,9 +11,14 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -44,4 +50,43 @@ public class FileNodeBridgeController {
                     "Unable to load FileNodeController data", e);
         }
     }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/file/share")
+    public ResponseEntity<Void> shareFileNodes(@RequestParam(value = "file_id") String fileId, @RequestBody List<String> emailPermissions, OAuth2AuthenticationToken auth) {
+        try {
+            OAuth2User principal = auth.getPrincipal();
+            String provider = auth.getAuthorizedClientRegistrationId();
+            String adminEmail = "";
+            switch (provider.toLowerCase()) {
+                case "google":
+                    adminEmail = principal.getAttribute("email");
+                    break;
+                case "github":
+                    adminEmail = principal.getAttribute("email");
+                    if (adminEmail == null) {
+                        adminEmail = principal.getAttribute("login") + "@github";
+                    }
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported provider: " + provider);
+            }
+
+            Long longFileId = Long.parseLong(fileId);
+            String url = UriComponentsBuilder.fromHttpUrl(sqlServerUrl)
+                    .path("/file/share")
+                    .toUriString();
+
+            FilePermissionsParams filePermissionsParams = new FilePermissionsParams();
+            filePermissionsParams.emails = emailPermissions;
+            filePermissionsParams.adminEmail = adminEmail;
+            filePermissionsParams.fileNodeId = longFileId;
+
+            return restClient.post().uri(url).contentType(MediaType.APPLICATION_JSON).body(filePermissionsParams).retrieve().toBodilessEntity();
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Unable to Post FilePermission data", e);
+        }
+    }
+
 }
