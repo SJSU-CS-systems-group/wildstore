@@ -137,7 +137,7 @@ const FileBrowser = ({ mode = "download" }) => {
     ]);
   };
 
-  const isDirectory = (file) => file.type === 0;
+  const isDirectory = (file) => file.type === "DIRECTORY";
   const getFileId = (file) => String(file.file_id ?? file.id ?? "0");
   const isSelected = (file) => selectedIds.has(getFileId(file));
 

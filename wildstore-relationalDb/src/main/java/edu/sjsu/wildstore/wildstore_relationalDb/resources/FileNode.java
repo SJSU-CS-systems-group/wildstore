@@ -34,7 +34,7 @@ public class FileNode {
     @JoinColumn(name="parentId", referencedColumnName="id")
     private FileNode parent;
 
-    @OneToMany(mappedBy = "fileNode", cascade = CascadeType.REMOVE)
+    @OneToMany(mappedBy = "fileNode", cascade = CascadeType.ALL)
     private List<FilePermission> filePermissions;
 
     @Column(unique = true, nullable = true)
@@ -52,7 +52,7 @@ public class FileNode {
     }
 
     public FileNodeRecord toRecord() {
-      return new FileNodeRecord(id, fileName, size, digest);
+      return new FileNodeRecord(id, fileName, size, digest, fileType.name());
     }
 }
 
