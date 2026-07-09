@@ -67,17 +67,15 @@ public class FileNodeService {
         return fileNodeRepository.findByParentId(parentId);
     }
 
+    public List<FileNode> fileNodeChildrenUserCanAccess(Long parentId, String userEmail) throws Exception {
+        User user = userService.findOrCreate(userEmail);
+        if (userService.isAdmin(user.getId())) {
+          return findByParentId(parentId);
+        }
+        return fileNodeChildrenUserCanAccess(parentId, user.getId());
+    }
+
     public List<FileNode> fileNodeChildrenUserCanAccess(Long parentId, Long userId) throws Exception {
-        Optional<FileNode> parent = fileNodeRepository.findByIdAndFileType(parentId, FileType.DIRECTORY);
-        if (!parent.isPresent()) {
-          String message = "Parent FileNode with id " + parentId + " either doesn't exist or is not a directory.";
-          throw new ParentDoesNotExistException(message); 
-        }
-        Optional<User> user = userService.getUserById(userId);
-        if (!user.isPresent()) {
-          String message = "User with id " + userId + " does not exist.";
-          throw new UserDoesNotExistException(message); 
-        }
-        return fileNodeRepository.findByParentIdAndUserFilePermission(parent.get(), user.get());
+        return fileNodeRepository.findByParentIdAndUserIdFilePermission(parentId, userId);
     }
 }

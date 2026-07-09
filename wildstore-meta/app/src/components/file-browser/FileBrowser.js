@@ -43,7 +43,6 @@ const FileBrowser = ({ mode = "download" }) => {
     try {
       const response = await fetch(`/file_contents?file_id=${id}`, {
         method: "GET",
-        headers: buildAuthHeaders(),
         credentials: "include",
       });
       if (!response.ok) {
@@ -99,7 +98,6 @@ const FileBrowser = ({ mode = "download" }) => {
 
     const response = await fetch("/file_contents?file_id=0", {
       method: "GET",
-      headers: buildAuthHeaders(),
       credentials: "include",
     });
     if (!response.ok) {
@@ -206,7 +204,6 @@ const FileBrowser = ({ mode = "download" }) => {
 
       const response = await fetch(`/file_contents?file_id=${directoryId}`, {
         method: "GET",
-        headers: buildAuthHeaders(),
         credentials: "include",
       });
 

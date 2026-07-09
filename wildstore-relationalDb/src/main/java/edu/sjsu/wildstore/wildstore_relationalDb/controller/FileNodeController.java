@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 public class FileNodeController {
@@ -24,14 +25,17 @@ public class FileNodeController {
   }
 
   @GetMapping("/file_contents")
-  public ResponseEntity<List<FileNodeRecord>> fileNodes(@RequestParam(value="file_id", defaultValue= "0") String fileId) {
-    Long longFileId = Long.parseLong(fileId);
-    if (longFileId == 0) {
-      longFileId = null;
+  public ResponseEntity<List<FileNodeRecord>> fileNodes(@RequestParam(value="file_id", defaultValue= "0") String fileId, @RequestParam(value="user_email") String userEmail) {
+    try {
+      Long longFileId = Long.parseLong(fileId);
+      if (longFileId == 0) {
+        longFileId = null;
+      }
+      List<FileNode> fileNodeList = fileNodeService.fileNodeChildrenUserCanAccess(longFileId, userEmail);
+      List<FileNodeRecord> fileNodeRecordList = fileNodeList.stream().map(fileNode -> fileNode.toRecord()).toList();
+      return ResponseEntity.ok(fileNodeRecordList);
+    } catch (Exception e) {
+      throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to load FileNode data", e);
     }
-    List<FileNode> fileNodeList = fileNodeService.findByParentId(longFileId);
-    List<FileNodeRecord> fileNodeRecordList = fileNodeList.stream().map(fileNode -> fileNode.toRecord()).toList();
-    
-    return ResponseEntity.ok(fileNodeRecordList);
   }
 }

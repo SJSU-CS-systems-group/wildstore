@@ -32,13 +32,35 @@ public class FileNodeBridgeController {
 
     private final RestClient restClient = RestClient.create();
 
+    private String getUserEmail(OAuth2AuthenticationToken auth) throws IllegalArgumentException {
+        OAuth2User principal = auth.getPrincipal();
+        String provider = auth.getAuthorizedClientRegistrationId();
+        String userEmail = "";
+        switch (provider.toLowerCase()) {
+            case "google":
+                userEmail = principal.getAttribute("email");
+                break;
+            case "github":
+                userEmail = principal.getAttribute("email");
+                if (userEmail == null) {
+                    userEmail = principal.getAttribute("login") + "@github";
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported provider: " + provider);
+        }
+        return userEmail;
+    }
+
     @PreAuthorize("hasRole('GUEST')")
     @GetMapping("/file_contents")
-    public ResponseEntity<List<FileNodeRecord>> getFileNodes(@RequestParam(value = "file_id", defaultValue = "0") String fileId) {
+    public ResponseEntity<List<FileNodeRecord>> getFileNodes(@RequestParam(value = "file_id", defaultValue = "0") String fileId, OAuth2AuthenticationToken auth) {
         try {
+            String userEmail = getUserEmail(auth);
             String url = UriComponentsBuilder.fromHttpUrl(sqlServerUrl)
                     .path("/file_contents")
                     .queryParam("file_id", fileId)
+                    .queryParam("user_email", userEmail)
                     .toUriString();
 
             FileNodeRecord[] response = restClient.get().uri(url).retrieve().body(FileNodeRecord[].class);
@@ -55,22 +77,7 @@ public class FileNodeBridgeController {
     @PostMapping("/file/share")
     public ResponseEntity<Void> shareFileNodes(@RequestParam(value = "file_id") String fileId, @RequestBody List<String> emailPermissions, OAuth2AuthenticationToken auth) {
         try {
-            OAuth2User principal = auth.getPrincipal();
-            String provider = auth.getAuthorizedClientRegistrationId();
-            String adminEmail = "";
-            switch (provider.toLowerCase()) {
-                case "google":
-                    adminEmail = principal.getAttribute("email");
-                    break;
-                case "github":
-                    adminEmail = principal.getAttribute("email");
-                    if (adminEmail == null) {
-                        adminEmail = principal.getAttribute("login") + "@github";
-                    }
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unsupported provider: " + provider);
-            }
+            String adminEmail = getUserEmail(auth);
 
             Long longFileId = Long.parseLong(fileId);
             String url = UriComponentsBuilder.fromHttpUrl(sqlServerUrl)
@@ -88,5 +95,4 @@ public class FileNodeBridgeController {
                     "Unable to Post FilePermission data", e);
         }
     }
-
 }
