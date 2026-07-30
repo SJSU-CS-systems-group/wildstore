@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class FileNodeService {
     private final FileNodeRepository fileNodeRepository;
+    private final FilePermissionRepository filePermissionRepository;
     private final UserService userService;
 
     public class ParentDoesNotExistException extends Exception {
@@ -24,9 +25,10 @@ public class FileNodeService {
     }
 
     @Autowired
-    public FileNodeService(FileNodeRepository fileNodeRepository, UserService userService) {
+    public FileNodeService(FileNodeRepository fileNodeRepository, UserService userService, FilePermissionRepository filePermissionRepository) {
         this.fileNodeRepository = fileNodeRepository;
         this.userService = userService;
+        this.filePermissionRepository = filePermissionRepository;
     }
 
     @Transactional
@@ -76,6 +78,22 @@ public class FileNodeService {
     }
 
     public List<FileNode> fileNodeChildrenUserCanAccess(Long parentId, Long userId) throws Exception {
+        if (userCanAccessFolder(parentId, userId)) {
+          return fileNodeRepository.findByParentId(parentId);
+        }
         return fileNodeRepository.findByParentIdAndUserIdFilePermission(parentId, userId);
+    }
+
+    public boolean userCanAccessFolder(Long parentId, Long userId) throws Exception {
+        if (parentId == null) {
+          return false;
+        } else if (filePermissionRepository.existsByUserIdAndFileNodeId(userId, parentId)) {
+          return true;
+        }
+        Optional<FileNode> parentNode = findById(parentId);
+        if (!parentNode.isPresent()) {
+          return false;
+        }
+        return userCanAccessFolder(parentNode.get().getParentId(), userId);
     }
 }

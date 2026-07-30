@@ -287,15 +287,6 @@ const FileBrowser = ({ mode = "download" }) => {
 
     try {
       setError(null);
-      setLoading(true);
-      const selectedFileEntries = await collectSelectedFiles();
-      const digests = selectedFileEntries.map((entry) => entry.digest);
-      if (digests.length === 0) {
-        setError("No shareable files found in the selection.");
-        return;
-      }
-      setPendingShareDigests(digests);
-      setGeneratedLink("");
       setShowShareModal(true);
     } catch (err) {
       setError(err.message || "Bulk share failed.");
@@ -316,10 +307,6 @@ const FileBrowser = ({ mode = "download" }) => {
 
   const handleSingleFileShare = (e, file) => {
     e.stopPropagation();
-    if (!file.digest) {
-      setError("This file cannot be shared.");
-      return;
-    }
     setPendingShareFileId(file.file_id);
     setPendingShareDigests([file.digest]);
     setGeneratedLink("");
@@ -328,13 +315,17 @@ const FileBrowser = ({ mode = "download" }) => {
 
   const shareFile = async (emailAddresses) => {
     let fetchUrl = `/file/share?file_id=${pendingShareFileId}`;
+    const shareBody = {
+      fileNodeIds: Array.from(selectedIds),
+      emails: emailAddresses,
+    };
     const response = await fetch(fetchUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "text/html, application/json",
       },
-      body: JSON.stringify(emailAddresses),
+      body: JSON.stringify(shareBody),
       credentials: "include",
     });
   };

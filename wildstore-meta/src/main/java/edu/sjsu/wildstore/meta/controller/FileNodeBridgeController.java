@@ -75,19 +75,15 @@ public class FileNodeBridgeController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/file/share")
-    public ResponseEntity<Void> shareFileNodes(@RequestParam(value = "file_id") String fileId, @RequestBody List<String> emailPermissions, OAuth2AuthenticationToken auth) {
+    public ResponseEntity<Void> shareFileNodes(@RequestBody FilePermissionsParams filePermissionsParams, OAuth2AuthenticationToken auth) {
         try {
             String adminEmail = getUserEmail(auth);
 
-            Long longFileId = Long.parseLong(fileId);
             String url = UriComponentsBuilder.fromHttpUrl(sqlServerUrl)
                     .path("/file/share")
                     .toUriString();
 
-            FilePermissionsParams filePermissionsParams = new FilePermissionsParams();
-            filePermissionsParams.emails = emailPermissions;
             filePermissionsParams.adminEmail = adminEmail;
-            filePermissionsParams.fileNodeId = longFileId;
 
             return restClient.post().uri(url).contentType(MediaType.APPLICATION_JSON).body(filePermissionsParams).retrieve().toBodilessEntity();
         } catch (Exception e) {

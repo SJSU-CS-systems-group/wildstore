@@ -9,6 +9,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -30,9 +31,12 @@ public class FileNode {
     @Enumerated(EnumType.STRING)
     private FileType fileType; 
 
-    @ManyToOne
+    @ManyToOne(fetch=FetchType.LAZY)
     @JoinColumn(name="parentId", referencedColumnName="id")
     private FileNode parent;
+
+    @Column(name="parentId", insertable=false, updatable=false)
+    private Long parentId;
 
     @OneToMany(mappedBy = "fileNode", cascade = CascadeType.ALL)
     private List<FilePermission> filePermissions;
@@ -53,6 +57,14 @@ public class FileNode {
 
     public FileNodeRecord toRecord() {
       return new FileNodeRecord(id, fileName, size, digest, fileType.name());
+    }
+
+    public Long getId() {
+      return this.id;
+    }
+
+    public Long getParentId() {
+      return parentId;
     }
 }
 
