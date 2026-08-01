@@ -87,7 +87,7 @@ public class FileNodeService {
     public boolean userCanAccessFolder(Long parentId, Long userId) throws Exception {
         if (parentId == null) {
           return false;
-        } else if (filePermissionRepository.existsByUserIdAndFileNodeId(userId, parentId)) {
+        } else if (filePermissionRepository.existsByUserIdAndFileNodeIdAndDownstreamFileNodeId(userId, parentId, null)) {
           return true;
         }
         Optional<FileNode> parentNode = findById(parentId);

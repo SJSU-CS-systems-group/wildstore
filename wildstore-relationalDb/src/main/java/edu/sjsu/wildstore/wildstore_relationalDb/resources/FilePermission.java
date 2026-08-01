@@ -25,10 +25,15 @@ public class FilePermission {
     @JoinColumn(name="fileNodeId", referencedColumnName="id")
     private FileNode fileNode;
 
-    public FilePermission(User admin, User user, FileNode fileNode) {
+    @ManyToOne
+    @JoinColumn(name="downstreamFileNodeId", referencedColumnName="id")
+    private FileNode downstreamFileNode;
+
+    public FilePermission(User admin, User user, FileNode fileNode, FileNode downstreamFileNode) {
       this.admin = admin;
       this.user = user;
       this.fileNode = fileNode;
+      this.downstreamFileNode = downstreamFileNode;
     }
 
     public FilePermission() {}

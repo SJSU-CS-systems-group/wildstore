@@ -41,6 +41,9 @@ public class FileNode {
     @OneToMany(mappedBy = "fileNode", cascade = CascadeType.ALL)
     private List<FilePermission> filePermissions;
 
+    @OneToMany(mappedBy = "downstreamFileNode", cascade = CascadeType.ALL)
+    private List<FilePermission> upstreamFilePermissions;
+
     @Column(unique = true, nullable = true)
     @Convert(converter = FileDigestConverter.class)
     private String digest;
@@ -65,6 +68,14 @@ public class FileNode {
 
     public Long getParentId() {
       return parentId;
+    }
+
+    public FileNode getParent() {
+      return parent;
+    }
+
+    public FileType getFileType() {
+      return fileType;
     }
 }
 

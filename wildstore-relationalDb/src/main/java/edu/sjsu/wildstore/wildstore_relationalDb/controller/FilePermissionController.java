@@ -21,7 +21,6 @@ public class FilePermissionController {
   @PostMapping("/file/share")
   public ResponseEntity<Void> createFilePermissions(@RequestBody FilePermissionsParams filePermissionsParams) {
     try {
-      //List<Long> longFileIds = filePermissionsParams.fileNodeIds;
       for (Long longFileId : filePermissionsParams.fileNodeIds) {
         String adminEmail = filePermissionsParams.adminEmail;
         List<String> emailPermissions = filePermissionsParams.emails;
