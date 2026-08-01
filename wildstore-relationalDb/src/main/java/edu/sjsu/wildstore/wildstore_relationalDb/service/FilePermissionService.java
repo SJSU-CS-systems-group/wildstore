@@ -36,7 +36,7 @@ public class FilePermissionService {
         Long userId = user.getId();
 
         // Check if the entity already exists
-        Optional<FilePermission> existingFilePermission = filePermissionRepository.findByUserIdAndFileNodeId(userId, fileNodeId);
+        Optional<FilePermission> existingFilePermission = filePermissionRepository.findByUserIdAndFileNodeIdAndDownstreamFileNodeId(userId, fileNodeId, null);
         if (existingFilePermission.isPresent()) {
           return existingFilePermission.get();
         }
