@@ -13,6 +13,7 @@ const FileBrowser = () => {
     (state) => state.userReducer?.opaqueToken ?? "",
   );
   const [mode, setMode] = useState("download");
+  const [userRole, setUserRole] = useState("ROLE_GUEST");
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -29,6 +30,7 @@ const FileBrowser = () => {
 
   useEffect(() => {
     fetchFiles(fileId);
+    fetchUserRole();
   }, [fileId, opaqueToken]);
 
   const buildAuthHeaders = () => {
@@ -37,6 +39,18 @@ const FileBrowser = () => {
       headers.Authorization = `Bearer ${opaqueToken}`;
     }
     return headers;
+  };
+
+  const fetchUserRole = async () => {
+    const response = await fetch("/api/user/me", {
+      method: "GET",
+      credentials: "include",
+    });
+    if (!response.ok) {
+      throw new Error("Failed to fetch user");
+    }
+    const data = await response.json();
+    setUserRole(data.role);
   };
 
   const fetchFiles = async (id) => {
@@ -372,22 +386,24 @@ const FileBrowser = () => {
             <h1 className="text-5xl font-extrabold leading-tight text-base-content">
               {title}
             </h1>
-            <div className="join">
-              <button
-                type="button"
-                className={`btn btn-sm join-item ${mode === "download" ? "btn-primary" : "btn-outline"}`}
-                onClick={() => setMode("download")}
-              >
-                Download
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm join-item ${mode === "share" ? "btn-primary" : "btn-outline"}`}
-                onClick={() => setMode("share")}
-              >
-                Share
-              </button>
-            </div>
+            {userRole === "ROLE_ADMIN" && (
+              <div className="join">
+                <button
+                  type="button"
+                  className={`btn btn-sm join-item ${mode === "download" ? "btn-primary" : "btn-outline"}`}
+                  onClick={() => setMode("download")}
+                >
+                  Download
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm join-item ${mode === "share" ? "btn-primary" : "btn-outline"}`}
+                  onClick={() => setMode("share")}
+                >
+                  Share
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="mb-5">
@@ -530,7 +546,7 @@ const FileBrowser = () => {
                             {actionLabel}
                           </button>
                         )}
-                        {mode === "share" && (
+                        {mode === "share" && userRole === "ROLE_ADMIN" && (
                           <button
                             type="button"
                             className="btn btn-xs btn-primary"
