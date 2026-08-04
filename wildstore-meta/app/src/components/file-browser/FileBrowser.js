@@ -5,12 +5,14 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 //import ShareModal from "../shareModal/shareModal";
 import FileBrowserShareModal from "../fileBrowserShareModal/fileBrowserShareModal";
 
-const FileBrowser = ({ mode = "download" }) => {
+//const FileBrowser = ({ mode = "download" }) => {
+const FileBrowser = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const opaqueToken = useSelector(
     (state) => state.userReducer?.opaqueToken ?? "",
   );
+  const [mode, setMode] = useState("download");
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -140,7 +142,8 @@ const FileBrowser = ({ mode = "download" }) => {
   const isSelected = (file) => selectedIds.has(getFileId(file));
 
   const handleNavigate = (targetFileId) => {
-    const basePath = mode === "share" ? "/files/share" : "/files";
+    //const basePath = mode === "share" ? "/files/share" : "/files";
+    const basePath = "/files";
     navigate(`${basePath}?file_id=${targetFileId}`);
   };
 
@@ -287,6 +290,7 @@ const FileBrowser = ({ mode = "download" }) => {
 
     try {
       setError(null);
+      setPendingShareFileId(null);
       setShowShareModal(true);
     } catch (err) {
       setError(err.message || "Bulk share failed.");
@@ -314,9 +318,13 @@ const FileBrowser = ({ mode = "download" }) => {
   };
 
   const shareFile = async (emailAddresses) => {
-    let fetchUrl = `/file/share?file_id=${pendingShareFileId}`;
+    let fetchUrl = `/file/share`;
+    let fileNodeIds = Array.from(selectedIds);
+    if (pendingShareFileId != null) {
+      fileNodeIds = [pendingShareFileId];
+    }
     const shareBody = {
-      fileNodeIds: Array.from(selectedIds),
+      fileNodeIds: fileNodeIds,
       emails: emailAddresses,
     };
     const response = await fetch(fetchUrl, {
@@ -328,36 +336,6 @@ const FileBrowser = ({ mode = "download" }) => {
       body: JSON.stringify(shareBody),
       credentials: "include",
     });
-  };
-
-  const generateShareLink = async (emailAddresses, validFor) => {
-    const response = await fetch("/api/share-link/create", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "text/html, application/json",
-      },
-      body: JSON.stringify({
-        fileDigest: pendingShareDigests,
-        emailAddresses,
-        validFor,
-      }),
-      credentials: "include",
-      redirect: "follow",
-    });
-
-    if (response.redirected) {
-      window.location.href = response.url;
-      return;
-    }
-
-    const data = await response.json();
-    const createdLinks = data?.created ?? [];
-    setGeneratedLink(
-      createdLinks.length > 0
-        ? createdLinks.join("\n")
-        : "No share links were created.",
-    );
   };
 
   const title = mode === "share" ? "Share Data" : "Download Data";
@@ -398,14 +376,14 @@ const FileBrowser = ({ mode = "download" }) => {
               <button
                 type="button"
                 className={`btn btn-sm join-item ${mode === "download" ? "btn-primary" : "btn-outline"}`}
-                onClick={() => navigate(`/files?file_id=${fileId}`)}
+                onClick={() => setMode("download")}
               >
                 Download
               </button>
               <button
                 type="button"
                 className={`btn btn-sm join-item ${mode === "share" ? "btn-primary" : "btn-outline"}`}
-                onClick={() => navigate(`/files/share?file_id=${fileId}`)}
+                onClick={() => setMode("share")}
               >
                 Share
               </button>
@@ -543,19 +521,7 @@ const FileBrowser = ({ mode = "download" }) => {
                         {file.digest || "-"}
                       </td>
                       <td className="text-right">
-                        {isDirectory(file) && (
-                          <button
-                            type="button"
-                            className={`btn btn-xs ${mode === "download" ? "btn-outline" : "btn-primary"}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleSelect(getFileId(file), true);
-                            }}
-                          >
-                            {actionLabel}
-                          </button>
-                        )}
-                        {!isDirectory(file) && mode === "download" && (
+                        {mode === "download" && (
                           <button
                             type="button"
                             className="btn btn-xs btn-primary"
@@ -564,7 +530,7 @@ const FileBrowser = ({ mode = "download" }) => {
                             {actionLabel}
                           </button>
                         )}
-                        {!isDirectory(file) && mode === "share" && (
+                        {mode === "share" && (
                           <button
                             type="button"
                             className="btn btn-xs btn-primary"

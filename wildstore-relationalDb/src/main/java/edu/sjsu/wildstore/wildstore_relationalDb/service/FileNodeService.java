@@ -108,7 +108,13 @@ public class FileNodeService {
     public boolean userCanAccessFileNode(Long fileNodeId, Long userId) throws Exception {
       if (fileNodeId == null) {
         return true;
+      } else if (filePermissionRepository.existsByUserIdAndFileNodeId(userId, fileNodeId)) {
+        return true;
       }
-      return filePermissionRepository.existsByUserIdAndFileNodeId(userId, fileNodeId);
+      Optional<FileNode> parentNode = findById(fileNodeId);
+      if (!parentNode.isPresent()) {
+        return false;
+      }
+      return userCanAccessFileNode(parentNode.get().getParentId(), userId);
     }
 }
