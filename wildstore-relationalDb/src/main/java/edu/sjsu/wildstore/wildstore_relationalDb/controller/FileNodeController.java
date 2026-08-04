@@ -31,6 +31,9 @@ public class FileNodeController {
       if (longFileId == 0) {
         longFileId = null;
       }
+      if (!fileNodeService.userCanAccessFileNode(longFileId, userEmail)) {
+        return ResponseEntity.notFound().build();
+      }
       List<FileNode> fileNodeList = fileNodeService.fileNodeChildrenUserCanAccess(longFileId, userEmail);
       List<FileNodeRecord> fileNodeRecordList = fileNodeList.stream().map(fileNode -> fileNode.toRecord()).toList();
       return ResponseEntity.ok(fileNodeRecordList);

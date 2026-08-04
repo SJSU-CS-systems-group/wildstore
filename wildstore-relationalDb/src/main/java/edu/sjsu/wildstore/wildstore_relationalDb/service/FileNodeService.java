@@ -78,13 +78,13 @@ public class FileNodeService {
     }
 
     public List<FileNode> fileNodeChildrenUserCanAccess(Long parentId, Long userId) throws Exception {
-        if (userCanAccessFolder(parentId, userId)) {
+        if (userCanAccessParent(parentId, userId)) {
           return fileNodeRepository.findByParentId(parentId);
         }
         return fileNodeRepository.findByParentIdAndUserIdFilePermission(parentId, userId);
     }
 
-    public boolean userCanAccessFolder(Long parentId, Long userId) throws Exception {
+    public boolean userCanAccessParent(Long parentId, Long userId) throws Exception {
         if (parentId == null) {
           return false;
         } else if (filePermissionRepository.existsByUserIdAndFileNodeIdAndDownstreamFileNodeId(userId, parentId, null)) {
@@ -94,6 +94,21 @@ public class FileNodeService {
         if (!parentNode.isPresent()) {
           return false;
         }
-        return userCanAccessFolder(parentNode.get().getParentId(), userId);
+        return userCanAccessParent(parentNode.get().getParentId(), userId);
+    }
+
+    public boolean userCanAccessFileNode(Long fileNodeId, String userEmail) throws Exception {
+      User user = userService.findOrCreate(userEmail);
+      if (userService.isAdmin(user.getId())) {
+        return true;
+      }
+      return userCanAccessFileNode(fileNodeId, user.getId());
+    }
+
+    public boolean userCanAccessFileNode(Long fileNodeId, Long userId) throws Exception {
+      if (fileNodeId == null) {
+        return true;
+      }
+      return filePermissionRepository.existsByUserIdAndFileNodeId(userId, fileNodeId);
     }
 }
