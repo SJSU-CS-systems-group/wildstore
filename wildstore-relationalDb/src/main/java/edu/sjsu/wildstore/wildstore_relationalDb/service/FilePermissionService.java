@@ -49,13 +49,11 @@ public class FilePermissionService {
         FileNode fileNode = optionalFileNode.get();
 
         FilePermission filePermission = new FilePermission(admin.get(), user, fileNode, null);
-        if (fileNode.getFileType() != FileType.DIRECTORY) {
-          FileNode parentFileNode = fileNode.getParent();
-          while (parentFileNode != null) {
-            FilePermission upstreamFilePermission = new FilePermission(admin.get(), user, parentFileNode, fileNode);
-            filePermissionRepository.save(upstreamFilePermission);
-            parentFileNode = parentFileNode.getParent();
-          }
+        FileNode parentFileNode = fileNode.getParent();
+        while (parentFileNode != null) {
+          FilePermission upstreamFilePermission = new FilePermission(admin.get(), user, parentFileNode, fileNode);
+          filePermissionRepository.save(upstreamFilePermission);
+          parentFileNode = parentFileNode.getParent();
         }
         
         return filePermissionRepository.save(filePermission); // Save the new entity
@@ -69,12 +67,10 @@ public class FilePermissionService {
         throw new FileNodeDoesNotExistException(message); 
       }
       FileNode fileNode = optionalFileNode.get();
-      if (fileNode.getFileType() != FileType.DIRECTORY) {
-        FileNode parentFileNode = fileNode.getParent();
-        while (parentFileNode != null) {
-          filePermissionRepository.deleteByFileNodeIdAndDownstreamFileNodeId(parentFileNode.getId(), fileNode.getId());
-            parentFileNode = parentFileNode.getParent();
-        }
+      FileNode parentFileNode = fileNode.getParent();
+      while (parentFileNode != null) {
+        filePermissionRepository.deleteByFileNodeIdAndDownstreamFileNodeId(parentFileNode.getId(), fileNode.getId());
+          parentFileNode = parentFileNode.getParent();
       }
       filePermissionRepository.deleteByFileNodeIdAndDownstreamFileNodeId(fileNodeId, null);
     }
