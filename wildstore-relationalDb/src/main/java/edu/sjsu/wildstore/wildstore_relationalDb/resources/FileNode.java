@@ -2,6 +2,7 @@ package edu.sjsu.wildstore.wildstore_relationalDb;
 
 import edu.sjsu.wildstore.wildstore_relationalDb.records.FileNodeRecord;
 
+import java.nio.file.Path;
 import java.util.List;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Convert;
@@ -59,7 +60,9 @@ public class FileNode {
     }
 
     public FileNodeRecord toRecord() {
-      return new FileNodeRecord(id, fileName, size, digest, fileType.name());
+      Path path = Path.of(fileName);
+      String endFileName = path.getFileName().toString();
+      return new FileNodeRecord(id, endFileName, size, digest, fileType.name());
     }
 
     public Long getId() {
@@ -76,6 +79,11 @@ public class FileNode {
 
     public FileType getFileType() {
       return fileType;
+    }
+
+    public String getFileName() {
+      Path path = Path.of(fileName);
+      return path.getFileName().toString();
     }
 }
 

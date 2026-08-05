@@ -1,12 +1,9 @@
 package edu.sjsu.wildstore.meta.controller;
 
-import java.util.List;
 import edu.sjsu.wildstore.FilePermissionsParams;
 
-import java.util.Arrays;
 import org.springframework.http.ResponseEntity;
 import org.springframework.beans.factory.annotation.Value;
-//import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -22,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import edu.sjsu.wildstore.wildstore_relationalDb.records.FileNodeRecord;
+import edu.sjsu.wildstore.wildstore_relationalDb.records.FileNodeContentsRecord;
 
 @RestController
 public class FileNodeBridgeController {
@@ -54,7 +51,7 @@ public class FileNodeBridgeController {
 
     @PreAuthorize("hasRole('GUEST')")
     @GetMapping("/file_contents")
-    public ResponseEntity<List<FileNodeRecord>> getFileNodes(@RequestParam(value = "file_id", defaultValue = "0") String fileId, OAuth2AuthenticationToken auth) {
+    public ResponseEntity<FileNodeContentsRecord> getFileNodes(@RequestParam(value = "file_id", defaultValue = "0") String fileId, OAuth2AuthenticationToken auth) {
         try {
             String userEmail = getUserEmail(auth);
             String url = UriComponentsBuilder.fromHttpUrl(sqlServerUrl)
@@ -63,10 +60,12 @@ public class FileNodeBridgeController {
                     .queryParam("user_email", userEmail)
                     .toUriString();
 
-            FileNodeRecord[] response = restClient.get().uri(url).retrieve().body(FileNodeRecord[].class);
-            List<FileNodeRecord> responseList = Arrays.asList(response);
+            //FileNodeRecord[] response = restClient.get().uri(url).retrieve().body(FileNodeRecord[].class);
+            //List<FileNodeRecord> responseList = Arrays.asList(response);
+            //return ResponseEntity.ok(responseList);
 
-            return ResponseEntity.ok(responseList);
+            FileNodeContentsRecord response = restClient.get().uri(url).retrieve().body(FileNodeContentsRecord.class);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Unable to load FileNodeController data", e);

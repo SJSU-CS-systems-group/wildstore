@@ -1,5 +1,7 @@
 package edu.sjsu.wildstore.wildstore_relationalDb;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +16,12 @@ public class FileNodeService {
 
     public class ParentDoesNotExistException extends Exception {
       public ParentDoesNotExistException(String message) {
+        super(message);
+      }
+    }
+
+    public class FileNodeDoesNotExistException extends Exception {
+      public FileNodeDoesNotExistException(String message) {
         super(message);
       }
     }
@@ -116,5 +124,22 @@ public class FileNodeService {
         return false;
       }
       return userCanAccessFileNode(parentNode.get().getParentId(), userId);
+    }
+
+    public List<FileNode> fileNodeParentChain(Long fileNodeId) throws Exception {
+      List<FileNode> parentChain = new ArrayList<FileNode>();
+      while (fileNodeId != null) {
+          Optional<FileNode> optionalFileNode = findById(fileNodeId);
+          if (!optionalFileNode.isPresent()) {
+            String message = "FileNode with id " + fileNodeId + " either doesn't exist or is not a directory.";
+            throw new FileNodeDoesNotExistException(message); 
+          } else {
+            FileNode fileNode = optionalFileNode.get();
+            parentChain.add(fileNode);
+            fileNodeId = fileNode.getParentId();
+          }
+      }
+      Collections.reverse(parentChain);
+      return parentChain;
     }
 }

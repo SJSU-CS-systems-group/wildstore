@@ -1,6 +1,7 @@
 package edu.sjsu.wildstore.wildstore_relationalDb;
 
 import edu.sjsu.wildstore.wildstore_relationalDb.records.FileNodeRecord;
+import edu.sjsu.wildstore.wildstore_relationalDb.records.FileNodeContentsRecord;
 
 import java.util.List;
 
@@ -25,7 +26,7 @@ public class FileNodeController {
   }
 
   @GetMapping("/file_contents")
-  public ResponseEntity<List<FileNodeRecord>> fileNodes(@RequestParam(value="file_id", defaultValue= "0") String fileId, @RequestParam(value="user_email") String userEmail) {
+  public ResponseEntity<FileNodeContentsRecord> fileNodes(@RequestParam(value="file_id", defaultValue= "0") String fileId, @RequestParam(value="user_email") String userEmail) {
     try {
       Long longFileId = Long.parseLong(fileId);
       if (longFileId == 0) {
@@ -36,7 +37,13 @@ public class FileNodeController {
       }
       List<FileNode> fileNodeList = fileNodeService.fileNodeChildrenUserCanAccess(longFileId, userEmail);
       List<FileNodeRecord> fileNodeRecordList = fileNodeList.stream().map(fileNode -> fileNode.toRecord()).toList();
-      return ResponseEntity.ok(fileNodeRecordList);
+
+      List<FileNode> fileNodeParentChain = fileNodeService.fileNodeParentChain(longFileId);
+      List<FileNodeRecord> fileNodeParentRecordChain = fileNodeParentChain.stream().map(fileNode -> fileNode.toRecord()).toList();
+
+      FileNodeContentsRecord fileNodeContentsRecord = new FileNodeContentsRecord(fileNodeRecordList, fileNodeParentRecordChain);
+
+      return ResponseEntity.ok(fileNodeContentsRecord);
     } catch (Exception e) {
       throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to load FileNode data", e);
     }

@@ -2,10 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { FaFile, FaFolder } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import { useNavigate, useSearchParams } from "react-router-dom";
-//import ShareModal from "../shareModal/shareModal";
 import FileBrowserShareModal from "../fileBrowserShareModal/fileBrowserShareModal";
 
-//const FileBrowser = ({ mode = "download" }) => {
 const FileBrowser = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -18,12 +16,9 @@ const FileBrowser = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [breadcrumbs, setBreadcrumbs] = useState([]);
-  const [rootFolders, setRootFolders] = useState([]);
-  const [directoryNames, setDirectoryNames] = useState({});
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showShareModal, setShowShareModal] = useState(false);
   const [generatedLink, setGeneratedLink] = useState("");
-  const [pendingShareDigests, setPendingShareDigests] = useState([]);
   const [pendingShareFileId, setPendingShareFileId] = useState([]);
 
   const fileId = searchParams.get("file_id") || "0";
@@ -66,36 +61,10 @@ const FileBrowser = () => {
       }
 
       const data = await response.json();
-      setFiles(data);
+      const fileNodeList = data.fileNodeList;
+      setFiles(fileNodeList);
       setSelectedIds(new Set());
-
-      if (id === "0") {
-        const folders = data.filter((item) => item.type === 0);
-        setRootFolders(folders);
-        setDirectoryNames((prev) => {
-          const next = { ...prev };
-          folders.forEach((item) => {
-            const folderId = String(item.file_id ?? item.id ?? "0");
-            if (folderId && item.name) {
-              next[folderId] = item.name;
-            }
-          });
-          return next;
-        });
-      }
-
-      let currentDirectoryName = directoryNames[id];
-      if (id !== "0" && !currentDirectoryName) {
-        currentDirectoryName = await fetchDirectoryNameById(id);
-        if (currentDirectoryName) {
-          setDirectoryNames((prev) => ({
-            ...prev,
-            [id]: currentDirectoryName,
-          }));
-        }
-      }
-
-      updateBreadcrumbs(id, currentDirectoryName);
+      updateBreadcrumbs(data.fileNodeParentChain);
     } catch (err) {
       setError(err.message || "Unable to load files");
       setFiles([]);
@@ -104,51 +73,15 @@ const FileBrowser = () => {
     }
   };
 
-  const fetchDirectoryNameById = async (targetId) => {
-    const cachedFolder = rootFolders.find(
-      (folder) => String(folder.file_id ?? folder.id ?? "0") === targetId,
-    );
-    if (cachedFolder?.name) {
-      return cachedFolder.name;
-    }
-
-    const response = await fetch("/file_contents?file_id=0", {
-      method: "GET",
-      credentials: "include",
-    });
-    if (!response.ok) {
-      return null;
-    }
-
-    const rootData = await response.json();
-    const folders = rootData.filter((item) => item.type === 0);
-    setRootFolders(folders);
-    setDirectoryNames((prev) => {
-      const next = { ...prev };
-      folders.forEach((item) => {
-        const folderId = String(item.file_id ?? item.id ?? "0");
-        if (folderId && item.name) {
-          next[folderId] = item.name;
-        }
+  const updateBreadcrumbs = (parentChain) => {
+    let nextBreadcrumbs = [{ name: "Root", id: "0" }];
+    parentChain.forEach((parentNode) => {
+      nextBreadcrumbs.push({
+        name: parentNode.name,
+        id: String(parentNode.file_id),
       });
-      return next;
     });
-
-    const matched = folders.find(
-      (folder) => String(folder.file_id ?? folder.id ?? "0") === targetId,
-    );
-    return matched?.name ?? null;
-  };
-
-  const updateBreadcrumbs = (id, directoryName) => {
-    if (id === "0") {
-      setBreadcrumbs([{ name: "Root", id: "0" }]);
-      return;
-    }
-    setBreadcrumbs([
-      { name: "Root", id: "0" },
-      { name: directoryName ?? `Directory ${id}`, id },
-    ]);
+    setBreadcrumbs(nextBreadcrumbs);
   };
 
   const isDirectory = (file) => file.type === "DIRECTORY";
@@ -156,7 +89,6 @@ const FileBrowser = () => {
   const isSelected = (file) => selectedIds.has(getFileId(file));
 
   const handleNavigate = (targetFileId) => {
-    //const basePath = mode === "share" ? "/files/share" : "/files";
     const basePath = "/files";
     navigate(`${basePath}?file_id=${targetFileId}`);
   };
@@ -326,7 +258,6 @@ const FileBrowser = () => {
   const handleSingleFileShare = (e, file) => {
     e.stopPropagation();
     setPendingShareFileId(file.file_id);
-    setPendingShareDigests([file.digest]);
     setGeneratedLink("");
     setShowShareModal(true);
   };
