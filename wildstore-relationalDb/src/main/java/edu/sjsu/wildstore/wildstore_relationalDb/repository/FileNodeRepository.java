@@ -1,6 +1,7 @@
 package edu.sjsu.wildstore.wildstore_relationalDb;
 
 import java.util.List;
+import java.util.Collection;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -16,6 +17,8 @@ public interface FileNodeRepository extends JpaRepository<FileNode, Long> {
   boolean existsById(Long fileNodeId);
 
   List<FileNode> findByParentId(Long parentId);
+
+  List<FileNode> findByDigestIn(Collection<String> digests);
 
   @Query("SELECT DISTINCT f FROM FileNode f JOIN f.filePermissions p WHERE f.parent = :parent AND p.user = :user")
   List<FileNode> findByParentAndUserFilePermission(@Param("parent") FileNode parent, @Param("user") User user);

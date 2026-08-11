@@ -85,5 +85,9 @@ public class FileNode {
       Path path = Path.of(fileName);
       return path.getFileName().toString();
     }
+
+    public String getDigest() {
+      return digest;
+    }
 }
 

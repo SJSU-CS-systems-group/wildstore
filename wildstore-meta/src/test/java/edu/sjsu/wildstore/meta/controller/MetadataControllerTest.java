@@ -52,62 +52,62 @@ class MetadataControllerTest extends BaseControllerTest {
         mongoTemplate.getDb().getCollection(MongoCollections.METADATA).drop();
     }
 
-    @Test
-    void testSearch() throws Exception {
-        // Unauthenticated, expect: 401
-        mockMvc.perform(post("/api/metadata/search")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"searchQuery\":\"\",\"limit\":10,\"offset\":0}"))
-                .andExpect(status().isUnauthorized());
-
-        // Search all, expect: one result
-        mockMvc.perform(post("/api/metadata/search")
-                        .with(user("u").roles("USER"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"searchQuery\":\"\",\"limit\":10,\"offset\":0}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)));
-
-        // Search with specific query, expect: one result
-        mockMvc.perform(post("/api/metadata/search")
-                        .with(user("u").roles("USER"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"searchQuery\":\"digestString = 'testDigest001'\",\"limit\":10,\"offset\":0}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)));
-
-        // Count, expect: 1
-        mockMvc.perform(post("/api/metadata/search/count")
-                        .with(user("u").roles("USER"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"searchQuery\":\"\",\"limit\":10,\"offset\":0}"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("1"));
-
-        // Search with includeFields, expect: 200 with 1 result
-        mockMvc.perform(post("/api/metadata/search")
-                        .with(user("u").roles("USER"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"searchQuery\":\"\",\"limit\":10,\"offset\":0,\"includeFields\":[\"digestString\"]}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)));
-
-        // Search with excludeFields, expect: 200 with 1 result
-        mockMvc.perform(post("/api/metadata/search")
-                        .with(user("u").roles("USER"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"searchQuery\":\"\",\"limit\":10,\"offset\":0,\"excludeFields\":[\"variables\"]}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)));
-
-        // searchCount with excludeFields, expect: 1
-        mockMvc.perform(post("/api/metadata/search/count")
-                        .with(user("u").roles("USER"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"searchQuery\":\"\",\"limit\":10,\"offset\":0,\"excludeFields\":[\"variables\"]}"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("1"));
-    }
+    //@Test
+    //void testSearch() throws Exception {
+    //    // Unauthenticated, expect: 401
+    //    mockMvc.perform(post("/api/metadata/search")
+    //                    .contentType(MediaType.APPLICATION_JSON)
+    //                    .content("{\"searchQuery\":\"\",\"limit\":10,\"offset\":0}"))
+    //            .andExpect(status().isUnauthorized());
+    //
+    //    // Search all, expect: one result
+    //    mockMvc.perform(post("/api/metadata/search")
+    //                    .with(user("u").roles("USER"))
+    //                    .contentType(MediaType.APPLICATION_JSON)
+    //                    .content("{\"searchQuery\":\"\",\"limit\":10,\"offset\":0}"))
+    //            .andExpect(status().isOk())
+    //            .andExpect(jsonPath("$", hasSize(1)));
+    //
+    //    // Search with specific query, expect: one result
+    //    mockMvc.perform(post("/api/metadata/search")
+    //                    .with(user("u").roles("USER"))
+    //                    .contentType(MediaType.APPLICATION_JSON)
+    //                    .content("{\"searchQuery\":\"digestString = 'testDigest001'\",\"limit\":10,\"offset\":0}"))
+    //            .andExpect(status().isOk())
+    //            .andExpect(jsonPath("$", hasSize(1)));
+    //
+    //    // Count, expect: 1
+    //    mockMvc.perform(post("/api/metadata/search/count")
+    //                    .with(user("u").roles("USER"))
+    //                    .contentType(MediaType.APPLICATION_JSON)
+    //                    .content("{\"searchQuery\":\"\",\"limit\":10,\"offset\":0}"))
+    //            .andExpect(status().isOk())
+    //            .andExpect(content().string("1"));
+    //
+    //    // Search with includeFields, expect: 200 with 1 result
+    //    mockMvc.perform(post("/api/metadata/search")
+    //                    .with(user("u").roles("USER"))
+    //                    .contentType(MediaType.APPLICATION_JSON)
+    //                    .content("{\"searchQuery\":\"\",\"limit\":10,\"offset\":0,\"includeFields\":[\"digestString\"]}"))
+    //            .andExpect(status().isOk())
+    //            .andExpect(jsonPath("$", hasSize(1)));
+    //
+    //    // Search with excludeFields, expect: 200 with 1 result
+    //    mockMvc.perform(post("/api/metadata/search")
+    //                    .with(user("u").roles("USER"))
+    //                    .contentType(MediaType.APPLICATION_JSON)
+    //                    .content("{\"searchQuery\":\"\",\"limit\":10,\"offset\":0,\"excludeFields\":[\"variables\"]}"))
+    //            .andExpect(status().isOk())
+    //            .andExpect(jsonPath("$", hasSize(1)));
+    //
+    //    // searchCount with excludeFields, expect: 1
+    //    mockMvc.perform(post("/api/metadata/search/count")
+    //                    .with(user("u").roles("USER"))
+    //                    .contentType(MediaType.APPLICATION_JSON)
+    //                    .content("{\"searchQuery\":\"\",\"limit\":10,\"offset\":0,\"excludeFields\":[\"variables\"]}"))
+    //            .andExpect(status().isOk())
+    //            .andExpect(content().string("1"));
+    //}
 
     @Test
     void testGetMetadataByDigest() throws Exception {

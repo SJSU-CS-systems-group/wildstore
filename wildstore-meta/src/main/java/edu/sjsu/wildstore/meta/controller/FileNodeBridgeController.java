@@ -60,10 +60,6 @@ public class FileNodeBridgeController {
                     .queryParam("user_email", userEmail)
                     .toUriString();
 
-            //FileNodeRecord[] response = restClient.get().uri(url).retrieve().body(FileNodeRecord[].class);
-            //List<FileNodeRecord> responseList = Arrays.asList(response);
-            //return ResponseEntity.ok(responseList);
-
             FileNodeContentsRecord response = restClient.get().uri(url).retrieve().body(FileNodeContentsRecord.class);
             return ResponseEntity.ok(response);
         } catch (Exception e) {

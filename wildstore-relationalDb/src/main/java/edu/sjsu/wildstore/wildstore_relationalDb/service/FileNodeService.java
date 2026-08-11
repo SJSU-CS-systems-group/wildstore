@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -92,6 +93,10 @@ public class FileNodeService {
         return fileNodeRepository.findByParentIdAndUserIdFilePermission(parentId, userId);
     }
 
+    public List<FileNode> findByDigestIn(Set<String> digests) {
+        return fileNodeRepository.findByDigestIn(digests);
+    }
+
     public boolean userCanAccessParent(Long parentId, Long userId) throws Exception {
         if (parentId == null) {
           return false;
@@ -115,15 +120,15 @@ public class FileNodeService {
 
     public boolean userCanAccessFileNode(Long fileNodeId, Long userId) throws Exception {
       if (fileNodeId == null) {
-        return true;
+        return false;
       } else if (filePermissionRepository.existsByUserIdAndFileNodeId(userId, fileNodeId)) {
         return true;
       }
-      Optional<FileNode> parentNode = findById(fileNodeId);
-      if (!parentNode.isPresent()) {
+      Optional<FileNode> fileNode = findById(fileNodeId);
+      if (!fileNode.isPresent()) {
         return false;
       }
-      return userCanAccessFileNode(parentNode.get().getParentId(), userId);
+      return userCanAccessFileNode(fileNode.get().getParentId(), userId);
     }
 
     public List<FileNode> fileNodeParentChain(Long fileNodeId) throws Exception {

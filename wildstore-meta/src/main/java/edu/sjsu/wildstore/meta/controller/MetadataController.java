@@ -3,6 +3,7 @@ package edu.sjsu.wildstore.meta.controller;
 import com.mongodb.DBObject;
 import com.mongodb.MongoWriteException;
 import edu.sjsu.wildstore.Metadata;
+import edu.sjsu.wildstore.FilterMetadataRequest;
 import edu.sjsu.wildstore.MetadataRequest;
 import edu.sjsu.wildstore.meta.CriteriaBuilder;
 import edu.sjsu.wildstore.meta.MongoCollections;
@@ -10,13 +11,20 @@ import net.sf.jsqlparser.JSQLParserException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -31,6 +39,11 @@ import java.util.stream.Collectors;
 @RequestMapping("/api")
 public class MetadataController {
 
+    @Value("${custom.sqlServerUrl}")
+    private String sqlServerUrl;
+
+    private final RestClient restClient = RestClient.create();
+    
     @Autowired
     private MongoTemplate mongoTemplate;
 
@@ -42,6 +55,28 @@ public class MetadataController {
     @Value("classpath:static/attributeDescriptions.json")
     Resource attributeResourceFile;
 
+
+    private String getUserEmail(OAuth2AuthenticationToken auth) throws IllegalArgumentException {
+        OAuth2User principal = auth.getPrincipal();
+        String provider = auth.getAuthorizedClientRegistrationId();
+        String userEmail = "";
+        switch (provider.toLowerCase()) {
+            case "google":
+                userEmail = principal.getAttribute("email");
+                break;
+            case "github":
+                userEmail = principal.getAttribute("email");
+                if (userEmail == null) {
+                    userEmail = principal.getAttribute("login") + "@github";
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported provider: " + provider);
+        }
+        return userEmail;
+    }
+
+
     /**
      * Searches metadata documents corresponding to the query
      *
@@ -51,7 +86,7 @@ public class MetadataController {
      */
     @PreAuthorize("hasRole('USER')")
     @PostMapping("/metadata/search")
-    public List<Metadata> search(@RequestBody MetadataRequest request) throws JSQLParserException {
+    public List<Metadata> search(@RequestBody MetadataRequest request, OAuth2AuthenticationToken auth) throws JSQLParserException {
         Query query = new Query();
         Criteria criteria = CriteriaBuilder.buildFromSQL(request.searchQuery);
         if (criteria != null) {
@@ -66,7 +101,24 @@ public class MetadataController {
             query.fields().exclude(request.excludeFields);
         }
         var res = mongoTemplate.find(query, Metadata.class);
-        return res;
+
+        String userEmail = getUserEmail(auth);
+        FilterMetadataRequest filterMetadataRequest = new FilterMetadataRequest();
+        filterMetadataRequest.metadataResults = res;
+        filterMetadataRequest.userEmail = userEmail;
+
+        String url = UriComponentsBuilder.fromHttpUrl(sqlServerUrl)
+                    .path("/metadata")
+                    .toUriString();
+
+        ResponseEntity<List<Metadata>> filteredRes = restClient.post()
+            .uri(url)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(filterMetadataRequest)
+            .retrieve()
+            .toEntity(new ParameterizedTypeReference<List<Metadata>>() {});
+        //return res;
+        return filteredRes.getBody();
     }
 
     @PreAuthorize("hasRole('USER')")
