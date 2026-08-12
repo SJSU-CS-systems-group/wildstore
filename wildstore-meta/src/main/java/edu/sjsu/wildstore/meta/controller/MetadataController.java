@@ -123,7 +123,7 @@ public class MetadataController {
 
     @PreAuthorize("hasRole('USER')")
     @PostMapping("/metadata/search/count")
-    public long searchCount(@RequestBody MetadataRequest request) throws JSQLParserException {
+    public long searchCount(@RequestBody MetadataRequest request, OAuth2AuthenticationToken auth) throws JSQLParserException {
         Query query = new Query();
         Criteria criteria = CriteriaBuilder.buildFromSQL(request.searchQuery);
         if (criteria != null) {
@@ -132,7 +132,26 @@ public class MetadataController {
         if (request.excludeFields != null) {
             query.fields().exclude(request.excludeFields);
         }
-        return mongoTemplate.count(query, Metadata.class);
+
+        var res = mongoTemplate.find(query, Metadata.class);
+
+        String userEmail = getUserEmail(auth);
+        FilterMetadataRequest filterMetadataRequest = new FilterMetadataRequest();
+        filterMetadataRequest.metadataResults = res;
+        filterMetadataRequest.userEmail = userEmail;
+        String url = UriComponentsBuilder.fromHttpUrl(sqlServerUrl)
+                    .path("/metadata/count")
+                    .toUriString();
+
+        ResponseEntity<Long> countRes = restClient.post()
+            .uri(url)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(filterMetadataRequest)
+            .retrieve()
+            .toEntity(Long.class);
+
+        //return mongoTemplate.count(query, Metadata.class);
+        return countRes.getBody();
     }
 
     @PreAuthorize("hasRole('GUEST')")

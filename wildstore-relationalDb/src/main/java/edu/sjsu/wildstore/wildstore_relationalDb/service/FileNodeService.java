@@ -128,7 +128,7 @@ public class FileNodeService {
       if (!fileNode.isPresent()) {
         return false;
       }
-      return userCanAccessFileNode(fileNode.get().getParentId(), userId);
+      return userCanAccessParent(fileNode.get().getParentId(), userId);
     }
 
     public List<FileNode> fileNodeParentChain(Long fileNodeId) throws Exception {

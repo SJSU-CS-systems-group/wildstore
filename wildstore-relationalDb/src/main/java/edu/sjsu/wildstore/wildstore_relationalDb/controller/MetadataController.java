@@ -23,14 +23,10 @@ public class MetadataController {
   @Autowired
   private UserService userService;
 
-  @PostMapping("/metadata")
-  public ResponseEntity<List<Metadata>> filterMetadataByPermissions(@RequestBody FilterMetadataRequest filterMetadataRequest) {
-    List<Metadata> metadataResults = filterMetadataRequest.metadataResults;
-    String userEmail = filterMetadataRequest.userEmail;
-    try {
+  public List<Metadata> filterResults(String userEmail, List<Metadata> metadataResults) throws Exception {
       Long userId = userService.findOrCreate(userEmail).getId();
       if (userService.isAdmin(userId)) {
-        return ResponseEntity.ok(metadataResults);
+        return metadataResults;
       }
       Set<String> resultDigests = new HashSet<String>();
       for (Metadata result : metadataResults) {
@@ -52,10 +48,30 @@ public class MetadataController {
       List<Metadata> filteredMetadataResults = metadataResults.stream()
           .filter(metadata -> digestsUserHasAccess.contains(metadata.digestString))
           .collect(Collectors.toList());
+      return filteredMetadataResults;
+  }
 
+  @PostMapping("/metadata")
+  public ResponseEntity<List<Metadata>> filterMetadataByPermissions(@RequestBody FilterMetadataRequest filterMetadataRequest) {
+    List<Metadata> metadataResults = filterMetadataRequest.metadataResults;
+    String userEmail = filterMetadataRequest.userEmail;
+    try {
+      List<Metadata> filteredMetadataResults = filterResults(userEmail, metadataResults);
       return ResponseEntity.ok(filteredMetadataResults);
     } catch (Exception e) {
       throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to filter Metadata", e);
+    }
+  }
+
+  @PostMapping("/metadata/count")
+  public ResponseEntity<Long> countMetadataByPermissions(@RequestBody FilterMetadataRequest filterMetadataRequest) {
+    List<Metadata> metadataResults = filterMetadataRequest.metadataResults;
+    String userEmail = filterMetadataRequest.userEmail;
+    try {
+      Long filteredMetadataResultsCount = (long) filterResults(userEmail, metadataResults).size();
+      return ResponseEntity.ok(filteredMetadataResultsCount);
+    } catch (Exception e) {
+      throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to count Metadata", e);
     }
   }
 }
