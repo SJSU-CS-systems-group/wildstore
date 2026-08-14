@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import edu.sjsu.wildstore.wildstore_relationalDb.records.FileNodeContentsRecord;
+import edu.sjsu.wildstore.wildstore_relationalDb.records.FileNodePermissionsRecord;
 
 @RestController
 public class FileNodeBridgeController {
@@ -86,4 +87,22 @@ public class FileNodeBridgeController {
                     "Unable to Post FilePermission data", e);
         }
     }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/file_contents/permissions")
+    public ResponseEntity<FileNodePermissionsRecord> getFileNodePermissions(@RequestParam(value = "file_id") String fileId) {
+        try {
+            String url = UriComponentsBuilder.fromHttpUrl(sqlServerUrl)
+                    .path("/file_contents/permissions")
+                    .queryParam("file_id", fileId)
+                    .toUriString();
+
+            FileNodePermissionsRecord response = restClient.get().uri(url).retrieve().body(FileNodePermissionsRecord.class);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Unable to load FileNodePermissions data", e);
+        }
+    }
+
 }

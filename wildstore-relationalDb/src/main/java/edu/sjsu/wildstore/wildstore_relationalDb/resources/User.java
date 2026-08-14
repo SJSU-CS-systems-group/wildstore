@@ -54,4 +54,7 @@ public class User {
       this.userRole = userRole;
     }
 
+    public String getEmail() {
+      return email;
+    }
 }

@@ -18,8 +18,7 @@ const FileBrowser = () => {
   const [breadcrumbs, setBreadcrumbs] = useState([]);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showShareModal, setShowShareModal] = useState(false);
-  const [generatedLink, setGeneratedLink] = useState("");
-  const [pendingShareFileId, setPendingShareFileId] = useState([]);
+  const [pendingShareFileId, setPendingShareFileId] = useState();
 
   const fileId = searchParams.get("file_id") || "0";
 
@@ -258,7 +257,6 @@ const FileBrowser = () => {
   const handleSingleFileShare = (e, file) => {
     e.stopPropagation();
     setPendingShareFileId(file.file_id);
-    setGeneratedLink("");
     setShowShareModal(true);
   };
 
@@ -447,10 +445,11 @@ const FileBrowser = () => {
                           <FaFile className="text-info text-xl" />
                         )}
                         <span
-                          className={`font-medium ${isDirectory(file)
+                          className={`font-medium ${
+                            isDirectory(file)
                               ? "cursor-pointer text-primary hover:underline"
                               : "text-base-content"
-                            }`}
+                          }`}
                           onClick={(e) => {
                             if (isDirectory(file)) {
                               e.stopPropagation();
@@ -493,13 +492,11 @@ const FileBrowser = () => {
               </table>
             </div>
           )}
-
           <FileBrowserShareModal
-            digestString=""
             showModal={showShareModal}
             closeModal={() => setShowShareModal(false)}
             generateShareLink={shareFile}
-            generatedLink={generatedLink}
+            singleFileShare={pendingShareFileId}
           />
         </div>
       </div>

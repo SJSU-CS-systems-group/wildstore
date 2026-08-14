@@ -1,18 +1,43 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { GoX } from "react-icons/go";
 
 const FileBrowserShareModal = ({
-  digestString,
   showModal,
   closeModal,
   generateShareLink,
-  generatedLink,
+  singleFileShare,
 }) => {
   const [emailAddresses, setEmailAddresses] = useState([]);
+  const [filePermissions, setFilePermissions] = useState([]);
+  const [downstreamPermissions, setDownstreamPermissions] = useState([]);
   const [error, setError] = useState("");
-  const [validFor, setValidFor] = useState("");
   const inputRef = useRef();
-  const validForRef = useRef();
+
+  useEffect(() => {
+    if (singleFileShare != null) {
+      fetchFilePermissions(singleFileShare);
+    }
+  }, [singleFileShare]);
+
+  const fetchFilePermissions = async (fileId) => {
+    const response = await fetch(
+      `/file_contents/permissions?file_id=${fileId}`,
+      {
+        method: "GET",
+        credentials: "include",
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`Failed to fetch file permissions (${response.status})`);
+    }
+
+    const data = await response.json();
+    console.log(data);
+    const fetchedFilePermissions = data.filePermissions;
+    const fetchedDownstreamPermissions = data.downstreamPermissions;
+    setFilePermissions(fetchedFilePermissions);
+    setDownstreamPermissions(fetchedDownstreamPermissions);
+  };
 
   const handleInputChange = (event) => {
     const inputEmail = event.target.value;
@@ -33,11 +58,6 @@ const FileBrowserShareModal = ({
         inputRef.current.value = "";
       }
     }
-  };
-
-  const handleValidForChange = (event) => {
-    setValidFor(event.target.value);
-    validForRef.current.classList.remove("select-error");
   };
 
   const handleDeleteEmail = (index) => {
@@ -74,42 +94,38 @@ const FileBrowserShareModal = ({
             </button>
           </form>
           <h3 className="font-bold text-lg">Share</h3>
-          {generatedLink ? (
-            generatedLink
-          ) : (
-            <div className="flex flex-col gap-4 py-4 items-center">
-              <input
-                ref={inputRef}
-                type="text"
-                placeholder="Enter email adresses to share"
-                className={"input input-bordered w-full max-w-lg " + error}
-                onKeyDown={(event) => handleInputChange(event)}
-              />
-              <div className="flex flex-wrap gap-2">
-                {emailAddresses.map((addr, i) => {
-                  return (
-                    <div
-                      key={i}
-                      className="badge badge-lg gap-2 border-gray-400 h-10 px-4"
-                    >
-                      {addr}
-                      <GoX
-                        size={14}
-                        className="w-3.5"
-                        onClick={(event) => handleDeleteEmail(i)}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-              <button
-                className="btn bg-primary text-white hover:bg-gray-600 hover:bg-opacity-40"
-                onClick={(event) => handleSubmit(event)}
-              >
-                Share
-              </button>
+          <div className="flex flex-col gap-4 py-4 items-center">
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="Enter email adresses to share"
+              className={"input input-bordered w-full max-w-lg " + error}
+              onKeyDown={(event) => handleInputChange(event)}
+            />
+            <div className="flex flex-wrap gap-2">
+              {emailAddresses.map((addr, i) => {
+                return (
+                  <div
+                    key={i}
+                    className="badge badge-lg gap-2 border-gray-400 h-10 px-4"
+                  >
+                    {addr}
+                    <GoX
+                      size={14}
+                      className="w-3.5"
+                      onClick={(event) => handleDeleteEmail(i)}
+                    />
+                  </div>
+                );
+              })}
             </div>
-          )}
+            <button
+              className="btn bg-primary text-white hover:bg-gray-600 hover:bg-opacity-40"
+              onClick={(event) => handleSubmit(event)}
+            >
+              Share
+            </button>
+          </div>
         </div>
       </dialog>
     </>

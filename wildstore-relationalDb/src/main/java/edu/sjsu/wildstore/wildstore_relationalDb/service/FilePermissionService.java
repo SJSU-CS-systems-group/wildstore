@@ -1,5 +1,6 @@
 package edu.sjsu.wildstore.wildstore_relationalDb;
 
+import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,10 @@ public class FilePermissionService {
         this.filePermissionRepository = filePermissionRepository;
         this.userService = userService;
         this.fileNodeService = fileNodeService;
+    }
+
+    public List<FilePermission> findByFileNodeId(Long fileNodeId) {
+        return filePermissionRepository.findByFileNodeId(fileNodeId);
     }
 
     @Transactional

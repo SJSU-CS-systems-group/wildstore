@@ -2,6 +2,8 @@ package edu.sjsu.wildstore.wildstore_relationalDb;
 
 import edu.sjsu.wildstore.wildstore_relationalDb.records.FileNodeRecord;
 import edu.sjsu.wildstore.wildstore_relationalDb.records.FileNodeContentsRecord;
+import edu.sjsu.wildstore.wildstore_relationalDb.records.FilePermissionRecord;
+import edu.sjsu.wildstore.wildstore_relationalDb.records.FileNodePermissionsRecord;
 
 import java.util.List;
 
@@ -18,6 +20,8 @@ import org.springframework.web.server.ResponseStatusException;
 public class FileNodeController {
   @Autowired
   private FileNodeService fileNodeService;
+  @Autowired
+  private FilePermissionService filePermissionService;
 
   @PostMapping("/file_contents")
   public ResponseEntity<Long> createFileNode(@RequestBody FileNodeParams fileNodeParams) {
@@ -46,6 +50,35 @@ public class FileNodeController {
       return ResponseEntity.ok(fileNodeContentsRecord);
     } catch (Exception e) {
       throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to load FileNode data", e);
+    }
+  }
+
+  @GetMapping("/file_contents/permissions")
+  public ResponseEntity<FileNodePermissionsRecord> getFileNodePermissions(@RequestParam(value="file_id") String fileId) {
+    try {
+      Long longFileId = Long.parseLong(fileId);
+      if (longFileId == 0) {
+        return ResponseEntity.notFound().build();
+      }
+      List<FilePermission> allFilePermissions = filePermissionService.findByFileNodeId(longFileId);
+      List<FilePermissionRecord> filePermissions = allFilePermissions.stream()
+                                                    .filter(filePermission -> {
+                                                      return filePermission.getDownstreamFileNodeId() == null;
+                                                    })
+                                                    .map(filePermission -> filePermission.toRecord())
+                                                    .toList();
+      List<FilePermissionRecord> downstreamPermissions = allFilePermissions.stream()
+                                                    .filter(filePermission -> {
+                                                      return filePermission.getDownstreamFileNodeId() != null;
+                                                    })
+                                                    .map(filePermission -> filePermission.toRecord())
+                                                    .toList();
+      FileNodePermissionsRecord fileNodePermissionsRecord = new FileNodePermissionsRecord(filePermissions, downstreamPermissions);
+
+      return ResponseEntity.ok(fileNodePermissionsRecord);
+    } catch (Exception e) {
+      System.out.println(e.toString());
+      throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to load FilePermissions data", e);
     }
   }
 }
