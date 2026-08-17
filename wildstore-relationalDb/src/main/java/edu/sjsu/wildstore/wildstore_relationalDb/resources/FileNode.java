@@ -62,7 +62,7 @@ public class FileNode {
     public FileNodeRecord toRecord() {
       Path path = Path.of(fileName);
       String endFileName = path.getFileName().toString();
-      return new FileNodeRecord(id, endFileName, size, digest, fileType.name());
+      return new FileNodeRecord(id, endFileName, size, digest, parentId, fileType.name());
     }
 
     public Long getId() {

@@ -6,4 +6,5 @@ public record FileNodeRecord(
     @JsonProperty("name") String name, 
     @JsonProperty("size") Long size,
     @JsonProperty("digest") String digest,
+    @JsonProperty("parent_id") Long parentId,
     @JsonProperty("type") String type){}
