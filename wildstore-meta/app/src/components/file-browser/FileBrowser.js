@@ -445,11 +445,10 @@ const FileBrowser = () => {
                           <FaFile className="text-info text-xl" />
                         )}
                         <span
-                          className={`font-medium ${
-                            isDirectory(file)
+                          className={`font-medium ${isDirectory(file)
                               ? "cursor-pointer text-primary hover:underline"
                               : "text-base-content"
-                          }`}
+                            }`}
                           onClick={(e) => {
                             if (isDirectory(file)) {
                               e.stopPropagation();
