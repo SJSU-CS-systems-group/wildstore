@@ -186,21 +186,15 @@ const FileBrowser = () => {
     const fileResponse = await fetch(`/api/file/${digest}`, {
       method: "GET",
       headers: new Headers(buildAuthHeaders()),
-      credentials: "include",
     });
-    if (!fileResponse.ok) {
-      throw new Error(`Failed to download ${fileName || digest}`);
-    }
-
     const blob = await fileResponse.blob();
-    const url = window.URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = fileName || digest;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    window.URL.revokeObjectURL(url);
+    var url = window.URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = fileName.split("/").pop().split("\\").pop();
+    document.body.appendChild(a); // we need to append the element to the dom -> otherwise it will not work in firefox
+    a.click();
+    a.remove(); //afterwards we remove the element again
   };
 
   const handleBulkDownload = async () => {
