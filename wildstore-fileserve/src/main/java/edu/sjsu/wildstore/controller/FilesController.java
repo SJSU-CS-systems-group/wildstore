@@ -1,5 +1,10 @@
 package edu.sjsu.wildstore.controller;
+import edu.sjsu.wildstore.MongoCollections;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
 import edu.sjsu.wildstore.Metadata;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,6 +18,7 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.File;
+import java.util.List;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
@@ -24,22 +30,23 @@ public class FilesController {
     @Value("${custom.metadataServer}")
     private String metadataServerUrl;
 
-    @CrossOrigin(origins = "http://localhost:3000")
+    @Autowired
+    private MongoTemplate mongoTemplate;
+
+    public final String METADATA_COLLECTION = MongoCollections.METADATA;
+
+    @CrossOrigin(origins = "${custom.metadataServer}")
     @GetMapping("/file/{digestString}")
     public void downloadFile(@PathVariable String digestString,
                              HttpServletRequest request,
                              HttpServletResponse response) {
-        final String uri = metadataServerUrl + "/api/metadata/" + digestString;
-
-        RestTemplate restTemplate = new RestTemplate();
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Authorization", request.getHeader("Authorization"));
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
-        ResponseEntity<Metadata> result = restTemplate.exchange(uri, HttpMethod.GET, entity, Metadata.class);
-        if (result.getBody() == null) {
-            return;
+        Query query = new Query(Criteria.where("digestString").is(digestString));
+        List<Metadata> res = mongoTemplate.find(query, Metadata.class, METADATA_COLLECTION);
+        Metadata metadata = res.isEmpty() ? null : res.get(0);
+        if (metadata == null) {
+          return;
         }
-        downloadHelper(result.getBody(), request, response);
+        downloadHelper(metadata, request, response);
     }
 
     private void downloadHelper(Metadata result, HttpServletRequest request, HttpServletResponse response) {
