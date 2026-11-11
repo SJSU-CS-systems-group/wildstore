@@ -81,6 +81,10 @@ public class FileNode {
       return fileType;
     }
 
+    public Path getFilePath() {
+      return Path.of(fileName);
+    }
+
     public String getFileName() {
       Path path = Path.of(fileName);
       return path.getFileName().toString();

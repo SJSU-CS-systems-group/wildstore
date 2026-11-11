@@ -197,6 +197,21 @@ const FileBrowser = () => {
     a.remove(); //afterwards we remove the element again
   };
 
+  const downloadFolderById = async (fileId, fileName) => {
+    const response = await fetch(`/file/download?file_id=${fileId}`, {
+      method: "GET",
+      credentials: "include",
+    });
+    const blob = await response.blob();
+    var url = window.URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = fileName.split("/").pop().split("\\").pop();
+    document.body.appendChild(a); // we need to append the element to the dom -> otherwise it will not work in firefox
+    a.click();
+    a.remove(); //afterwards we remove the element again
+  };
+
   const handleBulkDownload = async () => {
     if (selectedIds.size === 0) {
       setError("Select at least one file or directory.");
@@ -242,7 +257,11 @@ const FileBrowser = () => {
     e.stopPropagation();
     try {
       setError(null);
-      await downloadFileByDigest(file.digest, file.name);
+      if (isDirectory(file)) {
+        await downloadFolderById(getFileId(file), file.name);
+      } else {
+        await downloadFileByDigest(file.digest, file.name);
+      }
     } catch (err) {
       setError(err.message || "Download failed.");
     }

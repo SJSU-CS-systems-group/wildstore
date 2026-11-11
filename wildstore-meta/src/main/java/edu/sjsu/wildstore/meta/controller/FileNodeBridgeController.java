@@ -1,14 +1,18 @@
 package edu.sjsu.wildstore.meta.controller;
 
+import edu.sjsu.wildstore.FileType;
 import edu.sjsu.wildstore.FilePermissionsParams;
+import edu.sjsu.wildstore.wildstore_relationalDb.records.FileNodeContentsRecord;
+import edu.sjsu.wildstore.wildstore_relationalDb.records.FileNodePermissionsRecord;
+import edu.sjsu.wildstore.wildstore_relationalDb.records.ZipInfoRecord;
+import edu.sjsu.wildstore.wildstore_relationalDb.records.ZipEntryRecord;
 
-import org.springframework.http.ResponseEntity;
+//import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.util.UriComponentsBuilder;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -17,10 +21,21 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.util.UriComponentsBuilder;
 
-import edu.sjsu.wildstore.wildstore_relationalDb.records.FileNodeContentsRecord;
-import edu.sjsu.wildstore.wildstore_relationalDb.records.FileNodePermissionsRecord;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+import org.springframework.http.HttpHeaders;
+import java.io.IOException;
+import java.io.FileInputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
+
+import java.util.List;
 
 @RestController
 public class FileNodeBridgeController {
@@ -66,6 +81,61 @@ public class FileNodeBridgeController {
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Unable to load FileNodeController data", e);
+        }
+    }
+
+    @PreAuthorize("hasRole('GUEST')")
+    @GetMapping("/file/download")
+    public ResponseEntity<StreamingResponseBody> downloadFileNode(@RequestParam(value = "file_id", defaultValue = "0") String fileId, OAuth2AuthenticationToken auth) {
+        try {
+            String userEmail = getUserEmail(auth);
+            String url = UriComponentsBuilder.fromHttpUrl(sqlServerUrl)
+                    .path("/file/download/stream")
+                    .queryParam("file_id", fileId)
+                    .queryParam("user_email", userEmail)
+                    .toUriString();
+            ZipInfoRecord response = restClient.get().uri(url).retrieve().body(ZipInfoRecord.class);
+            List<ZipEntryRecord> zipEntries = response.zipEntryRecords();
+            String zipName = response.zipName();
+
+            StreamingResponseBody responseBody = outputStream -> {
+              try (ZipOutputStream zos = new ZipOutputStream(outputStream)) {
+                for (ZipEntryRecord zipEntry : zipEntries) {
+                  if (zipEntry.type().equals(FileType.DIRECTORY.name())) {
+                    ZipEntry entry = new ZipEntry(zipEntry.entryName() + "/");
+                    zos.putNextEntry(entry);
+                    zos.closeEntry();
+                    zos.flush();
+                  } else {
+                    Path filePath = Path.of(zipEntry.entryPath());
+                    if (Files.exists(filePath)) {
+                      ZipEntry entry = new ZipEntry(zipEntry.entryName());
+                      zos.putNextEntry(entry);
+                      
+                      FileInputStream fis = new FileInputStream(filePath.toString());
+                      byte[] buffer = new byte[4096];
+                      int bytesRead;
+                      while ((bytesRead = fis.read(buffer)) != -1) {
+                          zos.write(buffer, 0, bytesRead);
+                      }
+                      zos.closeEntry();
+                      zos.flush();
+                    }
+                  }
+                }
+                zos.finish();
+              } catch (Exception e) {
+                throw new IOException("Error while streaming ZIP content", e);
+              }
+            };
+
+            return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + zipName + ".zip\"")
+                .contentType(MediaType.parseMediaType("application/zip"))
+                .body(responseBody);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Unable to download FileNodeController data", e);
         }
     }
 
