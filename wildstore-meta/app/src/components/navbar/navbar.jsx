@@ -76,7 +76,7 @@ const Navbar = () => {
       className="flex flex-col align-end justify-center h-16 shadow-lg relative z-50"
     >
       <div className="flex flex-row justify-end mx-6">
-        <div className="flex items-center">DATASHARING PLATFORM</div>
+        <div className="flex items-center">WIRC DATASHARING PLATFORM</div>
         <div className="grow"></div>
         <div>
           <NavBarIcon
