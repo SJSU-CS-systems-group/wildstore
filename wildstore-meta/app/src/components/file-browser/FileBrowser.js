@@ -124,64 +124,6 @@ const FileBrowser = () => {
     });
   };
 
-  const collectSelectedFiles = async () => {
-    const selectedItems = files.filter((file) =>
-      selectedIds.has(getFileId(file)),
-    );
-    const visitedDirectories = new Set();
-    const foundDigests = new Set();
-    const selectedFileEntries = [];
-
-    const addFileIfValid = (entry) => {
-      if (
-        isDirectory(entry) ||
-        !entry.digest ||
-        foundDigests.has(entry.digest)
-      ) {
-        return;
-      }
-      foundDigests.add(entry.digest);
-      selectedFileEntries.push({ digest: entry.digest, name: entry.name });
-    };
-
-    const collectDirectoryFiles = async (directoryId) => {
-      if (visitedDirectories.has(directoryId)) {
-        return;
-      }
-      visitedDirectories.add(directoryId);
-
-      const response = await fetch(`/file_contents?file_id=${directoryId}`, {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to load directory ${directoryId} (${response.status})`,
-        );
-      }
-
-      const entries = await response.json();
-      for (const entry of entries) {
-        if (isDirectory(entry)) {
-          await collectDirectoryFiles(getFileId(entry));
-        } else {
-          addFileIfValid(entry);
-        }
-      }
-    };
-
-    for (const item of selectedItems) {
-      if (isDirectory(item)) {
-        await collectDirectoryFiles(getFileId(item));
-      } else {
-        addFileIfValid(item);
-      }
-    }
-
-    return selectedFileEntries;
-  };
-
   const downloadFileByDigest = async (digest, fileName) => {
     const fileResponse = await fetch(`/api/file/${digest}`, {
       method: "GET",
@@ -219,16 +161,21 @@ const FileBrowser = () => {
     }
 
     try {
+      const idsUrl = Array.from(selectedIds).join(",");
       setError(null);
       setLoading(true);
-      const selectedFileEntries = await collectSelectedFiles();
-      if (selectedFileEntries.length === 0) {
-        setError("No downloadable files found in the selection.");
-        return;
-      }
-      for (const entry of selectedFileEntries) {
-        await downloadFileByDigest(entry.digest, entry.name);
-      }
+      const response = await fetch(`/file/bulk_download?file_ids=${idsUrl}`, {
+        method: "GET",
+        credentials: "include",
+      });
+      const blob = await response.blob();
+      var url = window.URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "bulk";
+      document.body.appendChild(a); // we need to append the element to the dom -> otherwise it will not work in firefox
+      a.click();
+      a.remove(); //afterwards we remove the element again
     } catch (err) {
       setError(err.message || "Bulk download failed.");
     } finally {

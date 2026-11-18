@@ -4,4 +4,4 @@ import java.util.List;
 
 public record ZipInfoRecord(
     @JsonProperty("zipName") String zipName, 
-    @JsonProperty("fileNodeParentChain") List<ZipEntryRecord> zipEntryRecords){}
+    @JsonProperty("zipEntryRecords") List<ZipEntryRecord> zipEntryRecords){}

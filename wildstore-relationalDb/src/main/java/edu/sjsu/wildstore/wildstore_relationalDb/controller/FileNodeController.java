@@ -5,6 +5,7 @@ import edu.sjsu.wildstore.wildstore_relationalDb.records.FileNodeContentsRecord;
 import edu.sjsu.wildstore.wildstore_relationalDb.records.FilePermissionRecord;
 import edu.sjsu.wildstore.wildstore_relationalDb.records.FileNodePermissionsRecord;
 import edu.sjsu.wildstore.wildstore_relationalDb.records.ZipInfoRecord;
+import edu.sjsu.wildstore.wildstore_relationalDb.records.BulkZipInfoRecord;
 import edu.sjsu.wildstore.wildstore_relationalDb.records.ZipEntryRecord;
 
 import java.io.IOException;
@@ -12,7 +13,6 @@ import java.io.BufferedOutputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-//import java.io.FileOutputStream;
 import java.io.FileInputStream;
 import java.util.Optional;
 import java.nio.file.Files;
@@ -67,6 +67,44 @@ public class FileNodeController {
       return ResponseEntity.ok(fileNodeContentsRecord);
     } catch (Exception e) {
       throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to load FileNode data", e);
+    }
+  }
+
+  @GetMapping("/file/download/bulk_stream")
+  public ResponseEntity<BulkZipInfoRecord> bulkFileDownloadStream(@RequestParam(value="file_ids", defaultValue= "0") String fileIds, @RequestParam(value="user_email") String userEmail) {
+    try {
+      List<ZipInfoRecord> zipInfos = new ArrayList<>();
+      for (String fileId : fileIds.split(",")) { 
+        List<ZipEntryRecord> zipEntries = new ArrayList<>();
+        Long longFileId = Long.parseLong(fileId);
+        if (longFileId == 0 || !fileNodeService.userCanAccessFileNode(longFileId, userEmail)) {
+          return ResponseEntity.notFound().build();
+        }
+        Optional<FileNode> optionalFileNode = fileNodeService.findById(longFileId);
+        if (!optionalFileNode.isPresent()) {
+          return ResponseEntity.notFound().build();
+        }
+        FileNode fileNode = optionalFileNode.get();
+        if (fileNode.getFileType() != FileType.DIRECTORY) {
+          Path filePath = fileNode.getFilePath();
+          String zipEntryName = filePath.getFileName().toString();
+          ZipEntryRecord zipEntryRecord = new ZipEntryRecord(zipEntryName, filePath.toString(), fileNode.getFileType().name());
+          zipEntries.add(zipEntryRecord);
+          ZipInfoRecord zipInfo = new ZipInfoRecord(zipEntryName, zipEntries);
+          zipInfos.add(zipInfo);
+        } else {
+          Path sourceFolder = fileNode.getFilePath();
+
+          zipStreamHelper(zipEntries, sourceFolder, longFileId, userEmail);
+          ZipInfoRecord zipInfo = new ZipInfoRecord(sourceFolder.getFileName().toString(), zipEntries);
+          zipInfos.add(zipInfo);
+        }
+      }
+      BulkZipInfoRecord zipInfosRecord = new BulkZipInfoRecord(zipInfos);
+      return ResponseEntity.ok(zipInfosRecord);
+    } catch (Exception e) {
+      System.out.println(e.toString());
+      return ResponseEntity.notFound().build();
     }
   }
 

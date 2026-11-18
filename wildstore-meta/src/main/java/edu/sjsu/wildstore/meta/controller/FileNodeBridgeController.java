@@ -6,8 +6,7 @@ import edu.sjsu.wildstore.wildstore_relationalDb.records.FileNodeContentsRecord;
 import edu.sjsu.wildstore.wildstore_relationalDb.records.FileNodePermissionsRecord;
 import edu.sjsu.wildstore.wildstore_relationalDb.records.ZipInfoRecord;
 import edu.sjsu.wildstore.wildstore_relationalDb.records.ZipEntryRecord;
-
-//import jakarta.servlet.http.HttpServletResponse;
+import edu.sjsu.wildstore.wildstore_relationalDb.records.BulkZipInfoRecord;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -137,6 +136,66 @@ public class FileNodeBridgeController {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Unable to download FileNodeController data", e);
         }
+    }
+
+    @PreAuthorize("hasRole('GUEST')")
+    @GetMapping("/file/bulk_download")
+    public ResponseEntity<StreamingResponseBody> bulkDownloadFileNode(@RequestParam(value = "file_ids", defaultValue = "0") String fileIds, OAuth2AuthenticationToken auth) {
+        try {
+            String userEmail = getUserEmail(auth);
+            String url = UriComponentsBuilder.fromHttpUrl(sqlServerUrl)
+                    .path("/file/download/bulk_stream")
+                    .queryParam("file_ids", fileIds)
+                    .queryParam("user_email", userEmail)
+                    .toUriString();
+            BulkZipInfoRecord response = restClient.get().uri(url).retrieve().body(BulkZipInfoRecord.class);
+            List<ZipInfoRecord> zipInfos = response.zipInfoRecords();
+
+            StreamingResponseBody responseBody = outputStream -> {
+              try (ZipOutputStream zos = new ZipOutputStream(outputStream)) {
+                for (ZipInfoRecord zipInfo: zipInfos) {
+                  List<ZipEntryRecord> zipEntries = zipInfo.zipEntryRecords();
+                  zipHelper(zipEntries, zos);
+                }
+                zos.finish();
+              } catch (Exception e) {
+                throw new IOException("Error while streaming ZIP content", e);
+              }
+            };
+            return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"bulk.zip\"")
+                .contentType(MediaType.parseMediaType("application/zip"))
+                .body(responseBody);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Unable to download FileNodeController data", e);
+        }
+    }
+
+    public void zipHelper(List<ZipEntryRecord> zipEntries, ZipOutputStream zos) throws Exception {
+      for (ZipEntryRecord zipEntry : zipEntries) {
+        if (zipEntry.type().equals(FileType.DIRECTORY.name())) {
+          ZipEntry entry = new ZipEntry(zipEntry.entryName() + "/");
+          zos.putNextEntry(entry);
+          zos.closeEntry();
+          zos.flush();
+        } else {
+          Path filePath = Path.of(zipEntry.entryPath());
+          if (Files.exists(filePath)) {
+            ZipEntry entry = new ZipEntry(zipEntry.entryName());
+            zos.putNextEntry(entry);
+            
+            FileInputStream fis = new FileInputStream(filePath.toString());
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = fis.read(buffer)) != -1) {
+                zos.write(buffer, 0, bytesRead);
+            }
+            zos.closeEntry();
+            zos.flush();
+          }
+        }
+      }
     }
 
     @PreAuthorize("hasRole('ADMIN')")
